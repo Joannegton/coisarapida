@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
 import 'core/config/firebase_options.dart';
 import 'core/config/app_router.dart';
 import 'core/theme/app_theme.dart';

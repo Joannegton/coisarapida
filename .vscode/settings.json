@@ -1,3 +1,4 @@
 {
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "cmake.sourceDirectory": "D:/Users/wtg13/cursos_geral/flutter/coisarapida/windows/flutter"
 }

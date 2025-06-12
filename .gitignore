@@ -1,5 +1,8 @@
 #credenciais
 lib/core/config/firebase_options.dart
+# Arquivo de configuração do Firebase para Android - pode conter chaves
+android/app/google-services.json
+
 
 # Miscellaneous
 *.class
