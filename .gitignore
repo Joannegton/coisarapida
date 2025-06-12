@@ -1,3 +1,6 @@
+#credenciais
+lib/core/config/firebase_options.dart
+
 # Miscellaneous
 *.class
 *.log
