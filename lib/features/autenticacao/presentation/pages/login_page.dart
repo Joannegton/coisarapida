@@ -52,8 +52,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     // Escutar mudanças no estado de autenticação
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
+        data: (_) {
+          // Login bem-sucedido, AuthGuard cuidará do redirecionamento.
+          // No entanto, para uma transição mais explícita da LoginPage:
+          if (mounted) {
+            context.go(AppRoutes.home);
+          }
+        },
         error: (error, _) {
-          SnackBarUtils.mostrarErro(context, error.toString());
+          if (mounted) {
+            SnackBarUtils.mostrarErro(context, error.toString());
+          }
         },
       );
     });

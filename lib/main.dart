@@ -10,7 +10,7 @@ import 'features/configuracoes/presentation/providers/tema_provider.dart';
 import 'features/configuracoes/presentation/providers/idioma_provider.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); 
   
   // Configurar orientação da tela
   await SystemChrome.setPreferredOrientations([
