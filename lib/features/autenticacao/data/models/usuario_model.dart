@@ -30,7 +30,7 @@ class UsuarioModel extends Usuario {
       emailVerificado: map['emailVerificado'] ?? false,
       tipo: TipoUsuario.values.firstWhere(
         (e) => e.name == map['tipo'],
-        orElse: () => TipoUsuario.cliente,
+        orElse: () => TipoUsuario.usuario,
       ),
     );
   }

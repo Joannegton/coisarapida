@@ -177,7 +177,7 @@ class AuthRepositoryImpl implements AuthRepository {
       fotoUrl: user.photoURL,
       criadoEm: user.metadata.creationTime ?? DateTime.now(),
       emailVerificado: user.emailVerified,
-      tipo: domain.TipoUsuario.cliente,
+      tipo: domain.TipoUsuario.usuario,
     );
   }
 
@@ -251,7 +251,7 @@ class AuthRepositoryImpl implements AuthRepository {
       fotoUrl: user.photoURL,
       criadoEm: DateTime.now(),
       emailVerificado: user.emailVerified,
-      tipo: domain.TipoUsuario.cliente,
+      tipo: domain.TipoUsuario.usuario,
     );
 
     await _firestore

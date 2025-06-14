@@ -7,12 +7,13 @@ import '../../features/autenticacao/presentation/pages/login_page.dart';
 import '../../features/autenticacao/presentation/pages/cadastro_page.dart';
 import '../../features/autenticacao/presentation/pages/esqueci_senha_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/entregas/presentation/pages/nova_entrega_page.dart';
-import '../../features/entregas/presentation/pages/acompanhar_entrega_page.dart';
+import '../../features/itens/presentation/pages/anunciar_item_page.dart';
 import '../../features/perfil/presentation/pages/perfil_page.dart';
 import '../../features/configuracoes/presentation/pages/configuracoes_page.dart';
 import '../constants/app_routes.dart';
 import '../guards/auth_guard.dart';
+import '../../features/buscar/presentation/pages/buscar_page.dart';
+import '../../features/itens/presentation/pages/detalhes_item_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -46,7 +47,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const EsqueciSenhaPage(),
       ),
 
-      // Área autenticada
+      // Área autenticada com bottom navigation
       ShellRoute(
         builder: (context, state, child) => ScaffoldWithNavBar(child: child),
         routes: [
@@ -56,36 +57,50 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HomePage(),
           ),
           GoRoute(
+            path: AppRoutes.buscar,
+            name: 'buscar',
+            builder: (context, state) => const BuscarPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.favoritos,
+            name: 'favoritos',
+            builder: (context, state) => const Center(
+              child: Text('Favoritos - Em desenvolvimento'),
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.perfil,
             name: 'perfil',
             builder: (context, state) => const PerfilPage(),
           ),
-          GoRoute(
-            path: AppRoutes.configuracoes,
-            name: 'configuracoes',
-            builder: (context, state) => const ConfiguracoesPage(),
-          ),
         ],
       ),
 
-      // Entregas
+      // Itens
       GoRoute(
-        path: AppRoutes.novaEntrega,
-        name: 'nova-entrega',
-        builder: (context, state) => const NovaEntregaPage(),
+        path: AppRoutes.anunciarItem,
+        name: 'anunciar-item',
+        builder: (context, state) => const AnunciarItemPage(),
       ),
       GoRoute(
-        path: '${AppRoutes.acompanharEntrega}/:id',
-        name: 'acompanhar-entrega',
-        builder: (context, state) => AcompanharEntregaPage(
-          entregaId: state.pathParameters['id']!,
+        path: '${AppRoutes.detalhesItem}/:id',
+        name: 'detalhes-item',
+        builder: (context, state) => DetalhesItemPage(
+          itemId: state.pathParameters['id']!,
         ),
+      ),
+
+      // Configurações
+      GoRoute(
+        path: AppRoutes.configuracoes,
+        name: 'configuracoes',
+        builder: (context, state) => const ConfiguracoesPage(),
       ),
     ],
   );
 });
 
-// Widget para navegação inferior
+// Widget para navegação inferior focada em aluguel de objetos
 class ScaffoldWithNavBar extends StatelessWidget {
   const ScaffoldWithNavBar({
     required this.child,
@@ -109,14 +124,19 @@ class ScaffoldWithNavBar extends StatelessWidget {
             label: 'Início',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.search_outlined),
+            activeIcon: Icon(Icons.search),
+            label: 'Buscar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_outline),
+            activeIcon: Icon(Icons.favorite),
+            label: 'Favoritos',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Perfil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            activeIcon: Icon(Icons.settings),
-            label: 'Configurações',
           ),
         ],
       ),
@@ -126,8 +146,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
     if (location.startsWith(AppRoutes.home)) return 0;
-    if (location.startsWith(AppRoutes.perfil)) return 1;
-    if (location.startsWith(AppRoutes.configuracoes)) return 2;
+    if (location.startsWith(AppRoutes.buscar)) return 1;
+    if (location.startsWith(AppRoutes.favoritos)) return 2;
+    if (location.startsWith(AppRoutes.perfil)) return 3;
     return 0;
   }
 
@@ -137,10 +158,13 @@ class ScaffoldWithNavBar extends StatelessWidget {
         GoRouter.of(context).go(AppRoutes.home);
         break;
       case 1:
-        GoRouter.of(context).go(AppRoutes.perfil);
+        GoRouter.of(context).go(AppRoutes.buscar);
         break;
       case 2:
-        GoRouter.of(context).go(AppRoutes.configuracoes);
+        GoRouter.of(context).go(AppRoutes.favoritos);
+        break;
+      case 3:
+        GoRouter.of(context).go(AppRoutes.perfil);
         break;
     }
   }
