@@ -19,6 +19,10 @@ import '../../features/itens/presentation/pages/detalhes_item_page.dart';
 import '../../features/favoritos/presentation/pages/favoritos_page.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
 
+import '../../features/seguranca/presentation/pages/aceite_contrato_page.dart';
+import '../../features/seguranca/presentation/pages/status_aluguel_page.dart';
+import '../../features/seguranca/presentation/pages/caucao_page.dart';
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
 
@@ -120,6 +124,42 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.configuracoes,
         name: 'configuracoes',
         builder: (context, state) => const ConfiguracoesPage(),
+      ),
+
+      // Rotas de segurança
+      GoRoute(
+        path: '${AppRoutes.aceiteContrato}/:aluguelId',
+        name: 'aceite-contrato',
+        builder: (context, state) {
+          final aluguelId = state.pathParameters['aluguelId']!;
+          final dadosAluguel = state.extra as Map<String, dynamic>;
+          return AceiteContratoPage(
+            aluguelId: aluguelId,
+            dadosAluguel: dadosAluguel,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '${AppRoutes.statusAluguel}/:aluguelId',
+        name: 'status-aluguel',
+        builder: (context, state) {
+          final aluguelId = state.pathParameters['aluguelId']!;
+          final dadosAluguel = state.extra as Map<String, dynamic>;
+          return StatusAluguelPage(
+            aluguelId: aluguelId,
+            dadosAluguel: dadosAluguel,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '${AppRoutes.caucao}/:aluguelId',
+        name: 'caucao',
+        builder: (context, state) {
+          final aluguelId = state.pathParameters['aluguelId']!;
+          return CaucaoPage(aluguelId: aluguelId);
+        },
       ),
     ],
   );

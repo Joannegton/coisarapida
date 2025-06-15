@@ -8,7 +8,7 @@ class ContratoDigital {
   final String conteudoHtml;
   final DateTime criadoEm;
   final AceiteContrato? aceite;
-  final String versaoContrato; // Para controle de versões
+  final String versaoContrato;
 
   const ContratoDigital({
     required this.id,
@@ -23,6 +23,32 @@ class ContratoDigital {
   });
 
   bool get foiAceito => aceite != null;
+
+  // Método copyWith para facilitar atualizações
+  ContratoDigital copyWith({
+    String? id,
+    String? aluguelId,
+    String? locatarioId,
+    String? locadorId,
+    String? itemId,
+    String? conteudoHtml,
+    DateTime? criadoEm,
+    AceiteContrato? aceite,
+    String? versaoContrato,
+    bool? aceito,
+  }) {
+    return ContratoDigital(
+      id: id ?? this.id,
+      aluguelId: aluguelId ?? this.aluguelId,
+      locatarioId: locatarioId ?? this.locatarioId,
+      locadorId: locadorId ?? this.locadorId,
+      itemId: itemId ?? this.itemId,
+      conteudoHtml: conteudoHtml ?? this.conteudoHtml,
+      criadoEm: criadoEm ?? this.criadoEm,
+      aceite: aceite ?? this.aceite,
+      versaoContrato: versaoContrato ?? this.versaoContrato,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -58,7 +84,7 @@ class AceiteContrato {
   final DateTime dataHora;
   final String enderecoIp;
   final String userAgent;
-  final String assinaturaDigital; // Hash do aceite
+  final String assinaturaDigital;
 
   const AceiteContrato({
     required this.dataHora,

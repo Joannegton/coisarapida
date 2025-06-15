@@ -24,7 +24,36 @@ class CaucaoNotifier extends StateNotifier<AsyncValue<Caucao?>> {
   final SegurancaRepository _repository;
   final String _aluguelId;
 
-  CaucaoNotifier(this._repository, this._aluguelId) : super(const AsyncValue.data(null));
+  CaucaoNotifier(this._repository, this._aluguelId) : super(const AsyncValue.loading()) {
+    _carregarCaucao();
+  }
+
+  Future<void> _carregarCaucao() async {
+    try {
+      final caucao = await _repository.obterCaucao(_aluguelId);
+      state = AsyncValue.data(caucao);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Processa caução
+  Future<void> processarCaucao({
+    required String metodoPagamento,
+    required double valorCaucao,
+  }) async {
+    try {
+      await _repository.processarCaucao(
+        aluguelId: _aluguelId,
+        metodoPagamento: metodoPagamento,
+        valorCaucao: valorCaucao,
+      );
+      await _carregarCaucao();
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
 
   /// Cria e bloqueia caução
   Future<void> criarCaucao({
@@ -59,8 +88,8 @@ class CaucaoNotifier extends StateNotifier<AsyncValue<Caucao?>> {
       if (state.value != null) {
         final caucaoAtualizada = state.value!.copyWith(
           status: StatusCaucao.liberada,
-          liberadaEm: DateTime.now(),
-          motivoLiberacao: motivo,
+          dataLiberacao: DateTime.now(),
+          motivoBloqueio: motivo,
         );
         state = AsyncValue.data(caucaoAtualizada);
       }
@@ -111,41 +140,23 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
   /// Aceita contrato
   Future<void> aceitarContrato(String contratoId) async {
     try {
-      // Simular obtenção de IP e User Agent
-      const enderecoIp = '192.168.1.1';
-      const userAgent = 'Flutter App';
-      
-      await _repository.aceitarContrato(
-        contratoId: contratoId,
-        enderecoIp: enderecoIp,
-        userAgent: userAgent,
-      );
+      await _repository.aceitarContrato(contratoId);
       
       // Atualizar estado local
       if (state.value != null) {
         final aceite = AceiteContrato(
           dataHora: DateTime.now(),
-          enderecoIp: enderecoIp,
-          userAgent: userAgent,
+          enderecoIp: '192.168.1.1',
+          userAgent: 'Flutter App',
           assinaturaDigital: 'assinatura_digital',
         );
         
-        final contratoAtualizado = ContratoDigital(
-          id: state.value!.id,
-          aluguelId: state.value!.aluguelId,
-          locatarioId: state.value!.locatarioId,
-          locadorId: state.value!.locadorId,
-          itemId: state.value!.itemId,
-          conteudoHtml: state.value!.conteudoHtml,
-          criadoEm: state.value!.criadoEm,
-          aceite: aceite,
-          versaoContrato: state.value!.versaoContrato,
-        );
-        
+        final contratoAtualizado = state.value!.copyWith(aceite: aceite);
         state = AsyncValue.data(contratoAtualizado);
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      rethrow;
     }
   }
 }

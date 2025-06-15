@@ -1,16 +1,20 @@
-/// Entidade que representa uma caução bloqueada
+/// Entidade que representa uma caução de aluguel
 class Caucao {
   final String id;
   final String aluguelId;
   final String locatarioId;
   final String locadorId;
   final String itemId;
-  final double valor;
+  final String nomeItem;
+  final double valorCaucao;
+  final double valorAluguel;
+  final int diasAluguel;
   final StatusCaucao status;
-  final DateTime criadaEm;
-  final DateTime? liberadaEm;
-  final String? motivoLiberacao;
-  final String? transacaoId; // ID da transação no gateway de pagamento
+  final String? metodoPagamento;
+  final DateTime dataCriacao;
+  final DateTime? dataLiberacao;
+  final String? motivoBloqueio;
+  final double? valorDescontado;
 
   const Caucao({
     required this.id,
@@ -18,12 +22,16 @@ class Caucao {
     required this.locatarioId,
     required this.locadorId,
     required this.itemId,
-    required this.valor,
+    required this.nomeItem,
+    required this.valorCaucao,
+    required this.valorAluguel,
+    required this.diasAluguel,
     required this.status,
-    required this.criadaEm,
-    this.liberadaEm,
-    this.motivoLiberacao,
-    this.transacaoId,
+    required this.dataCriacao,
+    this.metodoPagamento,
+    this.dataLiberacao,
+    this.motivoBloqueio,
+    this.valorDescontado,
   });
 
   Caucao copyWith({
@@ -32,12 +40,16 @@ class Caucao {
     String? locatarioId,
     String? locadorId,
     String? itemId,
-    double? valor,
+    String? nomeItem,
+    double? valorCaucao,
+    double? valorAluguel,
+    int? diasAluguel,
     StatusCaucao? status,
-    DateTime? criadaEm,
-    DateTime? liberadaEm,
-    String? motivoLiberacao,
-    String? transacaoId,
+    String? metodoPagamento,
+    DateTime? dataCriacao,
+    DateTime? dataLiberacao,
+    String? motivoBloqueio,
+    double? valorDescontado,
   }) {
     return Caucao(
       id: id ?? this.id,
@@ -45,12 +57,41 @@ class Caucao {
       locatarioId: locatarioId ?? this.locatarioId,
       locadorId: locadorId ?? this.locadorId,
       itemId: itemId ?? this.itemId,
-      valor: valor ?? this.valor,
+      nomeItem: nomeItem ?? this.nomeItem,
+      valorCaucao: valorCaucao ?? this.valorCaucao,
+      valorAluguel: valorAluguel ?? this.valorAluguel,
+      diasAluguel: diasAluguel ?? this.diasAluguel,
       status: status ?? this.status,
-      criadaEm: criadaEm ?? this.criadaEm,
-      liberadaEm: liberadaEm ?? this.liberadaEm,
-      motivoLiberacao: motivoLiberacao ?? this.motivoLiberacao,
-      transacaoId: transacaoId ?? this.transacaoId,
+      metodoPagamento: metodoPagamento ?? this.metodoPagamento,
+      dataCriacao: dataCriacao ?? this.dataCriacao,
+      dataLiberacao: dataLiberacao ?? this.dataLiberacao,
+      motivoBloqueio: motivoBloqueio ?? this.motivoBloqueio,
+      valorDescontado: valorDescontado ?? this.valorDescontado,
+    );
+  }
+
+  factory Caucao.fromMap(Map<String, dynamic> map) {
+    return Caucao(
+      id: map['id'] ?? '',
+      aluguelId: map['aluguelId'] ?? '',
+      locatarioId: map['locatarioId'] ?? '',
+      locadorId: map['locadorId'] ?? '',
+      itemId: map['itemId'] ?? '',
+      nomeItem: map['nomeItem'] ?? '',
+      valorCaucao: (map['valorCaucao'] ?? 0.0).toDouble(),
+      valorAluguel: (map['valorAluguel'] ?? 0.0).toDouble(),
+      diasAluguel: map['diasAluguel'] ?? 0,
+      status: StatusCaucao.values.firstWhere(
+        (e) => e.toString() == 'StatusCaucao.${map['status']}',
+        orElse: () => StatusCaucao.pendente,
+      ),
+      dataCriacao: DateTime.parse(map['dataCriacao']),
+      metodoPagamento: map['metodoPagamento'],
+      dataLiberacao: map['dataLiberacao'] != null 
+          ? DateTime.parse(map['dataLiberacao']) 
+          : null,
+      motivoBloqueio: map['motivoBloqueio'],
+      valorDescontado: map['valorDescontado']?.toDouble(),
     );
   }
 
@@ -61,42 +102,25 @@ class Caucao {
       'locatarioId': locatarioId,
       'locadorId': locadorId,
       'itemId': itemId,
-      'valor': valor,
-      'status': status.name,
-      'criadaEm': criadaEm.millisecondsSinceEpoch,
-      'liberadaEm': liberadaEm?.millisecondsSinceEpoch,
-      'motivoLiberacao': motivoLiberacao,
-      'transacaoId': transacaoId,
+      'nomeItem': nomeItem,
+      'valorCaucao': valorCaucao,
+      'valorAluguel': valorAluguel,
+      'diasAluguel': diasAluguel,
+      'status': status.toString().split('.').last,
+      'dataCriacao': dataCriacao.toIso8601String(),
+      'metodoPagamento': metodoPagamento,
+      'dataLiberacao': dataLiberacao?.toIso8601String(),
+      'motivoBloqueio': motivoBloqueio,
+      'valorDescontado': valorDescontado,
     };
-  }
-
-  factory Caucao.fromMap(Map<String, dynamic> map) {
-    return Caucao(
-      id: map['id'] ?? '',
-      aluguelId: map['aluguelId'] ?? '',
-      locatarioId: map['locatarioId'] ?? '',
-      locadorId: map['locadorId'] ?? '',
-      itemId: map['itemId'] ?? '',
-      valor: (map['valor'] ?? 0.0).toDouble(),
-      status: StatusCaucao.values.firstWhere(
-        (e) => e.name == map['status'],
-        orElse: () => StatusCaucao.pendente,
-      ),
-      criadaEm: DateTime.fromMillisecondsSinceEpoch(map['criadaEm'] ?? 0),
-      liberadaEm: map['liberadaEm'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(map['liberadaEm'])
-          : null,
-      motivoLiberacao: map['motivoLiberacao'],
-      transacaoId: map['transacaoId'],
-    );
   }
 }
 
 /// Status possíveis da caução
 enum StatusCaucao {
-  pendente,     // Aguardando pagamento
+  pendente,     // Aguardando processamento
   bloqueada,    // Valor bloqueado com sucesso
-  liberada,     // Liberada após devolução
-  utilizada,    // Utilizada para cobrir danos/multas
-  cancelada,    // Cancelada (aluguel cancelado)
+  liberada,     // Caução liberada após devolução
+  utilizada,    // Caução utilizada para cobrir danos/multas
+  cancelada,    // Caução cancelada
 }

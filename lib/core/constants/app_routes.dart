@@ -35,4 +35,11 @@ class AppRoutes {
   // Configurações
   static const String configuracoes = '/configuracoes';
   static const String notificacoes = '/notificacoes';
+
+  // Rotas de segurança
+  static const String aceiteContrato = '/aceite-contrato';
+  static const String statusAluguel = '/status-aluguel';
+  static const String caucao = '/caucao';
+  static const String verificacaoFotos = '/verificacao-fotos';
+  static const String denuncias = '/denuncias';
 }
