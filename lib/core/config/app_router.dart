@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,11 +10,14 @@ import '../../features/autenticacao/presentation/pages/esqueci_senha_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/itens/presentation/pages/anunciar_item_page.dart';
 import '../../features/perfil/presentation/pages/perfil_page.dart';
+import '../../features/perfil/presentation/pages/perfil_publico_page.dart';
 import '../../features/configuracoes/presentation/pages/configuracoes_page.dart';
 import '../constants/app_routes.dart';
 import '../guards/auth_guard.dart';
 import '../../features/buscar/presentation/pages/buscar_page.dart';
 import '../../features/itens/presentation/pages/detalhes_item_page.dart';
+import '../../features/favoritos/presentation/pages/favoritos_page.dart';
+import '../../features/chat/presentation/pages/chat_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -64,9 +68,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.favoritos,
             name: 'favoritos',
-            builder: (context, state) => const Center(
-              child: Text('Favoritos - Em desenvolvimento'),
-            ),
+            builder: (context, state) => const FavoritosPage(),
           ),
           GoRoute(
             path: AppRoutes.perfil,
@@ -87,6 +89,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'detalhes-item',
         builder: (context, state) => DetalhesItemPage(
           itemId: state.pathParameters['id']!,
+        ),
+      ),
+
+      // Perfil público
+      GoRoute(
+        path: '/perfil-publico/:id',
+        name: 'perfil-publico',
+        builder: (context, state) => PerfilPublicoPage(
+          usuarioId: state.pathParameters['id']!,
+        ),
+      ),
+
+      // Chat
+      GoRoute(
+        path: AppRoutes.listaChats,
+        name: 'lista-chats',
+        builder: (context, state) => const ListaChatsPage(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.chat}/:id',
+        name: 'chat',
+        builder: (context, state) => ChatPage(
+          chatId: state.pathParameters['id']!,
         ),
       ),
 

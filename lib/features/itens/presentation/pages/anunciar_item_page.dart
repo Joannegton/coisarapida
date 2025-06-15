@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:validatorless/validatorless.dart';
 
 import '../../../autenticacao/presentation/widgets/campo_texto_customizado.dart';
+import '../widgets/seletor_fotos.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela para anunciar um novo item para aluguel
@@ -221,113 +222,16 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   }
 
   Widget _buildPaginaFotos() {
-    final theme = Theme.of(context);
-    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Fotos do Item',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Adicione fotos para mostrar seu item (mínimo 1, máximo 5)',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Grid de fotos
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: 5, // Máximo 5 fotos
-            itemBuilder: (context, index) {
-              if (index < _fotosUrls.length) {
-                // Foto existente
-                return Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        image: DecorationImage(
-                          image: NetworkImage(_fotosUrls[index]),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () => _removerFoto(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              } else {
-                // Placeholder para adicionar foto
-                return GestureDetector(
-                  onTap: _adicionarFoto,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.grey.shade400,
-                        style: BorderStyle.solid,
-                        width: 2,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_photo_alternate,
-                          size: 32,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Adicionar\nFoto',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
-        ],
+      child: SeletorFotos(
+        fotosIniciais: _fotosUrls,
+        onFotosChanged: (fotos) {
+          setState(() {
+            _fotosUrls = fotos;
+          });
+        },
+        maxFotos: 5,
       ),
     );
   }
@@ -483,20 +387,6 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
       default:
         return true;
     }
-  }
-
-  void _adicionarFoto() {
-    // Simular adição de foto
-    setState(() {
-      _fotosUrls.add('https://via.placeholder.com/300x300?text=Foto+${_fotosUrls.length + 1}');
-    });
-    SnackBarUtils.mostrarSucesso(context, 'Foto adicionada!');
-  }
-
-  void _removerFoto(int index) {
-    setState(() {
-      _fotosUrls.removeAt(index);
-    });
   }
 
   void _publicarItem() {

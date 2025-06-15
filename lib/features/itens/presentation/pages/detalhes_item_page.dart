@@ -1,8 +1,11 @@
+import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/snackbar_utils.dart';
+import '../../../alugueis/presentation/widgets/seletor_datas.dart';
+import '../../../../core/constants/app_routes.dart';
 
 /// Tela de detalhes do item com informações completas
 class DetalhesItemPage extends ConsumerStatefulWidget {
@@ -19,7 +22,8 @@ class DetalhesItemPage extends ConsumerStatefulWidget {
 
 class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   int _fotoAtual = 0;
-  bool _favoritado = false;
+  DateTime? _dataInicio;
+  DateTime? _dataFim;
   
   // Dados mockados do item (em produção viria do provider)
   late Map<String, dynamic> _item;
@@ -65,6 +69,8 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final favoritosNotifier = ref.watch(favoritosProvider.notifier);
+    final isFavorito = favoritosNotifier.isFavorito(widget.itemId);
     
     return Scaffold(
       body: CustomScrollView(
@@ -142,14 +148,14 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
             actions: [
               IconButton(
                 icon: Icon(
-                  _favoritado ? Icons.favorite : Icons.favorite_border,
-                  color: _favoritado ? Colors.red : Colors.white,
+                  isFavorito ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorito ? Colors.red : Colors.white,
                 ),
                 onPressed: () {
-                  setState(() => _favoritado = !_favoritado);
+                  favoritosNotifier.toggleFavorito(widget.itemId);
                   SnackBarUtils.mostrarSucesso(
                     context,
-                    _favoritado ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
+                    isFavorito ? 'Removido dos favoritos' : 'Adicionado aos favoritos',
                   );
                 },
               ),
@@ -367,7 +373,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
             Column(
               children: [
                 IconButton(
-                  onPressed: () => SnackBarUtils.mostrarInfo(context, 'Chat em desenvolvimento'),
+                  onPressed: () => _abrirChat(),
                   icon: const Icon(Icons.chat),
                   style: IconButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
@@ -507,7 +513,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => SnackBarUtils.mostrarInfo(context, 'Chat em desenvolvimento'),
+                onPressed: () => _abrirChat(),
                 icon: const Icon(Icons.chat),
                 label: const Text('Conversar'),
               ),
@@ -532,77 +538,96 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     );
   }
 
+  void _abrirChat() {
+    // Simular abertura do chat
+    context.push('${AppRoutes.chat}/chat1');
+  }
+
   void _solicitarAluguel() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.4,
+        initialChildSize: 0.8,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
         builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Solicitar Aluguel',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
+          child: SeletorDatas(
+            dataInicio: _dataInicio,
+            dataFim: _dataFim,
+            precoPorDia: _item['precoPorDia'],
+            precoPorHora: _item['precoPorHora'],
+            permitirPorHora: true,
+            onDatasChanged: (inicio, fim) {
+              setState(() {
+                _dataInicio = inicio;
+                _dataFim = fim;
+              });
               
-              Text('Item: ${_item['nome']}'),
-              const SizedBox(height: 8),
-              Text('Proprietário: ${_item['proprietarioNome']}'),
-              const SizedBox(height: 20),
-              
-              const Text('Selecione as datas:'),
-              const SizedBox(height: 12),
-              
-              // Aqui seria o seletor de datas
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Text('Seletor de datas\n(Em desenvolvimento)'),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancelar'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        SnackBarUtils.mostrarSucesso(
-                          context,
-                          'Solicitação enviada! Aguarde a aprovação.',
-                        );
-                      },
-                      child: const Text('Solicitar'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              if (inicio != null && fim != null) {
+                _confirmarSolicitacao(inicio, fim);
+              }
+            },
           ),
         ),
       ),
     );
+  }
+
+  void _confirmarSolicitacao(DateTime inicio, DateTime fim) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Solicitação'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Item: ${_item['nome']}'),
+            Text('Proprietário: ${_item['proprietarioNome']}'),
+            const SizedBox(height: 8),
+            Text('Período: ${_formatarData(inicio)} até ${_formatarData(fim)}'),
+            const SizedBox(height: 8),
+            Text(
+              'Valor total: ${_calcularValorTotal(inicio, fim)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              SnackBarUtils.mostrarSucesso(
+                context,
+                'Solicitação enviada! Aguarde a aprovação.',
+              );
+            },
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _calcularValorTotal(DateTime inicio, DateTime fim) {
+    final duracao = fim.difference(inicio);
+    
+    if (duracao.inHours < 24) {
+      // Aluguel por horas
+      final horas = duracao.inHours;
+      final valor = horas * _item['precoPorHora'];
+      return 'R\$ ${valor.toStringAsFixed(2)}';
+    } else {
+      // Aluguel por dias
+      final dias = duracao.inDays + 1;
+      final valor = dias * _item['precoPorDia'];
+      return 'R\$ ${valor.toStringAsFixed(2)}';
+    }
   }
 
   String _formatarData(DateTime data) {

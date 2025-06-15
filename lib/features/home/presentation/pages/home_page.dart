@@ -36,7 +36,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         slivers: [
           // AppBar com saudação
           SliverAppBar(
-            expandedHeight: 120,
+            expandedHeight: 140,
             floating: true,
             backgroundColor: theme.colorScheme.primary,
             flexibleSpace: FlexibleSpaceBar(
@@ -234,36 +234,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildCategoriaChip(String categoria, String label, IconData icone) {
-    final isSelected = _categoriaSelecionada == categoria;
-    final theme = Theme.of(context);
-    
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        selected: isSelected,
-        onSelected: (selected) {
-          setState(() {
-            _categoriaSelecionada = categoria;
-          });
-          _filtrarPorCategoria(categoria);
-        },
-        avatar: Icon(
-          icone,
-          size: 18,
-          color: isSelected ? Colors.white : theme.colorScheme.primary,
-        ),
-        label: Text(label),
-        backgroundColor: isSelected ? theme.colorScheme.primary : null,
-        selectedColor: theme.colorScheme.primary,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : null,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
   Widget _buildItemCard(BuildContext context, ThemeData theme, Map<String, dynamic> item) {
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -337,7 +307,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.star,
                           size: 12,
                           color: Colors.orange,
@@ -356,6 +326,67 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoriaCard(String nome, IconData icone, Color cor) {
+    return Container(
+      width: 80,
+      margin: const EdgeInsets.only(right: 12),
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: cor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icone, color: cor, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Flexible( // Adicionado Flexible para o texto se ajustar ao espaço
+            child: Text(
+              nome,
+              style: const TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildCategoriaChip(String categoria, String label, IconData icone) {
+    final isSelected = _categoriaSelecionada == categoria;
+    final theme = Theme.of(context);
+    
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _categoriaSelecionada = categoria;
+          });
+          _filtrarPorCategoria(categoria);
+        },
+        avatar: Icon(
+          icone,
+          size: 18,
+          color: isSelected ? Colors.white : theme.colorScheme.primary,
+        ),
+        label: Text(label),
+        backgroundColor: isSelected ? theme.colorScheme.primary : null,
+        selectedColor: theme.colorScheme.primary,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : null,
+          fontSize: 12,
         ),
       ),
     );
@@ -416,31 +447,4 @@ class _HomePageState extends ConsumerState<HomePage> {
     // TODO: Implementar filtro real
   }
 
-  Widget _buildCategoriaCard(String nome, IconData icone, Color cor) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: cor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icone, color: cor, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            nome,
-            style: const TextStyle(fontSize: 12),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
 }
