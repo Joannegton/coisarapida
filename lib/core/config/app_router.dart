@@ -1,5 +1,8 @@
+import 'package:coisarapida/features/alugueis/presentation/pages/solicitacoes_aluguel_page.dart';
+import 'package:coisarapida/features/alugueis/presentation/pages/solicitar_aluguel_page.dart';
 import 'package:coisarapida/features/avaliacoes/presentation/pages/avaliacao_page.dart';
 import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
+import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -159,6 +162,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // alugueis
+      GoRoute(
+        path: AppRoutes.solicitarAluguel,
+        name: 'solicitar-aluguel',
+        builder: (context, state) {
+          final item = state.extra as Item?;
+          if (item == null) {
+            return const Scaffold(body: Center(child: Text("Item não fornecido para solicitação.")));
+          }
+          return SolicitarAluguelPage(item: item);
+        },
+      ),
+      
       GoRoute(
         path: '${AppRoutes.statusAluguel}/:aluguelId',
         name: 'status-aluguel',
@@ -181,6 +197,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      GoRoute(
+        path: AppRoutes.solicitacoesAluguel,
+        name: 'solicitacoes-aluguel',
+        builder: (context, state) => const SolicitacoesAluguelPage(),
+      ),
+      
       // Avaliação
       GoRoute(
         path: AppRoutes.avaliacao, // Usará query parameters: /avaliacao?avaliadoId=xxx&aluguelId=yyy

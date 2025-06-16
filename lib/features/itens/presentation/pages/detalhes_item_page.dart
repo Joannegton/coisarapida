@@ -192,34 +192,8 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   }
 
   void _solicitarAluguel(Item item) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.8,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => Container(
-          child: SeletorDatas(
-            dataInicio: _dataInicio,
-            dataFim: _dataFim,
-            precoPorDia: item.precoPorDia,
-            precoPorHora: item.precoPorHora,
-            permitirPorHora: item.precoPorHora != null && item.precoPorHora! > 0,
-            onDatasChanged: (inicio, fim) {
-              setState(() {
-                _dataInicio = inicio;
-                _dataFim = fim;
-              });
-              
-              if (inicio != null && fim != null) {
-                _confirmarSolicitacao(inicio, fim, item);
-              }
-            },
-          ),
-        ),
-      ),
-    );
+    // Navegar para a SolicitarAluguelPage, passando o item como 'extra'
+    context.push(AppRoutes.solicitarAluguel, extra: item);
   }
 
   void _confirmarSolicitacao(DateTime inicio, DateTime fim, Item item) {

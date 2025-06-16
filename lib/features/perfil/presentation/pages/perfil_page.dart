@@ -47,6 +47,14 @@ class PerfilPage extends ConsumerWidget {
                 
                 const SizedBox(height: 24),
                 
+                // Botão para Solicitações Recebidas
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.inbox_outlined),
+                  label: const Text('Solicitações de Aluguel Recebidas'),
+                  onPressed: () => context.push(AppRoutes.solicitacoesAluguel),
+                ),
+                const SizedBox(height: 24),
+                
                 // Estatísticas
                 _buildSecaoEstatisticas(context, theme),
                 
