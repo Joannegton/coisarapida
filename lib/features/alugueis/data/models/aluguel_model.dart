@@ -21,6 +21,13 @@ class AluguelModel extends Aluguel {
     super.observacoesLocatario,
     super.motivoRecusaLocador,
     super.contratoId,
+    super.caucaoStatus,
+    super.caucaoMetodoPagamento,
+    super.caucaoTransacaoId,
+    super.caucaoDataBloqueio,
+    super.caucaoDataLiberacao,
+    super.caucaoMotivoRetencao,
+    super.caucaoValorRetido,
   });
 
   factory AluguelModel.fromEntity(Aluguel entity) {
@@ -43,6 +50,13 @@ class AluguelModel extends Aluguel {
       observacoesLocatario: entity.observacoesLocatario,
       motivoRecusaLocador: entity.motivoRecusaLocador,
       contratoId: entity.contratoId,
+      caucaoStatus: entity.caucaoStatus,
+      caucaoMetodoPagamento: entity.caucaoMetodoPagamento,
+      caucaoTransacaoId: entity.caucaoTransacaoId,
+      caucaoDataBloqueio: entity.caucaoDataBloqueio,
+      caucaoDataLiberacao: entity.caucaoDataLiberacao,
+      caucaoMotivoRetencao: entity.caucaoMotivoRetencao,
+      caucaoValorRetido: entity.caucaoValorRetido,
     );
   }
 
@@ -111,6 +125,15 @@ class AluguelModel extends Aluguel {
       observacoesLocatario: _getField<String?>('observacoesLocatario', isRequired: false),
       motivoRecusaLocador: _getField<String?>('motivoRecusaLocador', isRequired: false),
       contratoId: _getField<String?>('contratoId', isRequired: false),
+      caucaoStatus: data['caucaoStatus'] != null
+          ? StatusCaucaoAluguel.values.firstWhere((e) => e.name == data['caucaoStatus'], orElse: () => StatusCaucaoAluguel.naoAplicavel)
+          : null,
+      caucaoMetodoPagamento: _getField<String?>('caucaoMetodoPagamento', isRequired: false),
+      caucaoTransacaoId: _getField<String?>('caucaoTransacaoId', isRequired: false),
+      caucaoDataBloqueio: data['caucaoDataBloqueio'] != null ? _getTimestampField('caucaoDataBloqueio', isRequired: false) : null,
+      caucaoDataLiberacao: data['caucaoDataLiberacao'] != null ? _getTimestampField('caucaoDataLiberacao', isRequired: false) : null,
+      caucaoMotivoRetencao: _getField<String?>('caucaoMotivoRetencao', isRequired: false),
+      caucaoValorRetido: _getField<double?>('caucaoValorRetido', isRequired: false),
     );
   }
 
@@ -134,6 +157,13 @@ class AluguelModel extends Aluguel {
       'observacoesLocatario': observacoesLocatario,
       'motivoRecusaLocador': motivoRecusaLocador,
       'contratoId': contratoId,
+      'caucaoStatus': caucaoStatus?.name,
+      'caucaoMetodoPagamento': caucaoMetodoPagamento,
+      'caucaoTransacaoId': caucaoTransacaoId,
+      'caucaoDataBloqueio': caucaoDataBloqueio != null ? Timestamp.fromDate(caucaoDataBloqueio!) : null,
+      'caucaoDataLiberacao': caucaoDataLiberacao != null ? Timestamp.fromDate(caucaoDataLiberacao!) : null,
+      'caucaoMotivoRetencao': caucaoMotivoRetencao,
+      'caucaoValorRetido': caucaoValorRetido,
       'participantes': [locadorId, locatarioId], // Para facilitar queries
     };
   }

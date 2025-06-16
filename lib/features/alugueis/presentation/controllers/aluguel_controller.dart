@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coisarapida/features/alugueis/domain/entities/aluguel.dart';
+import 'package:coisarapida/features/alugueis/domain/repositories/aluguel_repository.dart';
 import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_providers.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart'; // Para pegar dados do item
@@ -11,9 +12,12 @@ final aluguelControllerProvider = StateNotifierProvider<AluguelController, Async
 
 class AluguelController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
+  AluguelRepository get _aluguelRepository => _ref.read(aluguelRepositoryProvider);
   AluguelController(this._ref) : super(const AsyncValue.data(null));
 
-  Future<String?> solicitarAluguel({
+  // Este método pode ser usado se a solicitação for iniciada diretamente com um Item
+  // e não passar pelo fluxo completo de contrato/caução primeiro.
+  Future<String?> iniciarSolicitacaoComItem({
     required Item item, // Item que está sendo alugado
     required DateTime dataInicio,
     required DateTime dataFim,
@@ -51,7 +55,21 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
         observacoesLocatario: observacoesLocatario,
       );
 
-      final idCriado = await _ref.read(aluguelRepositoryProvider).solicitarAluguel(novoAluguel);
+      final idCriado = await _aluguelRepository.solicitarAluguel(novoAluguel);
+      state = const AsyncValue.data(null);
+      return idCriado;
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
+  // Novo método para ser chamado pela CaucaoPage
+  Future<String> submeterAluguelCompleto(Aluguel aluguel) async {
+    state = const AsyncValue.loading();
+    try {
+      // O ID do aluguel já deve estar definido no objeto 'aluguel'
+      final idCriado = await _aluguelRepository.solicitarAluguel(aluguel);
       state = const AsyncValue.data(null);
       return idCriado;
     } catch (e, stackTrace) {
@@ -63,7 +81,38 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
   Future<void> atualizarStatusAluguel(String aluguelId, StatusAluguel novoStatus, {String? motivo}) async {
     state = const AsyncValue.loading();
     try {
-      await _ref.read(aluguelRepositoryProvider).atualizarStatusAluguel(aluguelId, novoStatus, motivo: motivo);
+      await _aluguelRepository.atualizarStatusAluguel(aluguelId, novoStatus, motivo: motivo);
+      state = const AsyncValue.data(null);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> processarPagamentoCaucaoAluguel({
+    required String aluguelId,
+    required String metodoPagamento,
+    // O transacaoId viria da integração real com o gateway
+    required String transacaoId, // Ex: 'TXN_SIMULADA_123'
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await _aluguelRepository.processarPagamentoCaucaoAluguel(
+        aluguelId: aluguelId,
+        metodoPagamento: metodoPagamento,
+        transacaoId: transacaoId,
+      );
+      state = const AsyncValue.data(null);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> liberarCaucaoAluguel(String aluguelId, {String? motivoRetencao, double? valorRetido}) async {
+    state = const AsyncValue.loading();
+    try {
+      await _aluguelRepository.liberarCaucaoAluguel(aluguelId: aluguelId, motivoRetencao: motivoRetencao, valorRetido: valorRetido);
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);

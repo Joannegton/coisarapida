@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Entidade que representa uma caução de aluguel
 class Caucao {
   final String id;
@@ -85,34 +87,42 @@ class Caucao {
         (e) => e.toString() == 'StatusCaucao.${map['status']}',
         orElse: () => StatusCaucao.pendente,
       ),
-      dataCriacao: DateTime.parse(map['dataCriacao']),
+      // Ajuste para ler Timestamp do Firestore
+      dataCriacao: map['dataCriacao'] is Timestamp
+          ? (map['dataCriacao'] as Timestamp).toDate()
+          : DateTime.tryParse(map['dataCriacao']?.toString() ?? '') ?? DateTime.now(), // Fallback
       metodoPagamento: map['metodoPagamento'],
       dataLiberacao: map['dataLiberacao'] != null 
-          ? DateTime.parse(map['dataLiberacao']) 
+          ? (map['dataLiberacao'] is Timestamp
+              ? (map['dataLiberacao'] as Timestamp).toDate()
+              : DateTime.tryParse(map['dataLiberacao']?.toString() ?? ''))
           : null,
       motivoBloqueio: map['motivoBloqueio'],
       valorDescontado: map['valorDescontado']?.toDouble(),
     );
   }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'aluguelId': aluguelId,
-      'locatarioId': locatarioId,
-      'locadorId': locadorId,
-      'itemId': itemId,
-      'nomeItem': nomeItem,
-      'valorCaucao': valorCaucao,
-      'valorAluguel': valorAluguel,
-      'diasAluguel': diasAluguel,
-      'status': status.toString().split('.').last,
-      'dataCriacao': dataCriacao.toIso8601String(),
-      'metodoPagamento': metodoPagamento,
-      'dataLiberacao': dataLiberacao?.toIso8601String(),
-      'motivoBloqueio': motivoBloqueio,
-      'valorDescontado': valorDescontado,
-    };
+  Map<String, dynamic> toMapForCreate() { // Específico para criação
+      return {
+        'id': id,
+        'aluguelId': aluguelId,
+        'locatarioId': locatarioId,
+        'locadorId': locadorId,
+        'itemId': itemId,
+        'nomeItem': nomeItem,
+        'valorCaucao': valorCaucao,
+        'valorAluguel': valorAluguel,
+        'diasAluguel': diasAluguel,
+        'status': status.toString().split('.').last, // Deve ser 'bloqueada' na criação
+        'dataCriacao': FieldValue.serverTimestamp(), // << IMPORTANTE PARA CRIAÇÃO
+        'metodoPagamento': metodoPagamento,
+        'dataLiberacao': null, // Não existe na criação
+        'motivoBloqueio': motivoBloqueio,
+        'valorDescontado': valorDescontado,
+        // Adicionar campos que podem estar faltando e são definidos no processarCaucao,
+        // mas que podem ser nulos ou ter valores padrão na criação inicial.
+        'transacaoId': null, 
+        'processadoEm': null,
+      };
   }
 }
 

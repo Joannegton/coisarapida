@@ -11,6 +11,16 @@ enum StatusAluguel {
   disputa,          // Problema reportado
 }
 
+/// Status possíveis da caução integrada ao aluguel
+enum StatusCaucaoAluguel {
+  pendentePagamento, // Aguardando pagamento/bloqueio da caução
+  bloqueada,         // Valor bloqueado com sucesso
+  liberada,          // Caução liberada após devolução
+  utilizadaParcialmente, // Parte da caução utilizada
+  utilizadaTotalmente,   // Toda a caução utilizada
+  naoAplicavel,      // Se o item não exigir caução
+}
+
 class Aluguel {
   final String id;
   final String itemId;
@@ -31,6 +41,16 @@ class Aluguel {
   final String? motivoRecusaLocador;  // Motivo se o locador recusar
   final String? contratoId; // ID do contrato assinado, se houver
 
+  // Campos da Caução Integrados
+  final StatusCaucaoAluguel? caucaoStatus;
+  final String? caucaoMetodoPagamento;
+  final String? caucaoTransacaoId;
+  final DateTime? caucaoDataBloqueio;
+  final DateTime? caucaoDataLiberacao;
+  final String? caucaoMotivoRetencao; // Se parte da caução for retida
+  final double? caucaoValorRetido;    // Valor retido da caução
+
+
   Aluguel({
     required this.id,
     required this.itemId,
@@ -50,6 +70,13 @@ class Aluguel {
     this.observacoesLocatario,
     this.motivoRecusaLocador,
     this.contratoId,
+    this.caucaoStatus,
+    this.caucaoMetodoPagamento,
+    this.caucaoTransacaoId,
+    this.caucaoDataBloqueio,
+    this.caucaoDataLiberacao,
+    this.caucaoMotivoRetencao,
+    this.caucaoValorRetido,
   });
 
   Aluguel copyWith({
@@ -71,6 +98,13 @@ class Aluguel {
     String? observacoesLocatario,
     String? motivoRecusaLocador,
     String? contratoId,
+    StatusCaucaoAluguel? caucaoStatus,
+    String? caucaoMetodoPagamento,
+    String? caucaoTransacaoId,
+    DateTime? caucaoDataBloqueio,
+    DateTime? caucaoDataLiberacao,
+    String? caucaoMotivoRetencao,
+    double? caucaoValorRetido,
   }) {
     return Aluguel(
       id: id ?? this.id,
@@ -91,6 +125,13 @@ class Aluguel {
       observacoesLocatario: observacoesLocatario ?? this.observacoesLocatario,
       motivoRecusaLocador: motivoRecusaLocador ?? this.motivoRecusaLocador,
       contratoId: contratoId ?? this.contratoId,
+      caucaoStatus: caucaoStatus ?? this.caucaoStatus,
+      caucaoMetodoPagamento: caucaoMetodoPagamento ?? this.caucaoMetodoPagamento,
+      caucaoTransacaoId: caucaoTransacaoId ?? this.caucaoTransacaoId,
+      caucaoDataBloqueio: caucaoDataBloqueio ?? this.caucaoDataBloqueio,
+      caucaoDataLiberacao: caucaoDataLiberacao ?? this.caucaoDataLiberacao,
+      caucaoMotivoRetencao: caucaoMotivoRetencao ?? this.caucaoMotivoRetencao,
+      caucaoValorRetido: caucaoValorRetido ?? this.caucaoValorRetido,
     );
   }
 }

@@ -5,7 +5,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
 
-import '../../domain/entities/caucao.dart';
+// import '../../domain/entities/caucao.dart'; // Não mais necessário
 import '../../domain/entities/contrato.dart';
 import '../../domain/entities/denuncia.dart';
 import '../../domain/entities/verificacao_fotos.dart';
@@ -23,58 +23,59 @@ class SegurancaRepository {
 
   // ==================== CAUÇÃO ====================
 
-  /// Obtém dados da caução para um aluguel
+  /* /// Obtém dados da caução para um aluguel - REMOVIDO
   Future<Caucao?> obterCaucao(String aluguelId) async {
     try {
-      // Simular dados da caução para demonstração
-      await Future.delayed(const Duration(seconds: 1));
-      
-      return Caucao(
-        id: 'caucao_$aluguelId',
-        aluguelId: aluguelId,
-        locatarioId: 'user_123',
-        locadorId: 'user_456',
-        itemId: 'item_789',
-        nomeItem: 'Furadeira Bosch Professional',
-        valorCaucao: 100.0,
-        valorAluguel: 50.0,
-        diasAluguel: 3,
-        status: StatusCaucao.pendente,
-        dataCriacao: DateTime.now(),
-      );
+      // Busca a caução pelo aluguelId. Pode haver várias cauções para um aluguelId
+      // se a lógica permitir (ex: uma cancelada e uma nova).
+      // Aqui, vamos assumir que queremos a mais recente ou uma específica.
+      // Para simplificar, buscaremos uma caução que tenha o aluguelId.
+      // Em um cenário real, você pode ter um ID de caução direto ou uma query mais específica.
+      final querySnapshot = await _firestore.collection('caucoes').where('aluguelId', isEqualTo: aluguelId).limit(1).get();
+      if (querySnapshot.docs.isNotEmpty) {
+        return Caucao.fromMap(querySnapshot.docs.first.data());
+      }
+      return null;
     } catch (e) {
       throw ServerException('Erro ao obter caução: $e');
     }
-  }
+  } */
 
-  /// Processa o pagamento da caução
+  /* /// Processa o pagamento da caução - MOVIDO PARA ALUGUEL REPOSITORY
   Future<void> processarCaucao({
     required String aluguelId,
     required String metodoPagamento,
     required double valorCaucao,
   }) async {
     try {
-      // Simular processamento do pagamento
-      await Future.delayed(const Duration(seconds: 2));
-      
       // Aqui seria a integração real com gateway de pagamento
+      // A simulação do Future.delayed pode ser mantida se o processamento do gateway for assíncrono
+      // e você quiser simular essa espera.
+      await Future.delayed(const Duration(seconds: 2)); // Simulação de processamento
       final transacaoId = 'TXN_${Random().nextInt(999999)}';
       
+      // Para processar, assumimos que a caução já existe e tem um ID.
+      // O ID 'caucao_$aluguelId' é uma convenção que você pode estar usando,
+      // mas certifique-se que este é o ID real do documento da caução.
+      // Se a caução é criada com um ID único (como em criarCaucao),
+      // você precisaria desse ID único aqui.
+      // Por ora, manterei sua lógica de ID, mas é um ponto de atenção.
+      final docRef = _firestore.collection('caucoes').doc('caucao_$aluguelId');
+
       // Atualizar status no Firestore
-      await _firestore.collection('caucoes').doc('caucao_$aluguelId').set({
-        'aluguelId': aluguelId,
+      await docRef.update({ // Usar update para modificar um documento existente
         'metodoPagamento': metodoPagamento,
-        'valorCaucao': valorCaucao,
+        // 'valorCaucao': valorCaucao, // Geralmente o valor da caução não muda após a criação
         'status': StatusCaucao.bloqueada.toString().split('.').last,
         'transacaoId': transacaoId,
-        'processadoEm': DateTime.now().millisecondsSinceEpoch,
-      });
+        'processadoEm': FieldValue.serverTimestamp(), // Usar timestamp do servidor
+      }); // Se o documento não existir, update falhará. Se a intenção é criar se não existir, use set com merge.
     } catch (e) {
       throw ServerException('Erro ao processar caução: $e');
     }
-  }
+  } */
 
-  /// Cria uma nova caução e bloqueia o valor
+  /* /// Cria uma nova caução e bloqueia o valor - REMOVIDO
   Future<Caucao> criarCaucao({
     required String aluguelId,
     required String locatarioId,
@@ -83,6 +84,10 @@ class SegurancaRepository {
     required double valor,
   }) async {
     try {
+      if (valor <= 0) {
+        throw ArgumentError('O valor da caução deve ser positivo.');
+      }
+
       final caucaoId = _firestore.collection('caucoes').doc().id;
       
       // Simular bloqueio do valor (integração com gateway de pagamento)
@@ -99,21 +104,22 @@ class SegurancaRepository {
         valorAluguel: 0.0,
         diasAluguel: 1,
         status: StatusCaucao.bloqueada,
-        dataCriacao: DateTime.now(),
+        // dataCriacao será definida pelo FieldValue.serverTimestamp() no toMapForCreate
+        dataCriacao: DateTime.fromMillisecondsSinceEpoch(0), // Placeholder, não será usado se toMapForCreate for chamado
       );
 
       await _firestore
           .collection('caucoes')
           .doc(caucaoId)
-          .set(caucao.toMap());
+          .set(caucao.toMapForCreate()); // Usar o método específico para criação
 
       return caucao;
     } catch (e) {
       throw ServerException('Erro ao criar caução: $e');
     }
-  }
+  } */
 
-  /// Libera a caução após devolução aprovada
+  /* /// Libera a caução após devolução aprovada - MOVIDO PARA ALUGUEL REPOSITORY
   Future<void> liberarCaucao(String caucaoId, String motivo) async {
     try {
       final caucaoDoc = await _firestore.collection('caucoes').doc(caucaoId).get();
@@ -124,13 +130,13 @@ class SegurancaRepository {
 
       await _firestore.collection('caucoes').doc(caucaoId).update({
         'status': StatusCaucao.liberada.toString().split('.').last,
-        'dataLiberacao': DateTime.now().toIso8601String(),
+        'dataLiberacao': FieldValue.serverTimestamp(), // Usar timestamp do servidor
         'motivoBloqueio': motivo,
       });
     } catch (e) {
       throw ServerException('Erro ao liberar caução: $e');
     }
-  }
+  } */
 
   // ==================== CONTRATOS ====================
 
@@ -199,12 +205,13 @@ class SegurancaRepository {
     required String denuncianteId,
     required String denunciadoId,
     required TipoDenuncia tipo,
-    required String descricao,
-    required List<dynamic> evidencias,
+    required String descricao, // Alterado para List<File> para clareza, mas o provider já espera List<File>
+    required List<File> evidencias,
   }) async {
     try {
       final denunciaId = _firestore.collection('denuncias').doc().id;
-      
+      final List<String> urlsEvidencias = await _uploadFilesToStorage(evidencias, 'denuncias/$denunciaId');
+
       final denuncia = Denuncia(
         id: denunciaId,
         aluguelId: aluguelId,
@@ -212,7 +219,7 @@ class SegurancaRepository {
         denunciadoId: denunciadoId,
         tipo: tipo,
         descricao: descricao,
-        evidencias: [], // Simplificado para demonstração
+        evidencias: urlsEvidencias,
         status: StatusDenuncia.pendente,
         criadaEm: DateTime.now(),
       );
@@ -241,13 +248,22 @@ class SegurancaRepository {
   }) async {
     try {
       final verificacaoId = _firestore.collection('verificacoes_fotos').doc().id;
-      
+
+      List<String> urlsFotosAntes = [];
+      if (fotosAntes != null && fotosAntes.isNotEmpty) {
+        urlsFotosAntes = await _uploadFilesToStorage(fotosAntes, 'verificacoes_fotos/$aluguelId/antes');
+      }
+      List<String> urlsFotosDepois = [];
+      if (fotosDepois != null && fotosDepois.isNotEmpty) {
+        urlsFotosDepois = await _uploadFilesToStorage(fotosDepois, 'verificacoes_fotos/$aluguelId/depois');
+      }
+
       final verificacao = VerificacaoFotos(
         id: verificacaoId,
         aluguelId: aluguelId,
         itemId: itemId,
-        fotosAntes: [], // Simplificado para demonstração
-        fotosDepois: [],
+        fotosAntes: urlsFotosAntes,
+        fotosDepois: urlsFotosDepois,
         dataFotosAntes: fotosAntes != null ? DateTime.now() : null,
         dataFotosDepois: fotosDepois != null ? DateTime.now() : null,
         observacoesAntes: observacoesAntes,
@@ -292,7 +308,7 @@ class SegurancaRepository {
         'valorDiaria': valorDiaria,
         'multiplicador': multiplicador,
         'valorMulta': multa,
-        'calculadaEm': DateTime.now().millisecondsSinceEpoch,
+        'calculadaEm': FieldValue.serverTimestamp(),
       });
       
       return multa;
@@ -302,6 +318,25 @@ class SegurancaRepository {
   }
 
   // ==================== MÉTODOS PRIVADOS ====================
+
+  /// Faz upload de uma lista de arquivos para o Firebase Storage e retorna as URLs de download.
+  Future<List<String>> _uploadFilesToStorage(List<File> files, String path) async {
+    final List<String> downloadUrls = [];
+    for (final file in files) {
+      try {
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+        final ref = _storage.ref().child(path).child(fileName);
+        final uploadTask = ref.putFile(file);
+        final snapshot = await uploadTask.whenComplete(() => {});
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        downloadUrls.add(downloadUrl);
+      } catch (e) {
+        // Considerar como tratar falhas de upload individuais
+        print('Erro ao fazer upload do arquivo ${file.path}: $e');
+      }
+    }
+    return downloadUrls;
+  }
 
   /// Simula bloqueio de valor no gateway de pagamento
   Future<String> _bloquearValorCaucao(double valor, String usuarioId) async {

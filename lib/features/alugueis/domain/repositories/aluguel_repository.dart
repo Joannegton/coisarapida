@@ -9,6 +9,17 @@ abstract class AluguelRepository {
 
   Stream<List<Aluguel>> getAlugueisPorUsuario(String usuarioId, {bool comoLocador = false, bool comoLocatario = false});
 
-    Stream<List<Aluguel>> getSolicitacoesPendentesParaLocador(String locadorId);
+  Stream<List<Aluguel>> getSolicitacoesPendentesParaLocador(String locadorId);
 
+  Future<void> processarPagamentoCaucaoAluguel({
+    required String aluguelId,
+    required String metodoPagamento,
+    required String transacaoId,
+  });
+
+  Future<void> liberarCaucaoAluguel({
+    required String aluguelId,
+    String? motivoRetencao,
+    double? valorRetido,
+  });
 }

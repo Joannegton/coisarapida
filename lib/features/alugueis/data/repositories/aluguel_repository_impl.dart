@@ -102,4 +102,42 @@ class AluguelRepositoryImpl implements AluguelRepository {
       throw ServerException('Erro no stream de solicitações pendentes: ${error.toString()}');
     });
   }
+
+  @override
+  Future<void> processarPagamentoCaucaoAluguel({
+    required String aluguelId,
+    required String metodoPagamento,
+    required String transacaoId,
+  }) async {
+    try {
+      await _firestore.collection('alugueis').doc(aluguelId).update({
+        'caucaoStatus': StatusCaucaoAluguel.bloqueada.name,
+        'caucaoMetodoPagamento': metodoPagamento,
+        'caucaoTransacaoId': transacaoId,
+        'caucaoDataBloqueio': FieldValue.serverTimestamp(),
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw ServerException('Erro ao processar pagamento da caução do aluguel: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> liberarCaucaoAluguel({
+    required String aluguelId,
+    String? motivoRetencao,
+    double? valorRetido,
+  }) async {
+    try {
+      await _firestore.collection('alugueis').doc(aluguelId).update({
+        'caucaoStatus': valorRetido != null && valorRetido > 0 ? StatusCaucaoAluguel.utilizadaParcialmente.name : StatusCaucaoAluguel.liberada.name,
+        'caucaoDataLiberacao': FieldValue.serverTimestamp(),
+        'caucaoMotivoRetencao': motivoRetencao,
+        'caucaoValorRetido': valorRetido,
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw ServerException('Erro ao liberar caução do aluguel: ${e.toString()}');
+    }
+  }
 }

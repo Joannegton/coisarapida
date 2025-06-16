@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
-import 'package:coisarapida/features/alugueis/presentation/controllers/aluguel_controller.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart'; // Importe sua entidade Item
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:coisarapida/core/constants/app_routes.dart'; // Para AppRoutes
 
 class SolicitarAluguelPage extends ConsumerStatefulWidget {
   final Item item; // O item para o qual o aluguel está sendo solicitado
@@ -48,27 +50,52 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      // Simples cálculo de preço total (exemplo)
       final dias = _dataFim.difference(_dataInicio).inDays;
       final precoTotal = (dias > 0 ? dias : 1) * widget.item.precoPorDia;
 
-      final controller = ref.read(aluguelControllerProvider.notifier);
+      // Obter dados do locatário (usuário logado)
+      final usuarioAsyncValue = ref.read(authStateProvider);
+      final locatario = usuarioAsyncValue.valueOrNull;
+
+      if (locatario == null) {
+        if (mounted) {
+          SnackBarUtils.mostrarErro(context, 'Usuário não autenticado. Faça login para continuar.');
+        }
+        return;
+      }
+
+      // Gerar um ID único para o aluguel
+      final aluguelId = FirebaseFirestore.instance.collection('alugueis_temp').doc().id;
+
+      // Preparar dados para passar para o fluxo de contrato e caução
+      final dadosAluguel = {
+        'locatarioId': locatario.id,
+        'nomeLocatario': locatario.nome,
+        'locadorId': widget.item.proprietarioId,
+        'nomeLocador': widget.item.proprietarioNome,
+        'itemId': widget.item.id,
+        'nomeItem': widget.item.nome,
+        'itemFotoUrl': widget.item.fotos.isNotEmpty ? widget.item.fotos.first : '',
+        'descricaoItem': widget.item.descricao, // Para o contrato
+        'valorAluguel': precoTotal,
+        'valorCaucao': widget.item.caucao, // Assumindo que Item tem 'caucao'
+        'valorDiaria': widget.item.precoPorDia,
+        'dataInicio': _dataInicio.toIso8601String(), // Passar como String para serialização fácil
+        'dataFim': _dataFim.toIso8601String(),       // Passar como String
+        'observacoesLocatario': _observacoes,
+      };
+
       try {
-        final aluguelId = await controller.solicitarAluguel(
-          item: widget.item,
-          dataInicio: _dataInicio,
-          dataFim: _dataFim,
-          precoTotal: precoTotal,
-          observacoesLocatario: _observacoes,
-        );
-        if (mounted && aluguelId != null) {
-          SnackBarUtils.mostrarSucesso(context, 'Solicitação de aluguel enviada!');
-          // Navegar para meus aluguéis ou para o chat com o locador
-          context.pop(); // Voltar para a tela anterior (detalhes do item, por exemplo)
+        // Navegar para a tela de aceite de contrato
+        if (mounted) {
+          context.push(
+            '${AppRoutes.aceiteContrato}/$aluguelId',
+            extra: dadosAluguel,
+          );
         }
       } catch (e) {
         if (mounted) {
-          SnackBarUtils.mostrarErro(context, 'Erro ao solicitar aluguel: ${e.toString()}');
+          SnackBarUtils.mostrarErro(context, 'Erro ao iniciar solicitação: ${e.toString()}');
         }
       }
     }
@@ -76,8 +103,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(aluguelControllerProvider).isLoading;
-
     return Scaffold(
       appBar: AppBar(title: Text('Solicitar Aluguel de ${widget.item.nome}')),
       body: Padding(
@@ -99,8 +124,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
               ),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: isLoading ? null : _submeterSolicitacao,
-                child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Enviar Solicitação'),
+                onPressed: _submeterSolicitacao,
+                child: const Text('Continuar para Contrato'),
               ),
             ],
           ),

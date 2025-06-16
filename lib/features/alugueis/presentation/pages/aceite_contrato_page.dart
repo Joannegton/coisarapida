@@ -1,9 +1,10 @@
+import 'package:coisarapida/core/constants/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:go_router/go_router.dart';
 
-import '../providers/seguranca_provider.dart';
+import '../../../seguranca/presentation/providers/seguranca_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela para aceite do contrato digital
@@ -188,15 +189,15 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
           ),
           const SizedBox(height: 12),
           
-          _buildLinhaValor('Valor do Aluguel:', 'R\$ ${widget.dadosAluguel['valorAluguel']}'),
-          _buildLinhaValor('Caução (bloqueada):', 'R\$ ${widget.dadosAluguel['valorCaucao']}'),
-          _buildLinhaValor('Multa por atraso/dia:', 'R\$ ${(double.parse(widget.dadosAluguel['valorDiaria'].toString()) * 1.5).toStringAsFixed(2)}'),
+          _buildLinhaValor('Valor do Aluguel:', 'R\$ ${((widget.dadosAluguel['valorAluguel'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'),
+          _buildLinhaValor('Caução (bloqueada):', 'R\$ ${((widget.dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'),
+          _buildLinhaValor('Multa por atraso/dia:', 'R\$ ${((widget.dadosAluguel['valorDiaria'] as num?)?.toDouble() ?? 0.0 * 1.5).toStringAsFixed(2)}'),
           
           const Divider(),
           
           _buildLinhaValor(
             'Total a pagar agora:', 
-            'R\$ ${(double.parse(widget.dadosAluguel['valorAluguel'].toString()) + double.parse(widget.dadosAluguel['valorCaucao'].toString())).toStringAsFixed(2)}',
+            'R\$ ${(((widget.dadosAluguel['valorAluguel'] as num?)?.toDouble() ?? 0.0) + ((widget.dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0)).toStringAsFixed(2)}',
             destaque: true,
           ),
         ],
@@ -320,12 +321,15 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
   }
 
   void _confirmarAceite(contrato) async {
+    // Variável para controlar se o diálogo de loading foi fechado
+    bool loadingDialogClosed = false;
+
     try {
       // Mostrar loading
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
+        builder: (dialogContext) => const AlertDialog( // Usar dialogContext
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -341,8 +345,13 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
       await ref.read(contratoProvider(widget.aluguelId).notifier)
           .aceitarContrato(contrato.id);
 
+      // Não é mais necessário criar uma caução separada aqui.
+
       // Fechar loading
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Tentar com rootNavigator
+        loadingDialogClosed = true;
+      }
 
       // Mostrar sucesso
       SnackBarUtils.mostrarSucesso(
@@ -352,11 +361,18 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
 
       // Navegar para próxima tela (caução)
       if (mounted) {
-        context.pushReplacement('/caucao/${widget.aluguelId}');
+        // Passar os dados do aluguel para a CaucaoPage também
+        context.pushReplacement(
+          '${AppRoutes.caucao}/${widget.aluguelId}', 
+          extra: widget.dadosAluguel);
       }
     } catch (e) {
       // Fechar loading
-      if (mounted) Navigator.of(context).pop();
+      debugPrint('[AceiteContratoPage] Erro capturado em _confirmarAceite: $e');
+      if (mounted && !loadingDialogClosed) { // Só tenta fechar se não foi fechado no try
+        Navigator.of(context, rootNavigator: true).pop();
+        loadingDialogClosed = true;
+      }
       
       SnackBarUtils.mostrarErro(
         context,

@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:io';
 
-import '../providers/seguranca_provider.dart';
-import '../widgets/contador_tempo.dart';
-import '../widgets/upload_fotos_verificacao.dart';
-import '../../domain/entities/denuncia.dart';
+// import '../../../seguranca/presentation/providers/seguranca_provider.dart'; // SegurancaRepository ainda é usado para multa e denúncia
+import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart'; // Para denunciaProvider e segurancaRepositoryProvider
+import '../../../seguranca/presentation/widgets/contador_tempo.dart';
+import '../../../seguranca/presentation/widgets/upload_fotos_verificacao.dart';
+import '../../../seguranca/domain/entities/denuncia.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela de status do aluguel com funcionalidades de segurança

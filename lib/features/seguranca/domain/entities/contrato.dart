@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Entidade que representa um contrato digital de aluguel
 class ContratoDigital {
-  final String id;
+  final String id;  
   final String aluguelId;
   final String locatarioId;
   final String locadorId;
@@ -58,7 +60,9 @@ class ContratoDigital {
       'locadorId': locadorId,
       'itemId': itemId,
       'conteudoHtml': conteudoHtml,
-      'criadoEm': criadoEm.millisecondsSinceEpoch,
+      // Para a criação inicial do contrato, sempre usar FieldValue.serverTimestamp()
+      // Se este toMap for usado APENAS para criação, simplifique para:
+      'criadoEm': FieldValue.serverTimestamp(), 
       'aceite': aceite?.toMap(),
       'versaoContrato': versaoContrato,
     };
@@ -72,7 +76,9 @@ class ContratoDigital {
       locadorId: map['locadorId'] ?? '',
       itemId: map['itemId'] ?? '',
       conteudoHtml: map['conteudoHtml'] ?? '',
-      criadoEm: DateTime.fromMillisecondsSinceEpoch(map['criadoEm'] ?? 0),
+      criadoEm: map['criadoEm'] is Timestamp 
+          ? (map['criadoEm'] as Timestamp).toDate() 
+          : DateTime.fromMillisecondsSinceEpoch(map['criadoEm'] ?? 0), // Fallback para o formato antigo se necessário
       aceite: map['aceite'] != null ? AceiteContrato.fromMap(map['aceite']) : null,
       versaoContrato: map['versaoContrato'] ?? '1.0',
     );
@@ -81,7 +87,8 @@ class ContratoDigital {
 
 /// Entidade que representa o aceite de um contrato
 class AceiteContrato {
-  final DateTime dataHora;
+  // O valor de dataHora no construtor é para o objeto Dart, mas no toMap usaremos FieldValue.serverTimestamp()
+  final DateTime dataHora; 
   final String enderecoIp;
   final String userAgent;
   final String assinaturaDigital;
@@ -95,7 +102,7 @@ class AceiteContrato {
 
   Map<String, dynamic> toMap() {
     return {
-      'dataHora': dataHora.millisecondsSinceEpoch,
+      'dataHora': FieldValue.serverTimestamp(), // Sempre usar FieldValue.serverTimestamp() para o aceite
       'enderecoIp': enderecoIp,
       'userAgent': userAgent,
       'assinaturaDigital': assinaturaDigital,
@@ -104,7 +111,9 @@ class AceiteContrato {
 
   factory AceiteContrato.fromMap(Map<String, dynamic> map) {
     return AceiteContrato(
-      dataHora: DateTime.fromMillisecondsSinceEpoch(map['dataHora'] ?? 0),
+      dataHora: map['dataHora'] is Timestamp 
+          ? (map['dataHora'] as Timestamp).toDate() 
+          : DateTime.fromMillisecondsSinceEpoch(map['dataHora'] ?? 0), // Fallback
       enderecoIp: map['enderecoIp'] ?? '',
       userAgent: map['userAgent'] ?? '',
       assinaturaDigital: map['assinaturaDigital'] ?? '',

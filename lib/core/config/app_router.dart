@@ -1,5 +1,8 @@
+import 'package:coisarapida/features/alugueis/presentation/pages/aceite_contrato_page.dart';
+import 'package:coisarapida/features/alugueis/presentation/pages/caucao_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitacoes_aluguel_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitar_aluguel_page.dart';
+import 'package:coisarapida/features/alugueis/presentation/pages/status_aluguel_page.dart';
 import 'package:coisarapida/features/avaliacoes/presentation/pages/avaliacao_page.dart';
 import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
@@ -22,10 +25,6 @@ import '../../features/buscar/presentation/pages/buscar_page.dart';
 import '../../features/itens/presentation/pages/detalhes_item_page.dart';
 import '../../features/favoritos/presentation/pages/favoritos_page.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
-
-import '../../features/seguranca/presentation/pages/aceite_contrato_page.dart';
-import '../../features/seguranca/presentation/pages/status_aluguel_page.dart';
-import '../../features/seguranca/presentation/pages/caucao_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -193,7 +192,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'caucao',
         builder: (context, state) {
           final aluguelId = state.pathParameters['aluguelId']!;
-          return CaucaoPage(aluguelId: aluguelId);
+          final dadosAluguel = state.extra as Map<String, dynamic>? ?? {}; // Lida com extra nulo
+          return CaucaoPage(
+            aluguelId: aluguelId,
+            dadosAluguel: dadosAluguel,
+          );
         },
       ),
 

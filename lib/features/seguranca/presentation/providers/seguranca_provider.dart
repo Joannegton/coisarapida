@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
 import '../../data/repositories/seguranca_repository.dart';
-import '../../domain/entities/caucao.dart';
+// import '../../domain/entities/caucao.dart'; // Caucao não é mais uma entidade separada aqui
 import '../../domain/entities/contrato.dart';
 import '../../domain/entities/denuncia.dart';
 import '../../domain/entities/verificacao_fotos.dart';
@@ -12,8 +14,8 @@ final segurancaRepositoryProvider = Provider<SegurancaRepository>((ref) {
   return SegurancaRepository();
 });
 
-/// Provider para gerenciar caução
-final caucaoProvider = StateNotifierProvider.family<CaucaoNotifier, AsyncValue<Caucao?>, String>(
+/* /// Provider para gerenciar caução - REMOVIDO
+final caucaoProvider = StateNotifierProvider.family<CaucaoNotifier, AsyncValue<Aluguel?>, String>( // Alterado para Aluguel?
   (ref, aluguelId) {
     final repository = ref.watch(segurancaRepositoryProvider);
     return CaucaoNotifier(repository, aluguelId);
@@ -21,10 +23,11 @@ final caucaoProvider = StateNotifierProvider.family<CaucaoNotifier, AsyncValue<C
 );
 
 class CaucaoNotifier extends StateNotifier<AsyncValue<Caucao?>> {
-  final SegurancaRepository _repository;
+  final SegurancaRepository _segurancaRepository; // Renomeado para clareza
+  final AluguelRepository _aluguelRepository; // Adicionado
   final String _aluguelId;
 
-  CaucaoNotifier(this._repository, this._aluguelId) : super(const AsyncValue.loading()) {
+  CaucaoNotifier(this._segurancaRepository, this._aluguelRepository, this._aluguelId) : super(const AsyncValue.loading()) {
     _carregarCaucao();
   }
 
@@ -43,7 +46,7 @@ class CaucaoNotifier extends StateNotifier<AsyncValue<Caucao?>> {
     required double valorCaucao,
   }) async {
     try {
-      await _repository.processarCaucao(
+      await _aluguelRepository.processarPagamentoCaucaoAluguel( // Chama o método no AluguelRepository
         aluguelId: _aluguelId,
         metodoPagamento: metodoPagamento,
         valorCaucao: valorCaucao,
@@ -76,13 +79,14 @@ class CaucaoNotifier extends StateNotifier<AsyncValue<Caucao?>> {
       state = AsyncValue.data(caucao);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      rethrow; // Adicionar esta linha para propagar a exceção
     }
   }
 
   /// Libera caução
   Future<void> liberarCaucao(String caucaoId, String motivo) async {
     try {
-      await _repository.liberarCaucao(caucaoId, motivo);
+      await _aluguelRepository.liberarCaucaoAluguel(aluguelId: _aluguelId, motivoRetencao: motivo); // Chama o método no AluguelRepository
       
       // Atualizar estado local
       if (state.value != null) {
@@ -97,7 +101,7 @@ class CaucaoNotifier extends StateNotifier<AsyncValue<Caucao?>> {
       state = AsyncValue.error(e, stack);
     }
   }
-}
+} */
 
 /// Provider para contratos digitais
 final contratoProvider = StateNotifierProvider.family<ContratoNotifier, AsyncValue<ContratoDigital?>, String>(
@@ -143,7 +147,7 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
       await _repository.aceitarContrato(contratoId);
       
       // Atualizar estado local
-      if (state.value != null) {
+      if (state.valueOrNull != null) {
         final aceite = AceiteContrato(
           dataHora: DateTime.now(),
           enderecoIp: '192.168.1.1',
@@ -156,6 +160,7 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      debugPrint('[ContratoNotifier] Erro ao aceitar contrato: $e'); // Log opcional
       rethrow;
     }
   }

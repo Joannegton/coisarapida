@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../providers/seguranca_provider.dart';
+// import '../../../seguranca/presentation/providers/seguranca_provider.dart'; // Não mais necessário para caucaoProvider
 import '../../../../core/utils/snackbar_utils.dart';
+import '../../domain/entities/aluguel.dart'; // Importar Aluguel e StatusAluguel
+import '../providers/aluguel_providers.dart'; // Para aluguelControllerProvider
 import '../../../../core/constants/app_routes.dart';
 
 /// Tela para processamento da caução
 class CaucaoPage extends ConsumerStatefulWidget {
-  final String aluguelId;
+  final String aluguelId; // Este será o ID do Aluguel a ser criado
+  final Map<String, dynamic> dadosAluguel; // Dados passados da AceiteContratoPage
 
   const CaucaoPage({
     super.key,
     required this.aluguelId,
+    required this.dadosAluguel,
   });
 
   @override
@@ -26,36 +30,20 @@ class _CaucaoPageState extends ConsumerState<CaucaoPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final caucaoState = ref.watch(caucaoProvider(widget.aluguelId));
+    // Não há mais um 'caucaoState' separado. Os dados vêm de widget.dadosAluguel.
+    final valorCaucao = (widget.dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
+    final nomeItem = widget.dadosAluguel['nomeItem'] as String? ?? 'Item não especificado';
+    final valorAluguel = (widget.dadosAluguel['valorAluguel'] as num?)?.toDouble() ?? 0.0;
+    final dataInicio = DateTime.parse(widget.dadosAluguel['dataInicio'] as String);
+    final dataFim = DateTime.parse(widget.dadosAluguel['dataFim'] as String);
+    final diasAluguel = dataFim.difference(dataInicio).inDays > 0 ? dataFim.difference(dataInicio).inDays : 1;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Caução do Aluguel'),
         backgroundColor: theme.colorScheme.surface,
       ),
-      body: caucaoState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error, size: 64, color: Colors.red[300]),
-              const SizedBox(height: 16),
-              Text('Erro ao carregar dados da caução: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.refresh(caucaoProvider(widget.aluguelId)),
-                child: const Text('Tentar Novamente'),
-              ),
-            ],
-          ),
-        ),
-        data: (caucao) {
-          if (caucao == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return SingleChildScrollView(
+      body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +87,13 @@ class _CaucaoPageState extends ConsumerState<CaucaoPage> {
                 const SizedBox(height: 24),
 
                 // Detalhes da caução
-                _buildDetalhesCaucao(theme, caucao),
+                _buildDetalhesCaucao(
+                  theme, 
+                  nomeItem, 
+                  valorAluguel, 
+                  diasAluguel, 
+                  valorCaucao
+                ),
 
                 const SizedBox(height: 24),
 
@@ -114,16 +108,14 @@ class _CaucaoPageState extends ConsumerState<CaucaoPage> {
                 const SizedBox(height: 32),
 
                 // Botão de processar
-                _buildBotaoProcessar(theme, caucao),
+                _buildBotaoProcessar(theme, valorCaucao),
               ],
             ),
-          );
-        },
-      ),
+          ),
     );
   }
 
-  Widget _buildDetalhesCaucao(ThemeData theme, caucao) {
+  Widget _buildDetalhesCaucao(ThemeData theme, String nomeItem, double valorAluguel, int diasAluguel, double valorCaucao) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -138,15 +130,15 @@ class _CaucaoPageState extends ConsumerState<CaucaoPage> {
             ),
             const SizedBox(height: 12),
 
-            _buildLinhaDetalhe('Item:', caucao.nomeItem),
-            _buildLinhaDetalhe('Valor do aluguel:', 'R\$ ${caucao.valorAluguel.toStringAsFixed(2)}'),
-            _buildLinhaDetalhe('Período:', '${caucao.diasAluguel} dias'),
+            _buildLinhaDetalhe('Item:', nomeItem),
+            _buildLinhaDetalhe('Valor do aluguel:', 'R\$ ${valorAluguel.toStringAsFixed(2)}'),
+            _buildLinhaDetalhe('Período:', '$diasAluguel dias'),
             
             const Divider(height: 24),
             
             _buildLinhaDetalhe(
               'Valor da caução:', 
-              'R\$ ${caucao.valorCaucao.toStringAsFixed(2)}',
+              'R\$ ${valorCaucao.toStringAsFixed(2)}',
               destaque: true,
             ),
             
@@ -304,11 +296,11 @@ class _CaucaoPageState extends ConsumerState<CaucaoPage> {
     );
   }
 
-  Widget _buildBotaoProcessar(ThemeData theme, caucao) {
+  Widget _buildBotaoProcessar(ThemeData theme, double valorCaucao) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _processandoPagamento ? null : () => _processarCaucao(caucao),
+        onPressed: _processandoPagamento || valorCaucao <= 0 ? null : _processarCaucao,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue[600],
           foregroundColor: Colors.white,
@@ -334,7 +326,7 @@ class _CaucaoPageState extends ConsumerState<CaucaoPage> {
                 ],
               )
             : Text(
-                'Processar Caução - R\$ ${caucao.valorCaucao.toStringAsFixed(2)}',
+                valorCaucao > 0 ? 'Processar Caução - R\$ ${valorCaucao.toStringAsFixed(2)}' : 'Continuar (Sem Caução)',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -344,41 +336,79 @@ class _CaucaoPageState extends ConsumerState<CaucaoPage> {
     );
   }
 
-  void _processarCaucao(caucao) async {
+  void _processarCaucao() async {
     setState(() {
       _processandoPagamento = true;
     });
 
-    try {
-      // Simular processamento do pagamento
-      await Future.delayed(const Duration(seconds: 3));
+    final String transacaoIdSimulada = 'TXN_SIM_${DateTime.now().millisecondsSinceEpoch}';
+    final valorCaucao = (widget.dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
 
-      // Processar caução
-      await ref.read(caucaoProvider(widget.aluguelId).notifier)
-          .processarCaucao(
-            metodoPagamento: _metodoPagamento,
-            valorCaucao: caucao.valorCaucao,
-          );
+    try {
+      if (valorCaucao > 0) {
+        // Simular processamento do pagamento
+        await Future.delayed(const Duration(seconds: 3)); 
+        // Aqui ocorreria a chamada ao AluguelController para registrar o pagamento da caução no Aluguel
+        // Isso será feito ao criar o Aluguel.
+      }
+
+      // Construir o objeto Aluguel
+      final aluguelParaSalvar = Aluguel(
+        id: widget.aluguelId,
+        itemId: widget.dadosAluguel['itemId'] as String,
+        itemFotoUrl: widget.dadosAluguel['itemFotoUrl'] as String? ?? '',
+        itemNome: widget.dadosAluguel['nomeItem'] as String,
+        locadorId: widget.dadosAluguel['locadorId'] as String,
+        locadorNome: widget.dadosAluguel['nomeLocador'] as String,
+        locatarioId: widget.dadosAluguel['locatarioId'] as String,
+        locatarioNome: widget.dadosAluguel['nomeLocatario'] as String,
+        dataInicio: DateTime.parse(widget.dadosAluguel['dataInicio'] as String),
+        dataFim: DateTime.parse(widget.dadosAluguel['dataFim'] as String),
+        precoTotal: (widget.dadosAluguel['valorAluguel'] as num).toDouble(),
+        status: StatusAluguel.solicitado,
+        criadoEm: DateTime.now(),
+        atualizadoEm: DateTime.now(),
+        observacoesLocatario: widget.dadosAluguel['observacoesLocatario'] as String?,
+        contratoId: widget.aluguelId, // Assumindo que o contratoId é o mesmo que aluguelId por simplicidade
+        caucaoValor: valorCaucao,
+        caucaoStatus: valorCaucao > 0 ? StatusCaucaoAluguel.bloqueada : StatusCaucaoAluguel.naoAplicavel,
+        caucaoMetodoPagamento: valorCaucao > 0 ? _metodoPagamento : null,
+        caucaoTransacaoId: valorCaucao > 0 ? transacaoIdSimulada : null,
+        caucaoDataBloqueio: valorCaucao > 0 ? DateTime.now() : null, // O Firestore usará FieldValue.serverTimestamp
+      );
+
+      // Se a caução foi "paga", chamar o controller para atualizar o aluguel com os dados da caução
+      // Esta etapa é agora combinada com a submissão do aluguel.
+      // O AluguelController.submeterAluguelCompleto já recebe o objeto Aluguel com os dados da caução.
+
+      // Salvar a solicitação de aluguel
+      await ref.read(aluguelControllerProvider.notifier).submeterAluguelCompleto(aluguelParaSalvar);
 
       if (mounted) {
         SnackBarUtils.mostrarSucesso(
           context,
-          'Caução processada com sucesso! 🎉',
+          valorCaucao > 0 
+            ? 'Caução processada e solicitação de aluguel enviada! 🎉'
+            : 'Solicitação de aluguel enviada! 🎉',
         );
 
         // Navegar para status do aluguel
-        context.pushReplacement(
+        // Os dados passados para StatusAluguelPage precisam ser consistentes
+        final dadosParaStatus = {
+          'itemId': aluguelParaSalvar.itemId,
+          'nomeItem': aluguelParaSalvar.itemNome,
+          'valorAluguel': aluguelParaSalvar.precoTotal,
+          'valorCaucao': aluguelParaSalvar.caucaoValor ?? 0.0,
+          'dataLimiteDevolucao': aluguelParaSalvar.dataFim.toIso8601String(),
+          'locadorId': aluguelParaSalvar.locadorId,
+          'nomeLocador': aluguelParaSalvar.locadorNome,
+          // 'valorDiaria' precisa vir de dadosFluxo se for usado em StatusAluguelPage
+          'valorDiaria': (widget.dadosAluguel['valorDiaria'] as num?)?.toDouble() ?? (aluguelParaSalvar.precoTotal / (aluguelParaSalvar.dataFim.difference(aluguelParaSalvar.dataInicio).inDays > 0 ? aluguelParaSalvar.dataFim.difference(aluguelParaSalvar.dataInicio).inDays : 1) ),
+        };
+
+         context.pushReplacement(
           '${AppRoutes.statusAluguel}/${widget.aluguelId}',
-          extra: {
-            'itemId': caucao.itemId,
-            'nomeItem': caucao.nomeItem,
-            'valorAluguel': caucao.valorAluguel,
-            'valorCaucao': caucao.valorCaucao,
-            'dataLimiteDevolucao': DateTime.now().add(Duration(days: caucao.diasAluguel)).toIso8601String(),
-            'locadorId': caucao.locadorId,
-            'nomeLocador': caucao.nomeLocador,
-            'valorDiaria': caucao.valorAluguel / caucao.diasAluguel,
-          },
+          extra: dadosParaStatus,
         );
       }
     } catch (e) {
