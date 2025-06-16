@@ -61,6 +61,22 @@ class ItemRepositoryImpl implements ItemRepository {
   }
 
   @override
+  Future<List<ItemModel>> getItensPorUsuario(String proprietarioId, {int limite = 10}) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('itens')
+          .where('proprietarioId', isEqualTo: proprietarioId)
+          .orderBy('criadoEm', descending: true)
+          .limit(limite)
+          .get();
+      return querySnapshot.docs.map((doc) => ItemModel.fromFirestore(doc)).toList();
+    } catch (e) {
+      print("Erro ao buscar itens do usuário $proprietarioId: $e");
+      throw ServerException('Erro ao buscar itens do usuário: ${e.toString()}');
+    }
+  }
+
+  @override
   Future<ItemModel?> getDetalhesItem(String itemId) async {
     try {
       final docSnapshot = await _firestore.collection('itens').doc(itemId).get();

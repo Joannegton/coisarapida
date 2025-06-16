@@ -1,3 +1,5 @@
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
+
 import '../entities/usuario.dart';
 
 abstract class AuthRepository {
@@ -28,6 +30,8 @@ abstract class AuthRepository {
     String? nome,
     String? telefone,
     String? fotoUrl,
+    Endereco? endereco,
+    String? cpf,
   });
 
   Future<void> excluirConta();

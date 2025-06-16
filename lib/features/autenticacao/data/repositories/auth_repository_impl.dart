@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:coisarapida/core/errors/errors_utils.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart' as domain;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -187,6 +188,8 @@ class AuthRepositoryImpl implements AuthRepository {
     String? nome,
     String? telefone,
     String? fotoUrl,
+    domain.Endereco? endereco,
+    String? cpf,
   }) async {
     try {
       final user = _firebaseAuth.currentUser;
@@ -208,6 +211,14 @@ class AuthRepositoryImpl implements AuthRepository {
       if (fotoUrl != null) {
         updates['fotoUrl'] = fotoUrl;
         await user.updatePhotoURL(fotoUrl);
+      }
+
+      if (endereco != null) {
+        updates['endereco'] = EnderecoModel.fromEntity(endereco).toMap();
+      }
+
+      if (cpf != null) {
+        updates['cpf'] = cpf;
       }
 
       await _firestore.collection('usuarios').doc(user.uid).update(updates);
@@ -264,6 +275,12 @@ class AuthRepositoryImpl implements AuthRepository {
       atualizadoEm: FieldValue.serverTimestamp(), // Agora pode passar diretamente
       emailVerificado: user.emailVerified,
       tipo: domain.TipoUsuario.usuario,
+      // Valores padrão para novos campos
+      reputacao: 0.0,
+      totalAlugueis: 0,
+      totalItensAlugados: 0,
+      verificado: false, // Pode ser atualizado após verificação de documentos
+      // cpf e endereco podem ser nulos inicialmente
     );
 
     await _firestore

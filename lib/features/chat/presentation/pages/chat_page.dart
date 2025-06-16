@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,8 +11,9 @@ import '../../../../core/constants/app_routes.dart';
 /// Tela de chat individual
 class ChatPage extends ConsumerStatefulWidget {
   final String chatId;
-  
-  const ChatPage({
+  final String otherUserId; // Adicionado para facilitar a avaliação
+
+  const ChatPage(this.otherUserId, {
     super.key,
     required this.chatId,
   });
@@ -38,13 +40,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final chatDetailsState = ref.watch(chatDetailsProvider(widget.chatId));
     final currentUserId = ref.watch(currentUserIdProvider);
     final chatController = ref.watch(chatControllerProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: chatDetailsState.when(
           data: (chat) {
             if (chat == null) return const Text('Chat');
-            
+
             final bool souLocador = chat.locadorId == currentUserId;
             final String outroUsuarioNome = souLocador ? chat.locatarioNome : chat.locadorNome;
             final String outroUsuarioFoto = souLocador ? chat.locatarioFoto : chat.locadorFoto;
@@ -100,7 +102,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => _mostrarOpcoes(context, chatDetailsState.valueOrNull, currentUserId),
+            onPressed: () => _mostrarOpcoes(context, chatDetailsState.valueOrNull, currentUserId, widget.otherUserId),
           ),
         ],
       ),
@@ -131,7 +133,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               error: (error, _) => Center(
                 child: Text('Erro ao carregar mensagens: $error'),
               ),
-            ),
+            ), // Adicionada vírgula aqui
           ),
           
           // Campo de entrada
@@ -294,11 +296,15 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     // O StreamProvider já atualiza automaticamente, não precisa de refresh manual aqui.
   }
 
-  void _mostrarOpcoes(BuildContext context, Chat? chat, String? currentUserId) {
+  void _mostrarOpcoes(BuildContext context, Chat? chat, String? currentUserId, String otherUserIdFromParam) {
     if (chat == null || currentUserId == null) return;
 
     final bool souLocador = chat.locadorId == currentUserId;
-    final String outroUsuarioId = souLocador ? chat.locatarioId : chat.locadorId;
+    // Prioriza o otherUserId passado como parâmetro para a página,
+    // caso contrário, tenta deduzir do chat.
+    final String idDoOutroUsuarioParaAvaliar = otherUserIdFromParam.isNotEmpty
+        ? otherUserIdFromParam
+        : (souLocador ? chat.locatarioId : chat.locadorId);
 
     showModalBottomSheet(
       context: context,
@@ -311,7 +317,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               title: const Text('Ver perfil'),
               onTap: () {
                 Navigator.pop(context);
-                _abrirPerfilUsuario(context, outroUsuarioId);
+                _abrirPerfilUsuario(context, idDoOutroUsuarioParaAvaliar);
               },
             ),
             ListTile(
@@ -320,6 +326,25 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               onTap: () {
                 Navigator.pop(context);
                 context.push('${AppRoutes.detalhesItem}/${chat.itemId}');
+              },
+            ),
+            // Opção de Avaliar (Provisório)
+            ListTile(
+              leading: const Icon(Icons.star_outline, color: Colors.amber),
+              title: const Text('Avaliar Usuário (Teste)'),
+              onTap: () {
+                Navigator.pop(context);
+                // Para este exemplo, o aluguelId será fixo, mas na prática viria do contexto do chat/item
+                // O itemId vem do chat atual.
+                const String aluguelIdProvisorio = "aluguel_chat_temp_123";
+                context.pushNamed(
+                  AppRoutes.avaliacao,
+                  queryParameters: {
+                    'avaliadoId': idDoOutroUsuarioParaAvaliar,
+                    'aluguelId': aluguelIdProvisorio,
+                    'itemId': chat.itemId, // Passando o itemId do chat
+                  },
+                );
               },
             ),
             ListTile(

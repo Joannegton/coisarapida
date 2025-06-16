@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/avaliacoes/presentation/pages/avaliacao_page.dart';
 import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -119,11 +120,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       //   builder: (context, state) => const ListaChatsPage(),
       // ),
       GoRoute(
-        path: '${AppRoutes.chat}/:id',
+        path: '${AppRoutes.chat}/:chatParam', // Ex: /chat/chat_OTHERUSERID ou /chat/CHATDOCUMENTID_OTHERUSERID
         name: 'chat',
-        builder: (context, state) => ChatPage(
-          chatId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) {
+          String chatParam = state.pathParameters['chatParam'] ?? '';
+          String chatId = chatParam; // Por padrão, o chatParam é o chatId
+          String otherUserId = '';
+
+          // Lógica para extrair otherUserId se o chatParam tiver um formato específico
+          // Exemplo: se o formato for "chat_OTHERUSERID"
+          if (chatParam.startsWith('chat_')) {
+            otherUserId = chatParam.substring('chat_'.length);
+            // Neste caso, o chatId pode ser o próprio chatParam ou você pode ter outra lógica para obtê-lo
+            // Se o chatId é o mesmo que "chat_OTHERUSERID", então chatId = chatParam;
+          }
+          return ChatPage(otherUserId, chatId: chatId);
+        },
       ),
 
       // Configurações
@@ -166,6 +178,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final aluguelId = state.pathParameters['aluguelId']!;
           return CaucaoPage(aluguelId: aluguelId);
+        },
+      ),
+
+      // Avaliação
+      GoRoute(
+        path: AppRoutes.avaliacao, // Usará query parameters: /avaliacao?avaliadoId=xxx&aluguelId=yyy
+        name: AppRoutes.avaliacao,
+        builder: (context, state) {
+          final avaliadoId = state.uri.queryParameters['avaliadoId'];
+          final aluguelId = state.uri.queryParameters['aluguelId'];
+          final itemId = state.uri.queryParameters['itemId']; // Lendo itemId
+          if (avaliadoId == null || aluguelId == null) {
+            // Idealmente, redirecionar para uma página de erro ou home
+            return const Scaffold(body: Center(child: Text("IDs inválidos para avaliação")));
+          }
+          return AvaliacaoPage(
+            avaliadoId: avaliadoId,
+            aluguelId: aluguelId,
+            itemId: itemId, // Passando itemId para AvaliacaoPage
+          );
         },
       ),
     ],

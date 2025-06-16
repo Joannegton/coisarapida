@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -106,6 +107,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     String? nome,
     String? telefone,
     String? fotoUrl,
+    Endereco? endereco,
+    String? cpf,
   }) async {
     state = const AsyncValue.loading();
     
@@ -114,6 +117,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         nome: nome,
         telefone: telefone,
         fotoUrl: fotoUrl,
+        endereco: endereco,
+        cpf: cpf,
       );
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {

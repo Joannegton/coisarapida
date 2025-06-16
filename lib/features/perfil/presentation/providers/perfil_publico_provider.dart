@@ -1,91 +1,61 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart'; // Para authRepositoryProvider
+import 'package:coisarapida/features/itens/domain/entities/item.dart';
+import 'package:coisarapida/features/itens/presentation/providers/item_provider.dart'; // Para itemRepositoryProvider
+import 'package:coisarapida/features/avaliacoes/domain/entities/avaliacao.dart';
+import 'package:coisarapida/features/avaliacoes/data/repositories/avaliacao_repository_impl.dart'; // Import direto para o provider
+import 'package:coisarapida/features/avaliacoes/domain/repositories/avaliacao_repository.dart';
 
-/// Provider para dados do perfil público de um usuário
-final perfilPublicoProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, usuarioId) async {
-  // Simular carregamento de dados do usuário
-  await Future.delayed(const Duration(seconds: 1));
-  
-  // Dados simulados do usuário
-  return {
-    'id': usuarioId,
-    'nome': _getNomeUsuario(usuarioId),
-    'fotoUrl': 'https://via.placeholder.com/200x200?text=${_getNomeUsuario(usuarioId)[0]}',
-    'cidade': 'São Paulo, SP',
-    'verificado': usuarioId == 'user1',
-    'sobre': 'Usuário confiável com mais de 2 anos na plataforma. Sempre cuido bem dos itens que alugo e mantenho boa comunicação.',
-    'totalItens': _getRandomNumber(5, 25),
-    'totalAlugueis': _getRandomNumber(10, 50),
-    'reputacao': _getRandomRating(),
-    'avaliacoes': _getAvaliacoes(usuarioId),
-    'itens': _getItensUsuario(usuarioId),
-  };
+/// Provider para o repositório de avaliações
+final avaliacaoRepositoryProvider = Provider<AvaliacaoRepository>((ref) {
+  return AvaliacaoRepositoryImpl();
 });
 
-String _getNomeUsuario(String usuarioId) {
-  final nomes = {
-    'user1': 'João Silva',
-    'user2': 'Maria Santos',
-    'user3': 'Pedro Oliveira',
-    'user4': 'Ana Costa',
-    'user5': 'Carlos Ferreira',
-  };
-  return nomes[usuarioId] ?? 'Usuário $usuarioId';
-}
+/// Provider para dados do perfil público de um usuário, incluindo itens e avaliações
+final perfilPublicoDetalhadoProvider = FutureProvider.family<PerfilPublicoDetalhado, String>((ref, usuarioId) async {
+  final authRepository = ref.watch(authRepositoryProvider);
+  final itemRepository = ref.watch(itemRepositoryProvider);
+  final avaliacaoRepository = ref.watch(avaliacaoRepositoryProvider);
 
-int _getRandomNumber(int min, int max) {
-  return min + (DateTime.now().millisecondsSinceEpoch % (max - min));
-}
+  final usuario = await authRepository.getUsuario(usuarioId);
+  if (usuario == null) {
+    throw Exception('Usuário não encontrado');
+  }
 
-double _getRandomRating() {
-  final ratings = [4.2, 4.5, 4.8, 4.1, 4.9, 4.3, 4.7];
-  return ratings[DateTime.now().millisecondsSinceEpoch % ratings.length];
-}
+  // Buscar itens e avaliações em paralelo
+  final futureItens = itemRepository.getItensPorUsuario(usuarioId, limite: 6);
+  final futureAvaliacoes = avaliacaoRepository.getAvaliacoesPorUsuario(usuarioId, limite: 5);
 
-List<Map<String, dynamic>> _getAvaliacoes(String usuarioId) {
-  return [
-    {
-      'autorNome': 'Maria Santos',
-      'autorFoto': 'https://via.placeholder.com/100x100?text=MS',
-      'nota': 5,
-      'comentario': 'Excelente locador! Item em perfeito estado e entrega pontual.',
-      'data': DateTime.now().subtract(const Duration(days: 15)).toIso8601String(),
-    },
-    {
-      'autorNome': 'Pedro Costa',
-      'autorFoto': 'https://via.placeholder.com/100x100?text=PC',
-      'nota': 4,
-      'comentario': 'Muito bom! Recomendo. Comunicação clara e item conforme descrito.',
-      'data': DateTime.now().subtract(const Duration(days: 30)).toIso8601String(),
-    },
-    {
-      'autorNome': 'Ana Oliveira',
-      'autorFoto': 'https://via.placeholder.com/100x100?text=AO',
-      'nota': 5,
-      'comentario': 'Perfeito! Super atencioso e o item estava impecável.',
-      'data': DateTime.now().subtract(const Duration(days: 45)).toIso8601String(),
-    },
-  ];
-}
+  final resultados = await Future.wait([futureItens, futureAvaliacoes]);
+  
+  final itens = resultados[0] as List<Item>;
+  final avaliacoes = resultados[1] as List<Avaliacao>;
 
-List<Map<String, dynamic>> _getItensUsuario(String usuarioId) {
-  return [
-    {
-      'id': '1',
-      'nome': 'Furadeira Bosch Professional',
-      'precoPorDia': 25.0,
-      'fotos': ['https://via.placeholder.com/300x300?text=Furadeira'],
-    },
-    {
-      'id': '2',
-      'nome': 'Parafusadeira Makita',
-      'precoPorDia': 20.0,
-      'fotos': ['https://via.placeholder.com/300x300?text=Parafusadeira'],
-    },
-    {
-      'id': '3',
-      'nome': 'Serra Circular',
-      'precoPorDia': 35.0,
-      'fotos': ['https://via.placeholder.com/300x300?text=Serra'],
-    },
-  ];
+  return PerfilPublicoDetalhado(
+    usuario: usuario,
+    itensAnunciados: itens,
+    avaliacoesRecebidas: avaliacoes,
+  );
+});
+
+/// Provider para dados do perfil público de um usuário
+// Este provider pode ser mantido se você precisar apenas dos dados básicos do usuário em algum lugar.
+// Ou pode ser removido se `perfilPublicoDetalhadoProvider` suprir todas as necessidades.
+final perfilPublicoProvider = FutureProvider.family<Usuario?, String>((ref, usuarioId) async {
+  final authRepository = ref.watch(authRepositoryProvider);
+  return authRepository.getUsuario(usuarioId);
+});
+
+// Nova classe para agrupar dados do perfil público
+class PerfilPublicoDetalhado {
+  final Usuario usuario;
+  final List<Item> itensAnunciados;
+  final List<Avaliacao> avaliacoesRecebidas;
+
+  PerfilPublicoDetalhado({
+    required this.usuario,
+    required this.itensAnunciados,
+    required this.avaliacoesRecebidas,
+  });
 }

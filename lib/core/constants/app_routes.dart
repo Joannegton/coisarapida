@@ -42,4 +42,8 @@ class AppRoutes {
   static const String caucao = '/caucao';
   static const String verificacaoFotos = '/verificacao-fotos';
   static const String denuncias = '/denuncias';
+
+  // Rota de avaliação
+  static const String avaliacao = '/avaliacao';
+
 }
