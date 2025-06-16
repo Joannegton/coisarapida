@@ -391,11 +391,15 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              ref.read(favoritosProvider.notifier).removerFavorito(itemId);
-              Navigator.of(context).pop();
-              SnackBarUtils.mostrarSucesso(context, 'Item removido dos favoritos');
-            },
+              onPressed: () async { // Tornar async
+                Navigator.of(context).pop(); // Fechar diálogo primeiro
+                try {
+                  await ref.read(favoritosProvider.notifier).removerFavorito(itemId); // Await
+                  SnackBarUtils.mostrarSucesso(context, 'Item removido dos favoritos');
+                } catch (e) {
+                  SnackBarUtils.mostrarErro(context, 'Erro ao remover favorito: ${e.toString()}');
+                }
+              },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
