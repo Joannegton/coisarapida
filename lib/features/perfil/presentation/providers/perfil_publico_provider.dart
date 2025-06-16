@@ -39,6 +39,26 @@ final perfilPublicoDetalhadoProvider = FutureProvider.family<PerfilPublicoDetalh
   );
 });
 
+// Provider para os dados detalhados do usuário logado
+final meuPerfilProvider = FutureProvider<Usuario>((ref) async {
+  final authState = ref.watch(authStateProvider);
+  // Usa .valueOrNull para obter o usuário diretamente se já estiver carregado,
+  // ou espera pelo estado de data. Lança exceção se não houver usuário.
+  final userId = authState.asData?.value?.id;
+
+  if (userId == null) {
+    throw Exception('Usuário não autenticado.');
+  }
+
+  final authRepository = ref.watch(authRepositoryProvider);
+  final usuario = await authRepository.getUsuario(userId);
+
+  if (usuario == null) {
+    throw Exception('Dados do perfil não encontrados para o usuário logado.');
+  }
+  return usuario;
+});
+
 /// Provider para dados do perfil público de um usuário
 // Este provider pode ser mantido se você precisar apenas dos dados básicos do usuário em algum lugar.
 // Ou pode ser removido se `perfilPublicoDetalhadoProvider` suprir todas as necessidades.

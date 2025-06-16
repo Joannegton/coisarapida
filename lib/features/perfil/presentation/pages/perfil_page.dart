@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
+import '../providers/perfil_publico_provider.dart'; // Para o novo meuPerfilProvider
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
-
+import '../../../autenticacao/domain/entities/usuario.dart'; // Para o tipo Usuario
 /// Tela de perfil do usuário
 class PerfilPage extends ConsumerWidget {
   const PerfilPage({super.key});
@@ -13,7 +14,7 @@ class PerfilPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final authState = ref.watch(authStateProvider);
+    final meuPerfilState = ref.watch(meuPerfilProvider);
     
     return Scaffold(
       appBar: AppBar(
@@ -25,13 +26,8 @@ class PerfilPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: authState.when(
+      body: meuPerfilState.when(
         data: (usuario) {
-          if (usuario == null) {
-            return const Center(
-              child: Text('Usuário não encontrado'),
-            );
-          }
           
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -56,7 +52,7 @@ class PerfilPage extends ConsumerWidget {
                 const SizedBox(height: 24),
                 
                 // Estatísticas
-                _buildSecaoEstatisticas(context, theme),
+                _buildSecaoEstatisticas(context, theme, usuario),
                 
                 const SizedBox(height: 24),
                 
@@ -83,7 +79,7 @@ class PerfilPage extends ConsumerWidget {
               Text('Erro ao carregar perfil: $error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.refresh(authStateProvider),
+                onPressed: () => ref.refresh(meuPerfilProvider),
                 child: const Text('Tentar Novamente'),
               ),
             ],
@@ -93,7 +89,7 @@ class PerfilPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildCabecalhoPerfil(BuildContext context, ThemeData theme, usuario) {
+  Widget _buildCabecalhoPerfil(BuildContext context, ThemeData theme, Usuario usuario) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -188,7 +184,7 @@ class PerfilPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSecaoInformacoes(BuildContext context, ThemeData theme, usuario) {
+  Widget _buildSecaoInformacoes(BuildContext context, ThemeData theme, Usuario usuario) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -279,7 +275,7 @@ class PerfilPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSecaoEstatisticas(BuildContext context, ThemeData theme) {
+  Widget _buildSecaoEstatisticas(BuildContext context, ThemeData theme, Usuario usuario) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -298,17 +294,17 @@ class PerfilPage extends ConsumerWidget {
               children: [
                 Expanded(
                   child: _buildEstatistica(
-                    'Total de Entregas',
-                    '12',
-                    Icons.local_shipping,
+                    'Itens Anunciados', // Ajustado para usar dados reais
+                    usuario.totalItensAlugados.toString(), // Usando campo da entidade Usuario
+                    Icons.inventory,
                     theme.colorScheme.primary,
                   ),
                 ),
                 Expanded(
                   child: _buildEstatistica(
-                    'Este Mês',
-                    '3',
-                    Icons.calendar_month,
+                    'Aluguéis Realizados', // Ajustado
+                    usuario.totalAlugueis.toString(), // Usando campo da entidade Usuario
+                    Icons.handshake,
                     theme.colorScheme.secondary,
                   ),
                 ),
@@ -321,16 +317,8 @@ class PerfilPage extends ConsumerWidget {
               children: [
                 Expanded(
                   child: _buildEstatistica(
-                    'Economia Total',
-                    'R\$ 145',
-                    Icons.savings,
-                    Colors.green,
-                  ),
-                ),
-                Expanded(
-                  child: _buildEstatistica(
                     'Avaliação',
-                    '4.8 ⭐',
+                    '${usuario.reputacao.toStringAsFixed(1)} ⭐', // Usando campo da entidade Usuario
                     Icons.star,
                     Colors.orange,
                   ),
