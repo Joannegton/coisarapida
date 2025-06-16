@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Botão customizado para login com Google
 class BotaoGoogle extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -24,9 +23,9 @@ class BotaoGoogle extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : Image.asset(
-              'assets/images/google_logo.png',
-              width: 20,
-              height: 20,
+              'assets/images/google_logo.jpg',
+              width: 30,
+              height: 30,
             ),
       label: Text(
         isLoading ? 'Entrando...' : 'Continuar com Google',
@@ -37,7 +36,7 @@ class BotaoGoogle extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         backgroundColor: Colors.white,
         side: BorderSide(
-          color: theme.colorScheme.outline.withOpacity(0.3),
+          color: theme.colorScheme.outline.withAlpha((255 * 0.3).round()),
         ),
       ),
     );

@@ -19,11 +19,6 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Inicializar Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
   // Configurar barra de status
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -32,6 +27,11 @@ void main() async {
     ),
   );
 
+  // Inicializar Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(
     const ProviderScope(
       child: CoisaRapidaApp(),
@@ -52,12 +52,12 @@ class CoisaRapidaApp extends ConsumerWidget {
       title: 'Coisa Rápida',
       debugShowCheckedModeBanner: false,
       
-      // Configuração de tema
+      // tema
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: temaAtual,
       
-      // Configuração de idioma
+      // idioma
       locale: idiomaAtual,
       supportedLocales: const [
         Locale('pt', 'BR'),

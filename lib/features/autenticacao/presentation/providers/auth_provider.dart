@@ -7,7 +7,6 @@ import '../../domain/entities/usuario.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 
-// Provider do repositório de autenticação
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     firebaseAuth: FirebaseAuth.instance,
@@ -34,7 +33,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
   AuthController(this._authRepository) : super(const AsyncValue.data(null));
 
-  /// Fazer login com email e senha
   Future<void> loginComEmail({
     required String email,
     required String senha,
@@ -52,7 +50,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Fazer login com Google
   Future<void> loginComGoogle() async {
     state = const AsyncValue.loading();
     
@@ -64,7 +61,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Cadastrar novo usuário
   Future<void> cadastrarComEmail({
     required String nome,
     required String email,
@@ -84,7 +80,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Enviar email de redefinição de senha
   Future<void> enviarEmailRedefinicaoSenha(String email) async {
     state = const AsyncValue.loading();
     
@@ -96,7 +91,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Fazer logout
   Future<void> logout() async {
     state = const AsyncValue.loading();
     
@@ -108,7 +102,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Atualizar perfil
   Future<void> atualizarPerfil({
     String? nome,
     String? telefone,

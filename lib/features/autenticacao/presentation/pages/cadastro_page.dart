@@ -8,7 +8,11 @@ import '../widgets/campo_texto_customizado.dart';
 import '../widgets/botao_google.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
-/// Tela de cadastro de novo usuário
+enum _TipoCadastro {
+  email,
+  google,
+}
+
 class CadastroPage extends ConsumerStatefulWidget {
   const CadastroPage({super.key});
 
@@ -26,6 +30,18 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
   bool _senhaVisivel = false;
   bool _confirmarSenhaVisivel = false;
   bool _aceitouTermos = false;
+  bool _camposPreenchidos = false;
+  _TipoCadastro? _cadastroEmProgresso;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController.addListener(_atualizarEstadoBotao);
+    _emailController.addListener(_atualizarEstadoBotao);
+    _senhaController.addListener(_atualizarEstadoBotao);
+    _confirmarSenhaController.addListener(_atualizarEstadoBotao);
+  }
 
   @override
   void dispose() {
@@ -34,6 +50,21 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
     _senhaController.dispose();
     _confirmarSenhaController.dispose();
     super.dispose();
+  }
+
+  void _atualizarEstadoBotao() {
+    final bool camposEstaoPreenchidos =
+        _nomeController.text.trim().isNotEmpty &&
+        _emailController.text.trim().isNotEmpty &&
+          _senhaController.text.isNotEmpty &&
+          _confirmarSenhaController.text.isNotEmpty &&
+          _aceitouTermos;
+
+    if (_camposPreenchidos != camposEstaoPreenchidos) {
+      setState(() {
+        _camposPreenchidos = camposEstaoPreenchidos;
+      });
+    }
   }
 
   Future<void> _fazerCadastro() async {
@@ -47,6 +78,10 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
       return;
     }
 
+    setState(() {
+      _cadastroEmProgresso = _TipoCadastro.email;
+    });
+
     await ref.read(authControllerProvider.notifier).cadastrarComEmail(
       nome: _nomeController.text.trim(),
       email: _emailController.text.trim(),
@@ -56,6 +91,9 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
 
   Future<void> _loginComGoogle() async {
     await ref.read(authControllerProvider.notifier).loginComGoogle();
+    setState(() {
+      _cadastroEmProgresso = _TipoCadastro.google;
+    });
   }
 
   @override
@@ -67,6 +105,10 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
+          if (mounted) {
+            setState(() => _cadastroEmProgresso = null);
+          }
+
           SnackBarUtils.mostrarSucesso(
             context,
             'Conta criada com sucesso! Verifique seu email.',
@@ -74,6 +116,7 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
         },
         error: (error, _) {
           SnackBarUtils.mostrarErro(context, error.toString());
+          setState(() => _cadastroEmProgresso = null);
         },
       );
     });
@@ -104,7 +147,7 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                       Text(
                         'Preencha os dados abaixo para começar',
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withAlpha((255 * 0.6).round()),
                         ),
                       ),
                     ],
@@ -124,6 +167,7 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                     Validatorless.required('Nome é obrigatório'),
                     Validatorless.min(2, 'Nome deve ter pelo menos 2 caracteres'),
                   ]),
+                  textInputAction: TextInputAction.next,
                 ),
                 
                 const SizedBox(height: 16),
@@ -139,6 +183,7 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                     Validatorless.required('Email é obrigatório'),
                     Validatorless.email('Digite um email válido'),
                   ]),
+                  textInputAction: TextInputAction.next,
                 ),
                 
                 const SizedBox(height: 16),
@@ -164,6 +209,7 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                     Validatorless.required('Senha é obrigatória'),
                     Validatorless.min(6, 'Senha deve ter pelo menos 6 caracteres'),
                   ]),
+                  textInputAction: TextInputAction.next,
                 ),
                 
                 const SizedBox(height: 16),
@@ -194,6 +240,7 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                       'Senhas não coincidem',
                     ),
                   ]),
+                  textInputAction: TextInputAction.done,
                 ),
                 
                 const SizedBox(height: 24),
@@ -205,17 +252,15 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                     Checkbox(
                       value: _aceitouTermos,
                       onChanged: (value) {
-                        setState(() {
-                          _aceitouTermos = value ?? false;
-                        });
+                        _aceitouTermos = value ?? false;
+                        _atualizarEstadoBotao();
                       },
                     ),
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          setState(() {
-                            _aceitouTermos = !_aceitouTermos;
-                          });
+                          _aceitouTermos = !_aceitouTermos;
+                          _atualizarEstadoBotao();
                         },
                         child: Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -250,21 +295,28 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                 
                 const SizedBox(height: 32),
                 
-                // Botão de cadastro
                 ElevatedButton(
-                  onPressed: authState.isLoading ? null : _fazerCadastro,
-                  child: authState.isLoading
-                      ? const SizedBox(
+                  onPressed: (authState.isLoading || !_camposPreenchidos) ? null : _fazerCadastro,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    disabledBackgroundColor: theme.colorScheme.primary.withAlpha((255 * 0.6).round()),
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha((255 * 0.6).round()),
+                  ),
+                  child: authState.isLoading && _cadastroEmProgresso == _TipoCadastro.email
+                      ? SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: theme.colorScheme.onPrimary.withAlpha((255 * 0.38).round()),
+                          )
                         )
                       : const Text('Criar Conta'),
                 ),
                 
                 const SizedBox(height: 24),
                 
-                // Divisor
                 Row(
                   children: [
                     const Expanded(child: Divider()),
@@ -273,7 +325,7 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                       child: Text(
                         'ou',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withAlpha((255 * 0.6).round()),
                         ),
                       ),
                     ),
@@ -283,15 +335,13 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                 
                 const SizedBox(height: 24),
                 
-                // Botão Google
                 BotaoGoogle(
                   onPressed: authState.isLoading ? null : _loginComGoogle,
-                  isLoading: authState.isLoading,
+                  isLoading: authState.isLoading && _cadastroEmProgresso == _TipoCadastro.google,
                 ),
                 
-                const SizedBox(height: 32),
+                const SizedBox(height: 15),
                 
-                // Link para login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Widget customizado para campos de texto com design consistente
 class CampoTextoCustomizado extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -18,6 +17,8 @@ class CampoTextoCustomizado extends StatelessWidget {
   final bool readOnly;
   final int? maxLines;
   final int? maxLength;
+  final TextInputAction? textInputAction;
+
 
   const CampoTextoCustomizado({
     super.key,
@@ -36,6 +37,7 @@ class CampoTextoCustomizado extends StatelessWidget {
     this.readOnly = false,
     this.maxLines = 1,
     this.maxLength,
+    this.textInputAction,
   });
 
   @override
@@ -62,10 +64,17 @@ class CampoTextoCustomizado extends StatelessWidget {
           readOnly: readOnly,
           maxLines: maxLines,
           maxLength: maxLength,
+          textInputAction: textInputAction,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-            suffixIcon: suffixIcon,
+            suffixIcon: suffixIcon != null
+                ? Focus(
+                    skipTraversal: true,
+                    descendantsAreFocusable: false,
+                    child: suffixIcon!,
+                  )
+                : null,
             counterText: maxLength != null ? null : '',
           ),
         ),

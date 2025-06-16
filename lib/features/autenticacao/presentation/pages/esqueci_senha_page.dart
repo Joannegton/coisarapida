@@ -7,7 +7,6 @@ import '../providers/auth_provider.dart';
 import '../widgets/campo_texto_customizado.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
-/// Tela para recuperação de senha
 class EsqueciSenhaPage extends ConsumerStatefulWidget {
   const EsqueciSenhaPage({super.key});
 
@@ -20,7 +19,14 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
   final _emailController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     super.dispose();
   }
@@ -30,6 +36,10 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
 
     await ref.read(authControllerProvider.notifier)
         .enviarEmailRedefinicaoSenha(_emailController.text.trim());
+  }
+
+  void _onEmailChanged() {
+    setState(() {}); // Força a reconstrução do widget para atualizar o estado do botão
   }
 
   @override
@@ -67,13 +77,12 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
               children: [
                 const SizedBox(height: 32),
                 
-                // Ícone
                 Center(
                   child: Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withAlpha((255 * 0.1).round()),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -86,7 +95,6 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                 
                 const SizedBox(height: 32),
                 
-                // Título e descrição
                 Text(
                   'Esqueceu sua senha?',
                   style: theme.textTheme.headlineSmall?.copyWith(
@@ -100,14 +108,13 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                 Text(
                   'Digite seu email abaixo e enviaremos um link para redefinir sua senha.',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withAlpha((255 * 0.6).round()),
                   ),
                   textAlign: TextAlign.center,
                 ),
                 
                 const SizedBox(height: 48),
                 
-                // Campo de email
                 CampoTextoCustomizado(
                   controller: _emailController,
                   label: 'Email',
@@ -122,14 +129,24 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                 
                 const SizedBox(height: 32),
                 
-                // Botão enviar
                 ElevatedButton(
-                  onPressed: authState.isLoading ? null : _enviarEmailRecuperacao,
+                  onPressed: authState.isLoading || _emailController.text.trim().isEmpty
+                      ? null
+                      : _enviarEmailRecuperacao,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    disabledBackgroundColor: theme.colorScheme.primary.withAlpha((255 * 0.6).round()),
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha((255 * 0.6).round()),
+                  ),
                   child: authState.isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: theme.colorScheme.onPrimary.withAlpha((255 * 0.38).round()),
+                          )
                         )
                       : const Text('Enviar Email de Recuperação'),
                 ),

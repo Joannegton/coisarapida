@@ -9,6 +9,11 @@ import '../widgets/botao_google.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
+enum _TipoLogin {
+  email,
+  google,
+}
+
 /// Tela de login do usuário
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -23,6 +28,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _senhaController = TextEditingController();
   
   bool _senhaVisivel = false;
+  bool _camposPreenchidos = false;
+  _TipoLogin? _loginEmProgresso;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_atualizarEstadoBotao);
+    _senhaController.addListener(_atualizarEstadoBotao);
+  }
+
+  void _atualizarEstadoBotao() {
+    setState(() {
+      _camposPreenchidos = _emailController.text.isNotEmpty && _senhaController.text.isNotEmpty;
+    });
+  }
 
   @override
   void dispose() {
@@ -34,6 +54,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _fazerLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    setState(() {
+      _loginEmProgresso = _TipoLogin.email;
+    });
+
     await ref.read(authControllerProvider.notifier).loginComEmail(
       email: _emailController.text.trim(),
       senha: _senhaController.text,
@@ -41,6 +65,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _loginComGoogle() async {
+    setState(() {
+      _loginEmProgresso = _TipoLogin.google;
+    });
+
     await ref.read(authControllerProvider.notifier).loginComGoogle();
   }
 
@@ -53,6 +81,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
+          if (mounted) {
+            setState(() => _loginEmProgresso = null);
+          }
           // Login bem-sucedido, AuthGuard cuidará do redirecionamento.
           // No entanto, para uma transição mais explícita da LoginPage:
           if (mounted) {
@@ -62,6 +93,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         error: (error, _) {
           if (mounted) {
             SnackBarUtils.mostrarErro(context, error.toString());
+            setState(() => _loginEmProgresso = null);
           }
         },
       );
@@ -78,7 +110,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               children: [
                 const SizedBox(height: 40),
                 
-                // Logo e título
                 Center(
                   child: Column(
                     children: [
@@ -90,7 +121,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
-                          Icons.delivery_dining,
+                          Icons.bolt,
                           size: 40,
                           color: Colors.white,
                         ),
@@ -106,7 +137,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       Text(
                         'Entre na sua conta para continuar',
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withAlpha((255 * 0.6).round()),
                         ),
                       ),
                     ],
@@ -115,7 +146,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 
                 const SizedBox(height: 48),
                 
-                // Campo de email
                 CampoTextoCustomizado(
                   controller: _emailController,
                   label: 'Email',
@@ -126,11 +156,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     Validatorless.required('Email é obrigatório'),
                     Validatorless.email('Digite um email válido'),
                   ]),
+                  textInputAction: TextInputAction.next,
                 ),
                 
                 const SizedBox(height: 16),
                 
-                // Campo de senha
                 CampoTextoCustomizado(
                   controller: _senhaController,
                   label: 'Senha',
@@ -152,7 +182,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 
                 const SizedBox(height: 8),
                 
-                // Link esqueci senha
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -163,21 +192,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 
                 const SizedBox(height: 32),
                 
-                // Botão de login
                 ElevatedButton(
-                  onPressed: authState.isLoading ? null : _fazerLogin,
-                  child: authState.isLoading
-                      ? const SizedBox(
+                  onPressed: (authState.isLoading || !_camposPreenchidos) ? null : _fazerLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    disabledBackgroundColor: theme.colorScheme.primary.withAlpha((255 * 0.6).round()),
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha((255 * 0.6).round()),
+                  ),
+                  child: authState.isLoading && _loginEmProgresso == _TipoLogin.email
+                      ? SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: theme.colorScheme.onPrimary.withAlpha((255 * 0.38).round()),
+                          ),
                         )
                       : const Text('Entrar'),
                 ),
                 
                 const SizedBox(height: 24),
                 
-                // Divisor
                 Row(
                   children: [
                     const Expanded(child: Divider()),
@@ -186,7 +222,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       child: Text(
                         'ou',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withAlpha((255 * 0.6).round()),
                         ),
                       ),
                     ),
@@ -196,10 +232,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 
                 const SizedBox(height: 24),
                 
-                // Botão Google
                 BotaoGoogle(
                   onPressed: authState.isLoading ? null : _loginComGoogle,
-                  isLoading: authState.isLoading,
+                  isLoading: authState.isLoading && _loginEmProgresso == _TipoLogin.google,
                 ),
                 
                 const SizedBox(height: 32),

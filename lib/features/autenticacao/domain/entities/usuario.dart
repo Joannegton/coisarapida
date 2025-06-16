@@ -1,4 +1,5 @@
-/// Entidade que representa um usuário do sistema de aluguel
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
+
 class Usuario {
   final String id;
   final String nome;
@@ -85,29 +86,4 @@ class Usuario {
 enum TipoUsuario {
   usuario,
   admin,
-}
-
-/// Entidade para endereço do usuário
-class Endereco {
-  final String cep;
-  final String rua;
-  final String numero;
-  final String? complemento;
-  final String bairro;
-  final String cidade;
-  final String estado;
-  final double? latitude;
-  final double? longitude;
-
-  const Endereco({
-    required this.cep,
-    required this.rua,
-    required this.numero,
-    this.complemento,
-    required this.bairro,
-    required this.cidade,
-    required this.estado,
-    this.latitude,
-    this.longitude,
-  });
 }

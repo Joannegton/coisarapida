@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:coisarapida/core/errors/errors_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -55,7 +56,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       return await _obterUsuarioFirestore(credential.user!.uid);
     } on FirebaseAuthException catch (e) {
-      throw AuthException(_tratarErroFirebaseAuth(e.code));
+      throw AuthException(ErrorUtils.tratarErroFirebaseAuth(e.code));
     } catch (e) {
       throw AuthException('Erro inesperado: ${e.toString()}');
     }
@@ -131,7 +132,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       return await _obterUsuarioFirestore(credential.user!.uid);
     } on FirebaseAuthException catch (e) {
-      throw AuthException(_tratarErroFirebaseAuth(e.code));
+      throw AuthException(ErrorUtils.tratarErroFirebaseAuth(e.code));
     } catch (e) {
       throw AuthException('Erro inesperado: ${e.toString()}');
     }
@@ -142,7 +143,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await _firebaseAuth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
-      throw AuthException(_tratarErroFirebaseAuth(e.code));
+      throw AuthException(ErrorUtils.tratarErroFirebaseAuth(e.code));
     } catch (e) {
       throw AuthException('Erro inesperado: ${e.toString()}');
     }
@@ -249,7 +250,8 @@ class AuthRepositoryImpl implements AuthRepository {
       nome: nome,
       email: user.email!,
       fotoUrl: user.photoURL,
-      criadoEm: DateTime.now(),
+      criadoEm: FieldValue.serverTimestamp(), // Agora pode passar diretamente
+      atualizadoEm: FieldValue.serverTimestamp(), // Agora pode passar diretamente
       emailVerificado: user.emailVerified,
       tipo: domain.TipoUsuario.usuario,
     );
@@ -257,29 +259,6 @@ class AuthRepositoryImpl implements AuthRepository {
     await _firestore
         .collection('usuarios')
         .doc(user.uid)
-        .set(usuarioModel.toMap());
-  }
-
-  String _tratarErroFirebaseAuth(String code) {
-    switch (code) {
-      case 'user-not-found':
-        return 'Usuário não encontrado';
-      case 'wrong-password':
-        return 'Senha incorreta';
-      case 'email-already-in-use':
-        return 'Este email já está em uso';
-      case 'weak-password':
-        return 'A senha deve ter pelo menos 6 caracteres';
-      case 'invalid-email':
-        return 'Email inválido';
-      case 'user-disabled':
-        return 'Esta conta foi desabilitada';
-      case 'too-many-requests':
-        return 'Muitas tentativas. Tente novamente mais tarde';
-      case 'operation-not-allowed':
-        return 'Operação não permitida';
-      default:
-        return 'Erro de autenticação: $code';
-    }
+        .set(usuarioModel.toMap()); // O toMap agora lida com FieldValue
   }
 }

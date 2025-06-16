@@ -110,14 +110,14 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withAlpha((255 * 0.1).round()),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
                     child: Icon(
-                      Icons.delivery_dining,
+                      Icons.bolt,
                       size: 60,
                       color: theme.colorScheme.primary,
                     ),
@@ -145,7 +145,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       Text(
                         'Entregas urbanas instantâneas',
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withAlpha((255 * 0.8).round()),
                         ),
                       ),
                     ],
@@ -163,7 +163,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                   height: 40,
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withOpacity(0.8),
+                      Colors.white.withAlpha((255 * 0.8).round()),
                     ),
                     strokeWidth: 3,
                   ),
