@@ -39,7 +39,7 @@ class PerfilPage extends ConsumerWidget {
                 const SizedBox(height: 32),
                 
                 // Informações pessoais
-                _buildSecaoInformacoes(context, theme, usuario),
+                _buildSecaoInformacoes(context, theme, usuario, ref),
                 
                 const SizedBox(height: 24),
                 
@@ -184,7 +184,7 @@ class PerfilPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSecaoInformacoes(BuildContext context, ThemeData theme, Usuario usuario) {
+  Widget _buildSecaoInformacoes(BuildContext context, ThemeData theme, Usuario usuario, WidgetRef ref) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -203,7 +203,9 @@ class PerfilPage extends ConsumerWidget {
               'Nome',
               usuario.nome,
               Icons.person,
-              () => _editarNome(context),
+              () => _editarCampoTexto(context, ref, 'Nome', usuario.nome, (novoNome) async {
+                await ref.read(authControllerProvider.notifier).atualizarPerfil(nome: novoNome);
+              }),
             ),
             
             _buildItemInformacao(
@@ -217,7 +219,9 @@ class PerfilPage extends ConsumerWidget {
               'Telefone',
               usuario.telefone ?? 'Não informado',
               Icons.phone,
-              () => _editarTelefone(context),
+              () => _editarCampoTexto(context, ref, 'Telefone', usuario.telefone ?? '', (novoTelefone) async {
+                await ref.read(authControllerProvider.notifier).atualizarPerfil(telefone: novoTelefone);
+              }, keyboardType: TextInputType.phone),
             ),
             
             _buildItemInformacao(
@@ -487,12 +491,65 @@ class PerfilPage extends ConsumerWidget {
     );
   }
 
-  void _editarNome(BuildContext context) {
-    SnackBarUtils.mostrarInfo(context, 'Edição de nome em desenvolvimento');
-  }
+  Future<void> _editarCampoTexto(
+    BuildContext context,
+    WidgetRef ref,
+    String titulo,
+    String valorAtual,
+    Future<void> Function(String novoValor) onSalvar, {
+    TextInputType keyboardType = TextInputType.text,
+  }) async {
+    final controller = TextEditingController(text: valorAtual);
+    final formKey = GlobalKey<FormState>();
 
-  void _editarTelefone(BuildContext context) {
-    SnackBarUtils.mostrarInfo(context, 'Edição de telefone em desenvolvimento');
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Editar $titulo'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              decoration: InputDecoration(hintText: 'Novo $titulo'),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return '$titulo não pode ser vazio';
+                }
+                if (titulo == 'Telefone' && !RegExp(r'^\+?[0-9]{10,}$').hasMatch(value)) {
+                  return 'Telefone inválido';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            ElevatedButton(
+              child: const Text('Salvar'),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(dialogContext).pop(); // Fechar diálogo primeiro
+                  try {
+                    await onSalvar(controller.text.trim());
+                    SnackBarUtils.mostrarSucesso(context, '$titulo atualizado com sucesso!');
+                    ref.refresh(meuPerfilProvider); // Atualiza os dados do perfil na tela
+                  } catch (e) {
+                    SnackBarUtils.mostrarErro(context, 'Erro ao atualizar $titulo: ${e.toString()}');
+                  }
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _configurarNotificacoes(BuildContext context) {
