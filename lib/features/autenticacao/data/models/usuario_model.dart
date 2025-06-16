@@ -76,21 +76,6 @@ class UsuarioModel extends Usuario {
     };
   }
 
-  /// Converter para entidade
-  Usuario toEntity() {
-    return Usuario(
-      id: id,
-      nome: nome,
-      email: email,
-      telefone: telefone,
-      fotoUrl: fotoUrl,
-      criadoEm: criadoEm,
-      atualizadoEm: atualizadoEm,
-      emailVerificado: emailVerificado,
-      tipo: tipo,
-    );
-  }
-
   /// Criar UsuarioModel a partir de entidade
   factory UsuarioModel.fromEntity(Usuario usuario) {
     return UsuarioModel(

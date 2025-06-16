@@ -19,14 +19,7 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
   final _emailController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _emailController.addListener(_onEmailChanged);
-  }
-
-  @override
   void dispose() {
-    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     super.dispose();
   }
@@ -36,10 +29,6 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
 
     await ref.read(authControllerProvider.notifier)
         .enviarEmailRedefinicaoSenha(_emailController.text.trim());
-  }
-
-  void _onEmailChanged() {
-    setState(() {}); // Força a reconstrução do widget para atualizar o estado do botão
   }
 
   @override
@@ -130,7 +119,10 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                 const SizedBox(height: 32),
                 
                 ElevatedButton(
-                  onPressed: authState.isLoading || _emailController.text.trim().isEmpty
+                  // A verificação do texto do controller pode ser feita diretamente aqui.
+                  // O listener no controller e o setState() em _onEmailChanged não são mais necessários
+                  // se o único propósito era habilitar/desabilitar este botão.
+                  onPressed: authState.isLoading || _emailController.text.trim().isEmpty 
                       ? null
                       : _enviarEmailRecuperacao,
                   style: ElevatedButton.styleFrom(

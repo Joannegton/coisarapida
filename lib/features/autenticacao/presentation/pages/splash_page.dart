@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,39 +46,37 @@ class _SplashPageState extends ConsumerState<SplashPage>
     ));
 
     _animationController.forward();
-    
-    // Aguardar animação e verificar autenticação
-    _verificarAutenticacao();
+
+    // Aguardar a animação inicial e então verificar a autenticação
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _navegarAposAutenticacao();
+      }
+    });
   }
 
-  Future<void> _verificarAutenticacao() async {
-    // Aguardar pelo menos 2 segundos para mostrar a splash
-    await Future.delayed(const Duration(seconds: 2));
-    
+  void _navegarAposAutenticacao() {
     if (!mounted) return;
 
-    final authState = ref.read(authStateProvider);
-    
-    authState.when(
-      data: (usuario) {
-        if (usuario != null) {
-          context.go(AppRoutes.home);
-        } else {
-          context.go(AppRoutes.login);
-        }
-      },
-      loading: () {
-        // Aguardar mais um pouco se ainda está carregando
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
+    ref.listenManual<AsyncValue<Usuario?>>(authStateProvider, (previous, nextState) {
+      nextState.when(
+        data: (usuario) {
+          if (!mounted) return; // Garante que o widget ainda está montado
+          if (usuario != null) {
+            context.go(AppRoutes.home);
+          } else {
             context.go(AppRoutes.login);
           }
-        });
-      },
-      error: (_, __) {
-        context.go(AppRoutes.login);
-      },
-    );
+        },
+        loading: () {
+          // Não faz nada enquanto carrega, espera por data ou error.
+        },
+        error: (error, stackTrace) {
+          if (!mounted) return; // Garante que o widget ainda está montado
+          context.go(AppRoutes.login);
+        },
+      );
+    }, fireImmediately: true); // fireImmediately para pegar o estado atual se já resolvido
   }
 
   @override

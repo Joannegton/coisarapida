@@ -32,7 +32,7 @@ class AuthRepositoryImpl implements AuthRepository {
         final doc = await _firestore.collection('usuarios').doc(user.uid).get();
         if (!doc.exists) return null;
         
-        return UsuarioModel.fromMap(doc.data()!, doc.id).toEntity();
+        return UsuarioModel.fromMap(doc.data()!, doc.id);
       } catch (e) {
         return null;
       }
@@ -241,7 +241,7 @@ class AuthRepositoryImpl implements AuthRepository {
       throw const AuthException('Dados do usuário não encontrados');
     }
 
-    return UsuarioModel.fromMap(doc.data()!, doc.id).toEntity();
+    return UsuarioModel.fromMap(doc.data()!, doc.id);
   }
 
   Future<void> _criarUsuarioFirestore(User user, String nome) async {
