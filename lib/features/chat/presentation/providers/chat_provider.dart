@@ -1,141 +1,110 @@
-import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:coisarapida/features/chat/domain/entities/mensagem.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Provider para lista de chats do usuário
-final chatsProvider = FutureProvider<List<Chat>>((ref) async {
-  final authState = ref.watch(authStateProvider);
-  
-  await Future.delayed(const Duration(milliseconds: 500));
-  
-  // Dados mockados de chats
-  return [
-    Chat(
-      id: 'chat1',
-      itemId: '1',
-      itemNome: 'Furadeira Bosch',
-      itemFoto: 'https://via.placeholder.com/100x100?text=Furadeira',
-      locadorId: 'user1',
-      locadorNome: 'João Silva',
-      locadorFoto: 'https://via.placeholder.com/100x100?text=JS',
-      locatarioId: 'current_user',
-      locatarioNome: 'Você',
-      locatarioFoto: 'https://via.placeholder.com/100x100?text=VC',
-      ultimaMensagem: Mensagem(
-        id: 'msg1',
-        chatId: 'chat1',
-        remetenteId: 'user1',
-        remetenteNome: 'João Silva',
-        conteudo: 'Oi! A furadeira está disponível para amanhã.',
-        tipo: TipoMensagem.texto,
-        enviadaEm: DateTime.now().subtract(const Duration(minutes: 15)),
-        lida: false,
-      ),
-      mensagensNaoLidas: 1,
-      criadoEm: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    Chat(
-      id: 'chat2',
-      itemId: '2',
-      itemNome: 'Bicicleta Mountain Bike',
-      itemFoto: 'https://via.placeholder.com/100x100?text=Bike',
-      locadorId: 'user2',
-      locadorNome: 'Maria Santos',
-      locadorFoto: 'https://via.placeholder.com/100x100?text=MS',
-      locatarioId: 'current_user',
-      locatarioNome: 'Você',
-      locatarioFoto: 'https://via.placeholder.com/100x100?text=VC',
-      ultimaMensagem: Mensagem(
-        id: 'msg2',
-        chatId: 'chat2',
-        remetenteId: 'current_user',
-        remetenteNome: 'Você',
-        conteudo: 'Perfeito! Obrigado!',
-        tipo: TipoMensagem.texto,
-        enviadaEm: DateTime.now().subtract(const Duration(hours: 1)),
-        lida: true,
-      ),
-      mensagensNaoLidas: 0,
-      criadoEm: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
+final _firestore = FirebaseFirestore.instance;
+final _auth = FirebaseAuth.instance;
+
+/// Provider para o ID do usuário atual (mockado, substituir por Firebase Auth real)
+/// Em um app real, você usaria o provider de autenticação do Firebase.
+final currentUserIdProvider = Provider<String?>((ref) {
+  return _auth.currentUser?.uid;
 });
 
-/// Provider para mensagens de um chat específico
-final mensagensChatProvider = FutureProvider.family<List<Mensagem>, String>((ref, chatId) async {
-  await Future.delayed(const Duration(milliseconds: 300));
-  
-  // Dados mockados de mensagens
-  return [
-    Mensagem(
-      id: 'msg1',
-      chatId: chatId,
-      remetenteId: 'user1',
-      remetenteNome: 'João Silva',
-      conteudo: 'Olá! Vi que você tem interesse na minha furadeira.',
-      tipo: TipoMensagem.texto,
-      enviadaEm: DateTime.now().subtract(const Duration(hours: 2)),
-      lida: true,
-    ),
-    Mensagem(
-      id: 'msg2',
-      chatId: chatId,
-      remetenteId: 'current_user',
-      remetenteNome: 'Você',
-      conteudo: 'Oi! Sim, preciso para um projeto no fim de semana.',
-      tipo: TipoMensagem.texto,
-      enviadaEm: DateTime.now().subtract(const Duration(hours: 2, minutes: -5)),
-      lida: true,
-    ),
-    Mensagem(
-      id: 'msg3',
-      chatId: chatId,
-      remetenteId: 'user1',
-      remetenteNome: 'João Silva',
-      conteudo: 'Perfeito! Ela está em ótimo estado. Quando você precisaria?',
-      tipo: TipoMensagem.texto,
-      enviadaEm: DateTime.now().subtract(const Duration(hours: 1, minutes: 50)),
-      lida: true,
-    ),
-    Mensagem(
-      id: 'msg4',
-      chatId: chatId,
-      remetenteId: 'current_user',
-      remetenteNome: 'Você',
-      conteudo: 'Seria possível pegar na sexta à tarde e devolver no domingo?',
-      tipo: TipoMensagem.texto,
-      enviadaEm: DateTime.now().subtract(const Duration(hours: 1, minutes: 45)),
-      lida: true,
-    ),
-    Mensagem(
-      id: 'msg5',
-      chatId: chatId,
-      remetenteId: 'user1',
-      remetenteNome: 'João Silva',
-      conteudo: 'Oi! A furadeira está disponível para amanhã.',
-      tipo: TipoMensagem.texto,
-      enviadaEm: DateTime.now().subtract(const Duration(minutes: 15)),
-      lida: false,
-    ),
-  ];
+/// Provider para lista de chats do usuário (Stream)
+final chatsProvider = StreamProvider<List<Chat>>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) {
+    return Stream.value([]); // Retorna lista vazia se não houver usuário logado
+  }
+
+  return _firestore
+      .collection('chats')
+      .where('participantes', arrayContains: userId)
+      .orderBy('atualizadoEm', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => Chat.fromFirestore(doc)).toList());
+});
+
+/// Provider para mensagens de um chat específico (Stream)
+final mensagensChatProvider = StreamProvider.family<List<Mensagem>, String>((ref, chatId) {
+  return _firestore
+      .collection('chats')
+      .doc(chatId)
+      .collection('messages')
+      .orderBy('enviadaEm', descending: false) // Mais antigas primeiro
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => Mensagem.fromFirestore(doc)).toList());
+});
+
+/// Provider para buscar detalhes de um chat específico.
+final chatDetailsProvider = FutureProvider.family<Chat?, String>((ref, chatId) async {
+  final doc = await _firestore.collection('chats').doc(chatId).get();
+  if (doc.exists) {
+    return Chat.fromFirestore(doc);
+  }
+  return null;
 });
 
 /// Provider para controlar o envio de mensagens
 final chatControllerProvider = StateNotifierProvider<ChatController, AsyncValue<void>>((ref) {
-  return ChatController();
+  return ChatController(ref);
 });
 
 class ChatController extends StateNotifier<AsyncValue<void>> {
-  ChatController() : super(const AsyncValue.data(null));
+  final Ref _ref;
+  ChatController(this._ref) : super(const AsyncValue.data(null));
 
   Future<void> enviarMensagem(String chatId, String conteudo) async {
     state = const AsyncValue.loading();
-    
+    final userId = _ref.read(currentUserIdProvider);
+    final user = _auth.currentUser;
+
+    if (userId == null || user == null) {
+      state = AsyncValue.error('Usuário não autenticado', StackTrace.current);
+      return;
+    }
+
     try {
-      // Simular envio
-      await Future.delayed(const Duration(milliseconds: 500));
+      final mensagemId = _firestore.collection('chats').doc(chatId).collection('messages').doc().id;
+      final novaMensagem = Mensagem(
+        id: mensagemId,
+        chatId: chatId,
+        remetenteId: userId,
+        remetenteNome: user.displayName ?? 'Usuário Anônimo', // Ou buscar de um perfil
+        conteudo: conteudo,
+        tipo: TipoMensagem.texto,
+        enviadaEm: DateTime.now(),
+      );
+
+      // Escrever a mensagem na subcoleção
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(mensagemId)
+          .set(novaMensagem.toMap());
       
-      // Aqui seria a lógica real de envio
+      // Identificar o ID do outro usuário para incrementar mensagensNãoLidas
+      final chatDoc = await _firestore.collection('chats').doc(chatId).get();
+      if (chatDoc.exists) {
+        final chatData = Chat.fromFirestore(chatDoc);
+        String outroUserId;
+        if (chatData.locadorId == userId) {
+          outroUserId = chatData.locatarioId;
+        } else {
+          outroUserId = chatData.locadorId;
+        }
+
+        // Atualizar o documento do chat com a última mensagem, timestamp e mensagens não lidas
+        await _firestore.collection('chats').doc(chatId).update({
+          'ultimaMensagem': novaMensagem.toMap(),
+          'atualizadoEm': FieldValue.serverTimestamp(),
+          'mensagensNaoLidas.$outroUserId': FieldValue.increment(1),
+        });
+      }
+
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);

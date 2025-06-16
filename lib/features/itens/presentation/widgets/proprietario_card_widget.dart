@@ -21,8 +21,17 @@ class ProprietarioCardWidget extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 30,
-              // TODO: Adicionar foto do proprietário ao Item/Usuario
-              backgroundImage: const NetworkImage('https://via.placeholder.com/100x100?text=User'),
+              // TODO: Adicionar foto do proprietário ao Item/Usuario (ex: item.proprietarioFotoUrl)
+              // backgroundImage: item.proprietarioFotoUrl != null && item.proprietarioFotoUrl!.isNotEmpty
+              //     ? NetworkImage(item.proprietarioFotoUrl!)
+              //     : null,
+              backgroundColor: theme.colorScheme.secondaryContainer,
+              child: /* item.proprietarioFotoUrl != null && item.proprietarioFotoUrl!.isNotEmpty
+                  ? null
+                  : */ Text(
+                      item.proprietarioNome.isNotEmpty ? item.proprietarioNome[0].toUpperCase() : 'P',
+                      style: TextStyle(fontSize: 24, color: theme.colorScheme.onSecondaryContainer),
+                    ),
             ),
             const SizedBox(width: 16),
             Expanded(

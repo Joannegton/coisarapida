@@ -35,41 +35,63 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mensagensState = ref.watch(mensagensChatProvider(widget.chatId));
+    final chatDetailsState = ref.watch(chatDetailsProvider(widget.chatId));
+    final currentUserId = ref.watch(currentUserIdProvider);
     final chatController = ref.watch(chatControllerProvider);
     
     return Scaffold(
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: () => _abrirPerfilUsuario(context, 'user1'),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundImage: NetworkImage(
-                  'https://via.placeholder.com/100x100?text=JS',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'João Silva',
-                      style: TextStyle(fontSize: 16),
+        title: chatDetailsState.when(
+          data: (chat) {
+            if (chat == null) return const Text('Chat');
+            
+            final bool souLocador = chat.locadorId == currentUserId;
+            final String outroUsuarioNome = souLocador ? chat.locatarioNome : chat.locadorNome;
+            final String outroUsuarioFoto = souLocador ? chat.locatarioFoto : chat.locadorFoto;
+            final String outroUsuarioId = souLocador ? chat.locatarioId : chat.locadorId;
+
+            return GestureDetector(
+              onTap: () => _abrirPerfilUsuario(context, outroUsuarioId),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundImage: outroUsuarioFoto.isNotEmpty ? NetworkImage(outroUsuarioFoto) : null,
+                    backgroundColor: outroUsuarioFoto.isNotEmpty ? Colors.transparent : theme.colorScheme.primaryContainer,
+                    child: outroUsuarioFoto.isNotEmpty
+                        ? null
+                        : Text(
+                            outroUsuarioNome.isNotEmpty ? outroUsuarioNome[0].toUpperCase() : '?',
+                            style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          outroUsuarioNome,
+                          style: const TextStyle(fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          chat.itemNome,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    Text(
-                      'Furadeira Bosch',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
+          loading: () => const Text('Carregando...'),
+          error: (err, stack) => const Text('Erro no Chat'),
         ),
         actions: [
           IconButton(
@@ -78,7 +100,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => _mostrarOpcoes(context),
+            onPressed: () => _mostrarOpcoes(context, chatDetailsState.valueOrNull, currentUserId),
           ),
         ],
       ),
@@ -87,16 +109,24 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           // Lista de mensagens
           Expanded(
             child: mensagensState.when(
-              data: (mensagens) => ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: mensagens.length,
-                itemBuilder: (context, index) => _buildMensagem(
-                  context,
-                  theme,
-                  mensagens[index],
+              data: (mensagens) {
+                // Scroll para o final quando novas mensagens chegam
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                  }
+                });
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: mensagens.length,
+                  itemBuilder: (context, index) => _buildMensagem(
+                    context,
+                    theme,
+                    mensagens[index], currentUserId,
                 ),
-              ),
+              );
+              },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
                 child: Text('Erro ao carregar mensagens: $error'),
@@ -161,8 +191,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _buildMensagem(BuildContext context, ThemeData theme, Mensagem mensagem) {
-    final isMinhaMsg = mensagem.remetenteId == 'current_user';
+  Widget _buildMensagem(BuildContext context, ThemeData theme, Mensagem mensagem, String? currentUserId) {
+    final isMinhaMsg = mensagem.remetenteId == currentUserId;
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -174,11 +204,15 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           if (!isMinhaMsg) ...[
             GestureDetector(
               onTap: () => _abrirPerfilUsuario(context, mensagem.remetenteId),
-              child: CircleAvatar(
+              child: CircleAvatar( // Removido 'const'
                 radius: 16,
-                backgroundImage: NetworkImage(
-                  'https://via.placeholder.com/100x100?text=${mensagem.remetenteNome[0]}',
-                ),
+                backgroundImage: null, // Definido como null pois não há URL de imagem do remetente na entidade Mensagem ainda
+                // Quando você adicionar 'remetenteFotoUrl' à entidade Mensagem, você pode usar:
+                // backgroundImage: mensagem.remetenteFotoUrl != null && mensagem.remetenteFotoUrl!.isNotEmpty
+                //    ? NetworkImage(mensagem.remetenteFotoUrl!)
+                //    : null,
+                backgroundColor: theme.colorScheme.secondaryContainer,
+                child: Text(mensagem.remetenteNome.isNotEmpty ? mensagem.remetenteNome[0].toUpperCase() : '?', style: TextStyle(color: theme.colorScheme.onSecondaryContainer)),
               ),
             ),
             const SizedBox(width: 8),
@@ -249,19 +283,23 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     // Scroll para o final
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
+        _scrollController.jumpTo( // Usar jumpTo para evitar animação durante o envio rápido
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
+          // duration: const Duration(milliseconds: 100),
+          // curve: Curves.easeOut,
         );
       }
     });
     
-    // Refresh das mensagens
-    ref.refresh(mensagensChatProvider(widget.chatId));
+    // O StreamProvider já atualiza automaticamente, não precisa de refresh manual aqui.
   }
 
-  void _mostrarOpcoes(BuildContext context) {
+  void _mostrarOpcoes(BuildContext context, Chat? chat, String? currentUserId) {
+    if (chat == null || currentUserId == null) return;
+
+    final bool souLocador = chat.locadorId == currentUserId;
+    final String outroUsuarioId = souLocador ? chat.locatarioId : chat.locadorId;
+
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -273,7 +311,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               title: const Text('Ver perfil'),
               onTap: () {
                 Navigator.pop(context);
-                _abrirPerfilUsuario(context, 'user1');
+                _abrirPerfilUsuario(context, outroUsuarioId);
               },
             ),
             ListTile(
@@ -281,7 +319,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               title: const Text('Informações do item'),
               onTap: () {
                 Navigator.pop(context);
-                context.push('${AppRoutes.detalhesItem}/1');
+                context.push('${AppRoutes.detalhesItem}/${chat.itemId}');
               },
             ),
             ListTile(

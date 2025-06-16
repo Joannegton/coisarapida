@@ -31,4 +31,6 @@ abstract class AuthRepository {
   });
 
   Future<void> excluirConta();
+
+  Future<Usuario?> getUsuario(String uid);
 }

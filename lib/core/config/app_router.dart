@@ -75,6 +75,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const FavoritosPage(),
           ),
           GoRoute(
+            path: AppRoutes.listaChats,
+            name: 'lista-chats-shell',
+            builder: (context, state) => const ListaChatsPage(),
+          ),
+          GoRoute(
             path: AppRoutes.perfil,
             name: 'perfil',
             builder: (context, state) => const PerfilPage(),
@@ -106,11 +111,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // Chat
-      GoRoute(
-        path: AppRoutes.listaChats,
-        name: 'lista-chats',
-        builder: (context, state) => const ListaChatsPage(),
-      ),
+      // A rota principal de lista de chats agora está dentro do ShellRoute.
+      // Se você precisar de uma rota de lista de chats fora do Shell, pode mantê-la aqui.
+      // GoRoute(
+      //   path: AppRoutes.listaChats, // Exemplo: /chats-fora-do-shell
+      //   name: 'lista-chats-global',
+      //   builder: (context, state) => const ListaChatsPage(),
+      // ),
       GoRoute(
         path: '${AppRoutes.chat}/:id',
         name: 'chat',
@@ -199,6 +206,11 @@ class ScaffoldWithNavBar extends StatelessWidget {
             label: 'Favoritos',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Chats',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Perfil',
@@ -213,7 +225,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
     if (location.startsWith(AppRoutes.home)) return 0;
     if (location.startsWith(AppRoutes.buscar)) return 1;
     if (location.startsWith(AppRoutes.favoritos)) return 2;
-    if (location.startsWith(AppRoutes.perfil)) return 3;
+    if (location.startsWith(AppRoutes.listaChats)) return 3;
+    if (location.startsWith(AppRoutes.perfil)) return 4;
     return 0;
   }
 
@@ -229,6 +242,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
         GoRouter.of(context).go(AppRoutes.favoritos);
         break;
       case 3:
+        GoRouter.of(context).go(AppRoutes.listaChats);
+        break;
+      case 4:
         GoRouter.of(context).go(AppRoutes.perfil);
         break;
     }

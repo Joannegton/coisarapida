@@ -14,6 +14,7 @@ class ListaChatsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final chatsState = ref.watch(chatsProvider);
+    final currentUserId = ref.watch(currentUserIdProvider);
     
     return Scaffold(
       appBar: AppBar(
@@ -27,14 +28,14 @@ class ListaChatsPage extends ConsumerWidget {
           
           return RefreshIndicator(
             onRefresh: () async {
-              ref.refresh(chatsProvider);
+              ref.invalidate(chatsProvider); // Invalida para forçar o refetch do stream
             },
             child: ListView.builder(
               itemCount: chats.length,
               itemBuilder: (context, index) => _buildChatTile(
                 context,
                 theme,
-                chats[index],
+                chats[index], currentUserId,
               ),
             ),
           );
@@ -59,18 +60,29 @@ class ListaChatsPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, ThemeData theme, Chat chat) {
-    final outroUsuario = chat.locadorNome != 'Você' ? chat.locadorNome : chat.locatarioNome;
-    final outroUsuarioFoto = chat.locadorNome != 'Você' ? chat.locadorFoto : chat.locatarioFoto;
+  Widget _buildChatTile(BuildContext context, ThemeData theme, Chat chat, String? currentUserId) {
+    if (currentUserId == null) return const SizedBox.shrink(); // Não deveria acontecer se o provider de chats já filtrou
+
+    final bool souLocador = chat.locadorId == currentUserId;
+    final String outroUsuarioNome = souLocador ? chat.locatarioNome : chat.locadorNome;
+    final String outroUsuarioFoto = souLocador ? chat.locatarioFoto : chat.locadorFoto;
+    final int mensagensNaoLidasParaMim = chat.mensagensNaoLidas[currentUserId] ?? 0;
     
     return ListTile(
       leading: Stack(
         children: [
           CircleAvatar(
             radius: 25,
-            backgroundImage: NetworkImage(outroUsuarioFoto),
+            backgroundImage: outroUsuarioFoto.isNotEmpty ? NetworkImage(outroUsuarioFoto) : null,
+            backgroundColor: outroUsuarioFoto.isNotEmpty ? Colors.transparent : theme.colorScheme.primaryContainer,
+            child: outroUsuarioFoto.isNotEmpty
+                ? null
+                : Text(
+                    outroUsuarioNome.isNotEmpty ? outroUsuarioNome[0].toUpperCase() : '?',
+                    style: TextStyle(fontSize: 18, color: theme.colorScheme.onPrimaryContainer),
+                  ),
           ),
-          if (chat.mensagensNaoLidas > 0)
+          if (mensagensNaoLidasParaMim > 0)
             Positioned(
               right: 0,
               top: 0,
@@ -81,7 +93,7 @@ class ListaChatsPage extends ConsumerWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Text(
-                  '${chat.mensagensNaoLidas}',
+                  '$mensagensNaoLidasParaMim',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -96,9 +108,9 @@ class ListaChatsPage extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(
-              outroUsuario,
+              outroUsuarioNome,
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: chat.mensagensNaoLidas > 0 
+                fontWeight: mensagensNaoLidasParaMim > 0 
                     ? FontWeight.bold 
                     : FontWeight.normal,
               ),
@@ -126,10 +138,10 @@ class ListaChatsPage extends ConsumerWidget {
             Text(
               chat.ultimaMensagem!.conteudo,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: chat.mensagensNaoLidas > 0 
+                color: mensagensNaoLidasParaMim > 0 
                     ? Colors.black87 
                     : Colors.grey.shade600,
-                fontWeight: chat.mensagensNaoLidas > 0 
+                fontWeight: mensagensNaoLidasParaMim > 0 
                     ? FontWeight.w600 
                     : FontWeight.normal,
               ),

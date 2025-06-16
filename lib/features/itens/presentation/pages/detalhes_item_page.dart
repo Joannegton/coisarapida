@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/features/chat/domain/entities/mensagem.dart' as chat_entity; // Alias para evitar conflito
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart' as auth_providers; // Alias para auth_provider
 import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -103,7 +107,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
               return SliverToBoxAdapter(
                 child: DetalhesItemContentWidget(
                   item: item,
-                  onChatPressed: () => _abrirChat(item.proprietarioId),
+                  onChatPressed: () => _abrirOuCriarChat(item),
                   formatarData: _formatarData,
                 ),
               );
@@ -123,7 +127,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
         data: (item) => item != null
             ? DetalhesItemBottomBarWidget(
                 item: item,
-                onChatPressed: () => _abrirChat(item.proprietarioId),
+                onChatPressed: () => _abrirOuCriarChat(item),
                 onAlugarPressed: () => _solicitarAluguel(item),
               )
             : null,
@@ -132,10 +136,59 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     );
   }
 
-  void _abrirChat(String proprietarioId) {
-    // Simular abertura do chat
-    // Idealmente, você passaria o ID do proprietário para a rota de chat
-    context.push('${AppRoutes.chat}/$proprietarioId'); // Exemplo
+  Future<void> _abrirOuCriarChat(Item item) async {
+    final authRepository = ref.read(auth_providers.authRepositoryProvider);
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      SnackBarUtils.mostrarErro(context, "Você precisa estar logado para iniciar um chat.");
+      return;
+    }
+
+    final currentUserId = currentUser.uid;
+    final proprietarioId = item.proprietarioId;
+
+    // Não permitir chat consigo mesmo
+    if (currentUserId == proprietarioId) {
+      SnackBarUtils.mostrarInfo(context, "Você não pode iniciar um chat consigo mesmo.");
+      return;
+    }
+
+    // Gerar ID do chat de forma consistente
+    List<String> ids = [currentUserId, proprietarioId];
+    ids.sort(); // Garante que o ID seja o mesmo independente de quem inicia
+    String chatId = '${ids[0]}_${ids[1]}_${item.id}';
+
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+    final chatSnap = await chatRef.get();
+
+    // Buscar informações do proprietário (locador)
+    final proprietarioUser = await authRepository.getUsuario(item.proprietarioId);
+
+    if (!chatSnap.exists) {
+      // Criar novo chat
+      final novoChat = chat_entity.Chat(
+        id: chatId,
+        itemId: item.id,
+        itemNome: item.nome,
+        itemFoto: item.fotos.isNotEmpty ? item.fotos.first : '', // Pega a primeira foto do item
+        locadorId: item.proprietarioId,
+        locadorNome: proprietarioUser?.nome ?? item.proprietarioNome, // Usa o nome do perfil se disponível
+        locadorFoto: proprietarioUser?.fotoUrl ?? '', // Usa a foto do perfil se disponível
+        locatarioId: currentUserId,
+        locatarioNome: currentUser.displayName ?? 'Usuário Anônimo',
+        locatarioFoto: currentUser.photoURL ?? '',
+        criadoEm: DateTime.now(),
+        atualizadoEm: DateTime.now(),
+      );
+      final chatDataParaSalvar = novoChat.toMap();
+      print("Tentando criar chat com os seguintes dados: $chatDataParaSalvar"); // Log dos dados
+      await chatRef.set(chatDataParaSalvar).catchError((error) {
+        print("Erro ao criar chat no Firestore (detalhes_item_page): $error"); // Log de erro específico
+        SnackBarUtils.mostrarErro(context, "Erro ao iniciar chat. Tente novamente.");
+        throw error;
+      });
+    }
+    context.push('${AppRoutes.chat}/$chatId');
   }
 
   void _solicitarAluguel(Item item) {

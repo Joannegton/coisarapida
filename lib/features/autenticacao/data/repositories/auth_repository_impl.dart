@@ -232,6 +232,16 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
+  Future<domain.Usuario?> getUsuario(String uid) async {
+    try {
+      return await _obterUsuarioFirestore(uid);
+    } catch (e) {
+      // Se o usuário não for encontrado ou ocorrer outro erro, retorna null.
+      return null;
+    }
+  }
+
   // Métodos auxiliares
 
   Future<domain.Usuario> _obterUsuarioFirestore(String uid) async {
