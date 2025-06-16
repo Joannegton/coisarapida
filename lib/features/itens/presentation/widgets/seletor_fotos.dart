@@ -285,7 +285,7 @@ class _SeletorFotosState extends State<SeletorFotos> {
         source: source,
         maxWidth: 1024,
         maxHeight: 1024,
-        imageQuality: 85,
+        imageQuality: 75,
       );
       
       if (image != null) {

@@ -119,4 +119,27 @@ class Localizacao {
     required this.cidade,
     required this.estado,
   });
+
+  // Add toMap and fromMap for Localizacao if it's to be a nested object
+  Map<String, dynamic> toMap() {
+    return {
+      'latitude': latitude,
+      'longitude': longitude,
+      'endereco': endereco,
+      'bairro': bairro,
+      'cidade': cidade,
+      'estado': estado,
+    };
+  }
+
+  factory Localizacao.fromMap(Map<String, dynamic> map) {
+    return Localizacao(
+      latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+      endereco: map['endereco'] as String? ?? '',
+      bairro: map['bairro'] as String? ?? '',
+      cidade: map['cidade'] as String? ?? '',
+      estado: map['estado'] as String? ?? '',
+    );
+  }
 }

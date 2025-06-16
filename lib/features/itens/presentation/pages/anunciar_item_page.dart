@@ -1,13 +1,15 @@
+import 'package:coisarapida/features/itens/presentation/widgets/categorias.dart';
+import 'package:coisarapida/features/itens/presentation/widgets/sessao_informacoes.dart';
+import 'package:coisarapida/features/itens/presentation/widgets/sessao_fotos.dart';
+import 'package:coisarapida/features/itens/presentation/widgets/sessao_precos.dart';
 import 'package:flutter/material.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:validatorless/validatorless.dart';
-
-import '../../../autenticacao/presentation/widgets/campo_texto_customizado.dart';
-import '../widgets/seletor_fotos.dart';
+import '../../domain/entities/item.dart' show Localizacao; // Para o tipo Localizacao
+import '../providers/item_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
-/// Tela para anunciar um novo item para aluguel
 class AnunciarItemPage extends ConsumerStatefulWidget {
   const AnunciarItemPage({super.key});
 
@@ -45,17 +47,35 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _nomeController.addListener(_atualizarEstadoBotao);
+    _descricaoController.addListener(_atualizarEstadoBotao);
+    _precoDiaController.addListener(_atualizarEstadoBotao);
+    _precoHoraController.addListener(_atualizarEstadoBotao);
+    _caucaoController.addListener(_atualizarEstadoBotao);
+  }
+
+  @override
   void dispose() {
+    // Remover listeners antes de dar dispose nos controllers
+    _nomeController.removeListener(_atualizarEstadoBotao);
+    _descricaoController.removeListener(_atualizarEstadoBotao);
+    _precoDiaController.removeListener(_atualizarEstadoBotao);
+    _precoHoraController.removeListener(_atualizarEstadoBotao);
+    _caucaoController.removeListener(_atualizarEstadoBotao);
+
     _nomeController.dispose();
     _descricaoController.dispose();
     _precoDiaController.dispose();
-    _precoHoraController.dispose();
-    _caucaoController.dispose();
-    _regrasController.dispose();
-    _pageController.dispose();
+    _precoHoraController.removeListener(_atualizarEstadoBotao);
+    _caucaoController.removeListener(_atualizarEstadoBotao);
     super.dispose();
   }
 
+  void _atualizarEstadoBotao() {
+    setState(() {});
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -75,254 +95,53 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
         key: _formKey,
         child: PageView(
           controller: _pageController,
+          physics: _isBotaoProximoHabilitado()
+              ? const AlwaysScrollableScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
           onPageChanged: (pagina) {
             setState(() {
               _paginaAtual = pagina;
             });
           },
           children: [
-            _buildPaginaInformacoes(),
-            _buildPaginaCategoria(),
-            _buildPaginaFotos(),
-            _buildPaginaPrecos(),
+            InformacoesSection(
+              nomeController: _nomeController, 
+              descricaoController: _descricaoController, 
+              regrasController: _regrasController
+            ),
+            CategoriasSection(
+              categorias: _categorias,
+              categoriaSelecionada: _categoriaSelecionada,
+              onCategoriaSelecionada: (idCategoria) {
+                setState(() => _categoriaSelecionada = idCategoria);
+              },
+            ),
+            SessaoFotos(
+              fotosUrls: _fotosUrls,
+              onFotosChanged: (fotos) {
+                setState(() {
+                  _fotosUrls = fotos;
+                });
+              },
+              maxFotos: 5,
+            ),
+            SessaoPrecos(
+              precoDiaController: _precoDiaController,
+              precoHoraController: _precoHoraController,
+              caucaoController: _caucaoController,
+              aluguelPorHora: _aluguelPorHora,
+              aprovacaoAutomatica: _aprovacaoAutomatica,
+              onAluguelPorHoraChanged: (valor) {
+                setState(() => _aluguelPorHora = valor);
+              },
+              onAprovacaoAutomaticaChanged: (valor) {
+                setState(() => _aprovacaoAutomatica = valor);
+              },
+            ),
           ],
         ),
       ),
       bottomNavigationBar: _buildBotoesNavegacao(theme),
-    );
-  }
-
-  Widget _buildPaginaInformacoes() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Informações Básicas',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Conte-nos sobre o item que você quer alugar',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          CampoTextoCustomizado(
-            controller: _nomeController,
-            label: 'Nome do item',
-            hint: 'Ex: Furadeira Bosch Professional',
-            prefixIcon: Icons.label,
-            validator: Validatorless.required('Nome é obrigatório'),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          CampoTextoCustomizado(
-            controller: _descricaoController,
-            label: 'Descrição',
-            hint: 'Descreva o item, estado de conservação, especificações...',
-            prefixIcon: Icons.description,
-            maxLines: 4,
-            validator: Validatorless.required('Descrição é obrigatória'),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          CampoTextoCustomizado(
-            controller: _regrasController,
-            label: 'Regras de uso (opcional)',
-            hint: 'Ex: Não usar em dias chuvosos, devolver limpo...',
-            prefixIcon: Icons.rule,
-            maxLines: 3,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaginaCategoria() {
-    final theme = Theme.of(context);
-    
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Categoria',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Selecione a categoria que melhor descreve seu item',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: _categorias.length,
-            itemBuilder: (context, index) {
-              final categoria = _categorias[index];
-              final isSelected = _categoriaSelecionada == categoria['id'];
-              
-              return Card(
-                elevation: isSelected ? 4 : 1,
-                color: isSelected ? theme.colorScheme.primary : null,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _categoriaSelecionada = categoria['id'];
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        categoria['icone'],
-                        size: 32,
-                        color: isSelected ? Colors.white : theme.colorScheme.primary,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        categoria['nome'],
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isSelected ? Colors.white : null,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaginaFotos() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: SeletorFotos(
-        fotosIniciais: _fotosUrls,
-        onFotosChanged: (fotos) {
-          setState(() {
-            _fotosUrls = fotos;
-          });
-        },
-        maxFotos: 5,
-      ),
-    );
-  }
-
-  Widget _buildPaginaPrecos() {
-    final theme = Theme.of(context);
-    
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Preços e Configurações',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Defina os valores e como será o aluguel',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Tipo de aluguel
-          SwitchListTile(
-            title: const Text('Aluguel por hora'),
-            subtitle: Text(_aluguelPorHora 
-                ? 'Permitir aluguel por horas' 
-                : 'Apenas aluguel por dias'),
-            value: _aluguelPorHora,
-            onChanged: (valor) {
-              setState(() {
-                _aluguelPorHora = valor;
-              });
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Preço por dia
-          CampoTextoCustomizado(
-            controller: _precoDiaController,
-            label: 'Preço por dia (R\$)',
-            hint: '0,00',
-            prefixIcon: Icons.attach_money,
-            keyboardType: TextInputType.number,
-            validator: Validatorless.required('Preço por dia é obrigatório'),
-          ),
-          
-          if (_aluguelPorHora) ...[
-            const SizedBox(height: 16),
-            CampoTextoCustomizado(
-              controller: _precoHoraController,
-              label: 'Preço por hora (R\$)',
-              hint: '0,00',
-              prefixIcon: Icons.schedule,
-              keyboardType: TextInputType.number,
-            ),
-          ],
-          
-          const SizedBox(height: 16),
-          
-          CampoTextoCustomizado(
-            controller: _caucaoController,
-            label: 'Caução (R\$) - opcional',
-            hint: '0,00',
-            prefixIcon: Icons.security,
-            keyboardType: TextInputType.number,
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Aprovação automática
-          SwitchListTile(
-            title: const Text('Aprovação automática'),
-            subtitle: Text(_aprovacaoAutomatica 
-                ? 'Pedidos serão aprovados automaticamente' 
-                : 'Você aprovará cada pedido manualmente'),
-            value: _aprovacaoAutomatica,
-            onChanged: (valor) {
-              setState(() {
-                _aprovacaoAutomatica = valor;
-              });
-            },
-          ),
-        ],
-      ),
     );
   }
 
@@ -341,7 +160,15 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
           if (_paginaAtual > 0) const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
-              onPressed: _paginaAtual == 3 ? _publicarItem : _proximaPagina,
+              onPressed: _isBotaoProximoHabilitado()
+                  ? (_paginaAtual == 3 ? _publicarItem : _proximaPagina)
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                disabledBackgroundColor: theme.colorScheme.primary.withAlpha((255 * 0.6).round()),
+                foregroundColor: theme.colorScheme.onPrimary,
+                disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha((255 * 0.6).round()),
+              ),
               child: Text(_paginaAtual == 3 ? 'Publicar Item' : 'Próximo'),
             ),
           ),
@@ -350,6 +177,17 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
     );
   }
 
+  bool _isBotaoProximoHabilitado() {
+    if (_paginaAtual == 0) return _nomeController.text.isNotEmpty && _descricaoController.text.isNotEmpty;
+    
+    if (_paginaAtual == 1) return _categoriaSelecionada.isNotEmpty;
+
+    if (_paginaAtual == 2) return _fotosUrls.isNotEmpty;
+    
+    if (_paginaAtual == 3) return _precoDiaController.text.isNotEmpty;
+    
+    return true;
+  }
   void _voltarPagina() {
     _pageController.previousPage(
       duration: const Duration(milliseconds: 300),
@@ -358,7 +196,7 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   }
 
   void _proximaPagina() {
-    if (_validarPaginaAtual()) {
+    if (_validarPaginaAtualVisualmente()) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -366,10 +204,10 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
     }
   }
 
-  bool _validarPaginaAtual() {
+  bool _validarPaginaAtualVisualmente() {
     switch (_paginaAtual) {
       case 0:
-        return _nomeController.text.isNotEmpty && _descricaoController.text.isNotEmpty;
+        return true;
       case 1:
         if (_categoriaSelecionada.isEmpty) {
           SnackBarUtils.mostrarErro(context, 'Selecione uma categoria');
@@ -383,40 +221,106 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
         }
         return true;
       case 3:
-        return _precoDiaController.text.isNotEmpty;
+        if (_precoDiaController.text.isEmpty) {
+          SnackBarUtils.mostrarErro(context, 'Preço por dia é obrigatório');
+          return false;
+        }
+        return true;
       default:
         return true;
     }
   }
 
   void _publicarItem() {
-    if (_formKey.currentState!.validate() && _validarPaginaAtual()) {
-      // Simular publicação
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Publicando item...'),
-            ],
-          ),
-        ),
-      );
-
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.of(context).pop(); // Fechar dialog de loading
-        
-        SnackBarUtils.mostrarSucesso(
-          context,
-          'Item publicado com sucesso! 🎉',
-        );
-        
-        context.pop(); // Voltar para tela anterior
-      });
+    if (!_formKey.currentState!.validate()) {
+      SnackBarUtils.mostrarErro(context, 'Preencha corretamente todos os campos obrigatórios (marcados em vermelho).');
+      if (_nomeController.text.trim().isEmpty || _descricaoController.text.trim().isEmpty) {
+        _pageController.jumpToPage(0);
+      } else if (_precoDiaController.text.trim().isEmpty) { // Assumindo que este é o último FormField obrigatório
+        _pageController.jumpToPage(3);
+      }
+      return;
     }
+
+    if (_categoriaSelecionada.isEmpty) {
+      SnackBarUtils.mostrarErro(context, 'Selecione uma categoria para o item.');
+      _pageController.jumpToPage(1);
+      return;
+    }
+
+    if (_fotosUrls.isEmpty) {
+      SnackBarUtils.mostrarErro(context, 'Adicione pelo menos uma foto do item.');
+      _pageController.jumpToPage(2);
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Publicando item...'),
+          ],
+        ),
+      ),
+    );
+
+    Localizacao localizacao;
+    final currentUser = ref.read(authStateProvider).asData?.value;
+
+    if (currentUser?.endereco != null) {
+      final enderecoUsuario = currentUser!.endereco!;
+      String enderecoCompleto = enderecoUsuario.rua;
+      if (enderecoUsuario.numero.isNotEmpty) {
+        enderecoCompleto += ", ${enderecoUsuario.numero}";
+      }
+      if (enderecoUsuario.complemento != null && enderecoUsuario.complemento!.isNotEmpty) {
+        enderecoCompleto += " - ${enderecoUsuario.complemento}";
+      }
+
+      localizacao = Localizacao(
+        latitude: enderecoUsuario.latitude ?? 0.0, // TODO: Lidar com lat/long nulos ou obter via geocoding
+        longitude: enderecoUsuario.longitude ?? 0.0,
+        endereco: enderecoCompleto.trim(),
+        bairro: enderecoUsuario.bairro,
+        cidade: enderecoUsuario.cidade,
+        estado: enderecoUsuario.estado,
+      );
+    } else {
+      // TODO: Integrar a SessaoLocalizacao para coletar estes dados se o usuário não tiver endereço ou quiser um local diferente
+      localizacao = const Localizacao(
+        latitude: -23.550520, // Exemplo: São Paulo
+        longitude: -46.633308,
+        endereco: "Rua Exemplo, 123",
+        bairro: "Bairro Exemplo",
+        cidade: "Cidade Exemplo",
+        estado: "EX",
+      );
+    }
+
+    ref.read(itemControllerProvider.notifier).publicarItem(
+      nome: _nomeController.text.trim(),
+      descricao: _descricaoController.text.trim(),
+      categoria: _categoriaSelecionada,
+      fotosPaths: _fotosUrls,
+      precoPorDia: double.tryParse(_precoDiaController.text) ?? 0.0,
+      precoPorHora: _aluguelPorHora ? (double.tryParse(_precoHoraController.text) ?? 0.0) : null,
+      caucao: double.tryParse(_caucaoController.text),
+      regrasUso: _regrasController.text.trim(),
+      aprovacaoAutomatica: _aprovacaoAutomatica,
+      localizacao: localizacao,
+    ).then((_) {
+      Navigator.of(context).pop(); // Fechar dialog de loading
+      SnackBarUtils.mostrarSucesso(context, 'Item publicado com sucesso! 🎉');
+      context.pop(); // Voltar para tela anterior
+    }).catchError((error) {
+      print('Erro ao publicar item: $error');
+      Navigator.of(context).pop(); // Fechar dialog de loading
+      SnackBarUtils.mostrarErro(context, 'Erro ao publicar item: ${error.toString()}');
+    });
   }
 }

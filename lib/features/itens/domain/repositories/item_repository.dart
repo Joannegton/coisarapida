@@ -1,0 +1,8 @@
+import 'dart:io';
+import 'package:coisarapida/features/itens/data/models/item_model.dart';
+
+abstract class ItemRepository {
+  Future<void> publicarItem(ItemModel item);
+  Future<List<String>> uploadFotos(List<File> fotos, String itemId);
+  // Adicione outros métodos conforme necessário (ex: buscarItem, atualizarItem)
+}

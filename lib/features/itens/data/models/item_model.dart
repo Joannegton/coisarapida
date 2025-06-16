@@ -1,0 +1,101 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../domain/entities/item.dart';
+
+class ItemModel extends Item {
+  ItemModel({
+    required super.id,
+    required super.nome,
+    required super.descricao,
+    required super.categoria,
+    required super.fotos,
+    required super.precoPorDia,
+    super.precoPorHora,
+    super.caucao,
+    super.regrasUso,
+    required super.disponivel,
+    required super.aprovacaoAutomatica,
+    required super.proprietarioId,
+    required super.proprietarioNome,
+    super.proprietarioReputacao,
+    required super.localizacao,
+    required super.criadoEm, // Expect DateTime for entity
+    super.atualizadoEm,   // Expect DateTime? for entity
+    super.avaliacao,
+    super.totalAlugueis,
+    super.visualizacoes,
+  });
+
+  factory ItemModel.fromEntity(Item entity) {
+    return ItemModel(
+      id: entity.id,
+      nome: entity.nome,
+      descricao: entity.descricao,
+      categoria: entity.categoria,
+      fotos: entity.fotos,
+      precoPorDia: entity.precoPorDia,
+      precoPorHora: entity.precoPorHora,
+      caucao: entity.caucao,
+      regrasUso: entity.regrasUso,
+      disponivel: entity.disponivel,
+      aprovacaoAutomatica: entity.aprovacaoAutomatica,
+      proprietarioId: entity.proprietarioId,
+      proprietarioNome: entity.proprietarioNome,
+      proprietarioReputacao: entity.proprietarioReputacao,
+      localizacao: entity.localizacao,
+      criadoEm: entity.criadoEm,
+      atualizadoEm: entity.atualizadoEm,
+      avaliacao: entity.avaliacao,
+      totalAlugueis: entity.totalAlugueis,
+      visualizacoes: entity.visualizacoes,
+    );
+  }
+
+  factory ItemModel.fromMap(Map<String, dynamic> map, String id) {
+    return ItemModel(
+      id: id,
+      nome: map['nome'] ?? '',
+      descricao: map['descricao'] ?? '',
+      categoria: map['categoria'] ?? '',
+      fotos: List<String>.from(map['fotos'] ?? []),
+      precoPorDia: (map['precoPorDia'] as num?)?.toDouble() ?? 0.0,
+      precoPorHora: (map['precoPorHora'] as num?)?.toDouble(),
+      caucao: (map['caucao'] as num?)?.toDouble(),
+      regrasUso: map['regrasUso'],
+      disponivel: map['disponivel'] ?? true,
+      aprovacaoAutomatica: map['aprovacaoAutomatica'] ?? false,
+      proprietarioId: map['proprietarioId'] ?? '',
+      proprietarioNome: map['proprietarioNome'] ?? '',
+      proprietarioReputacao: (map['proprietarioReputacao'] as num?)?.toDouble(),
+      localizacao: Localizacao.fromMap(map['localizacao'] ?? {}),
+      criadoEm: (map['criadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      atualizadoEm: (map['atualizadoEm'] as Timestamp?)?.toDate(),
+      avaliacao: (map['avaliacao'] as num?)?.toDouble() ?? 0.0,
+      totalAlugueis: map['totalAlugueis'] ?? 0,
+      visualizacoes: map['visualizacoes'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'nome': nome,
+      'descricao': descricao,
+      'categoria': categoria,
+      'fotos': fotos,
+      'precoPorDia': precoPorDia,
+      'precoPorHora': precoPorHora,
+      'caucao': caucao,
+      'regrasUso': regrasUso,
+      'disponivel': disponivel,
+      'aprovacaoAutomatica': aprovacaoAutomatica,
+      'proprietarioId': proprietarioId,
+      'proprietarioNome': proprietarioNome,
+      'proprietarioReputacao': proprietarioReputacao,
+      'localizacao': localizacao.toMap(),
+      'criadoEm': FieldValue.serverTimestamp(),
+      'atualizadoEm': FieldValue.serverTimestamp(),
+      'avaliacao': avaliacao,
+      'totalAlugueis': totalAlugueis,
+      'visualizacoes': visualizacoes,
+    };
+  }
+}

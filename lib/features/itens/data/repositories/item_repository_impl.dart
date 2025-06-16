@@ -1,0 +1,45 @@
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:coisarapida/core/errors/exceptions.dart';
+import '../models/item_model.dart';
+import '../../domain/repositories/item_repository.dart';
+
+class ItemRepositoryImpl implements ItemRepository {
+  final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
+
+  ItemRepositoryImpl({
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _storage = storage ?? FirebaseStorage.instance;
+
+  @override
+  Future<void> publicarItem(ItemModel item) async {
+    try {
+      await _firestore.collection('itens').doc(item.id).set(item.toMap());
+    } catch (e) {
+      throw ServerException('Erro ao publicar item: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<String>> uploadFotos(List<File> fotos, String itemId) async {
+    try {
+      final List<String> downloadUrls = [];
+      for (int i = 0; i < fotos.length; i++) {
+        final file = fotos[i];
+        final fileName = 'item_${itemId}_foto_$i.jpg';
+        final ref = _storage.ref().child('itens/$itemId/$fileName');
+        final uploadTask = ref.putFile(file);
+        final snapshot = await uploadTask.whenComplete(() => {});
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        downloadUrls.add(downloadUrl);
+      }
+      return downloadUrls;
+    } catch (e) {
+      throw ServerException('Erro ao fazer upload das fotos: ${e.toString()}');
+    }
+  }
+}

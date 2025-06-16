@@ -230,6 +230,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         icon: const Icon(Icons.add),
         label: const Text('Anunciar'),
         backgroundColor: theme.colorScheme.secondary,
+        foregroundColor: theme.colorScheme.onSecondary,
+        elevation: 4.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
       ),
     );
   }
