@@ -7,7 +7,6 @@ import '../providers/itens_provider.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../widgets/categoria_card.dart';
 import '../widgets/item_card.dart';
-import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela principal - busca e descoberta de itens para aluguel
 class HomePage extends ConsumerStatefulWidget {
@@ -19,7 +18,6 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   final _buscaController = TextEditingController();
-  String _categoriaSelecionada = 'todos';
 
   @override
   void dispose() {
@@ -240,90 +238,4 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
-
-  Widget _buildCategoriaChip(String categoria, String label, IconData icone) {
-    final isSelected = _categoriaSelecionada == categoria;
-    final theme = Theme.of(context);
-    
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        selected: isSelected,
-        onSelected: (selected) {
-          setState(() {
-            _categoriaSelecionada = categoria;
-          });
-          _filtrarPorCategoria(categoria);
-        },
-        avatar: Icon(
-          icone,
-          size: 18,
-          color: isSelected ? Colors.white : theme.colorScheme.primary,
-        ),
-        label: Text(label),
-        backgroundColor: isSelected ? theme.colorScheme.primary : null,
-        selectedColor: theme.colorScheme.primary,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : null,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  void _mostrarFiltros(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filtros',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.location_on),
-              title: const Text('Distância'),
-              subtitle: const Text('Até 5 km'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => SnackBarUtils.mostrarInfo(context, 'Filtro de distância em desenvolvimento'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.attach_money),
-              title: const Text('Preço'),
-              subtitle: const Text('R\$ 0 - R\$ 100'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => SnackBarUtils.mostrarInfo(context, 'Filtro de preço em desenvolvimento'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.star),
-              title: const Text('Avaliação'),
-              subtitle: const Text('4+ estrelas'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => SnackBarUtils.mostrarInfo(context, 'Filtro de avaliação em desenvolvimento'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _buscarItens(String termo) {
-    if (termo.isNotEmpty) {
-      SnackBarUtils.mostrarInfo(context, 'Buscando: $termo');
-      // TODO: Implementar busca real
-    }
-  }
-
-  void _filtrarPorCategoria(String categoria) {
-    SnackBarUtils.mostrarInfo(context, 'Filtrando por: $categoria');
-    // TODO: Implementar filtro real
-  }
-
 }

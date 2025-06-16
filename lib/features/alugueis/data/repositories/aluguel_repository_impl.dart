@@ -89,11 +89,11 @@ class AluguelRepositoryImpl implements AluguelRepository {
           try {
             final alugueis = snapshot.docs
               .map((doc) {
-                return AluguelModel.fromFirestore(doc as QueryDocumentSnapshot<Map<String, dynamic>>);
+                return AluguelModel.fromFirestore(doc);
               })
               .toList();
             return alugueis;
-          } catch (e, stackTrace) {
+          } catch (e) {
             throw ServerException('Erro ao mapear solicitações pendentes: ${e.toString()}'); // Re-throw para ser pego pelo handleError
           }
         })

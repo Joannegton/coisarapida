@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   // Cores principais
   static const Color _primaryColor = Color(0xFF6366F1);
-  static const Color _secondaryColor = Color(0xFF10B981);
   static const Color _errorColor = Color(0xFFEF4444);
-  static const Color _warningColor = Color(0xFFF59E0B);
-  static const Color _successColor = Color(0xFF10B981);
 
   // Tema claro
   static ThemeData get light {

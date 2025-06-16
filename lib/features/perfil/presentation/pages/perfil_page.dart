@@ -79,7 +79,7 @@ class PerfilPage extends ConsumerWidget {
               Text('Erro ao carregar perfil: $error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.refresh(meuPerfilProvider),
+                onPressed: () => ref.invalidate(meuPerfilProvider),
                 child: const Text('Tentar Novamente'),
               ),
             ],
@@ -539,7 +539,7 @@ class PerfilPage extends ConsumerWidget {
                   try {
                     await onSalvar(controller.text.trim());
                     SnackBarUtils.mostrarSucesso(context, '$titulo atualizado com sucesso!');
-                    ref.refresh(meuPerfilProvider); // Atualiza os dados do perfil na tela
+                    ref.invalidate(meuPerfilProvider); // Atualiza os dados do perfil na tela
                   } catch (e) {
                     SnackBarUtils.mostrarErro(context, 'Erro ao atualizar $titulo: ${e.toString()}');
                   }

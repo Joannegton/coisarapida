@@ -3,7 +3,6 @@ import 'package:coisarapida/core/errors/exceptions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'dart:math';
 
 // import '../../domain/entities/caucao.dart'; // Não mais necessário
 import '../../domain/entities/contrato.dart';
@@ -336,15 +335,7 @@ class SegurancaRepository {
       }
     }
     return downloadUrls;
-  }
-
-  /// Simula bloqueio de valor no gateway de pagamento
-  Future<String> _bloquearValorCaucao(double valor, String usuarioId) async {
-    // Aqui seria a integração real com Pix/cartão
-    // Por enquanto, simular com ID aleatório
-    await Future.delayed(const Duration(seconds: 1));
-    return 'TXN_${Random().nextInt(999999)}';
-  }
+  }  
 
   /// Gera conteúdo HTML do contrato
   String _gerarConteudoContrato(Map<String, dynamic> dados) {

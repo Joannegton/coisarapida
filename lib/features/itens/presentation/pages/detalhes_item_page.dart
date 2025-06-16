@@ -10,14 +10,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/snackbar_utils.dart';
-import '../../../alugueis/presentation/widgets/seletor_datas.dart';
 import '../providers/item_provider.dart'; // Para detalhesItemProvider
 import '../widgets/detalhes_item_app_bar_content_widget.dart';
 import '../widgets/detalhes_item_bottom_bar_widget.dart';
 import '../widgets/detalhes_item_content_widget.dart';
-import '../widgets/informacoes_adicionais_widget.dart';
-import '../widgets/localizacao_card_widget.dart';
-import '../widgets/proprietario_card_widget.dart';
 import '../../../../core/constants/app_routes.dart';
 
 /// Tela de detalhes do item com informações completas
@@ -35,8 +31,6 @@ class DetalhesItemPage extends ConsumerStatefulWidget {
 
 class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   int _fotoAtual = 0;
-  DateTime? _dataInicio;
-  DateTime? _dataFim;
 
   @override
   Widget build(BuildContext context) {
@@ -194,65 +188,6 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   void _solicitarAluguel(Item item) {
     // Navegar para a SolicitarAluguelPage, passando o item como 'extra'
     context.push(AppRoutes.solicitarAluguel, extra: item);
-  }
-
-  void _confirmarSolicitacao(DateTime inicio, DateTime fim, Item item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar Solicitação'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Item: ${item.nome}'),
-            Text('Proprietário: ${item.proprietarioNome}'),
-            const SizedBox(height: 8),
-            Text('Período: ${_formatarData(inicio)} até ${_formatarData(fim)}'),
-            const SizedBox(height: 8),
-            Text(
-              'Valor total: ${_calcularValorTotal(inicio, fim, item)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implementar lógica de envio da solicitação de aluguel
-              SnackBarUtils.mostrarSucesso(
-                context,
-                'Solicitação enviada! Aguarde a aprovação.',
-              );
-            },
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _calcularValorTotal(DateTime inicio, DateTime fim, Item item) {
-    final duracao = fim.difference(inicio);
-    
-    if (item.precoPorHora != null && item.precoPorHora! > 0 && duracao.inHours < 24) {
-      // Aluguel por horas
-      final horas = (duracao.inMinutes / 60).ceil(); // Arredonda para cima as horas
-      final valor = horas * item.precoPorHora!;
-      return 'R\$ ${valor.toStringAsFixed(2)}';
-    } else {
-      // Aluguel por dias
-      // Adiciona 1 para incluir o dia final, se a diferença for exatamente em dias.
-      // Se for 23h, conta como 1 dia. Se for 24h01m, conta como 2 dias.
-      final dias = (duracao.inHours / 24).ceil();
-      final valor = dias * item.precoPorDia;
-      return 'R\$ ${valor.toStringAsFixed(2)}';
-    }
   }
 
   String _formatarData(DateTime data) {

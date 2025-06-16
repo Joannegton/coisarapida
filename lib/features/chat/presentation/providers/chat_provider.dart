@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:coisarapida/features/chat/domain/entities/mensagem.dart';
-import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final _firestore = FirebaseFirestore.instance;

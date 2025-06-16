@@ -89,7 +89,10 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
                 
                 return RefreshIndicator(
                   onRefresh: () async {
-                    ref.refresh(itensFavoritosProvider);
+                    // Invalida o provider para forçar uma nova busca.
+                    ref.invalidate(itensFavoritosProvider);
+                    // Aguarda o novo futuro do provider para o RefreshIndicator.
+                    await ref.read(itensFavoritosProvider.future);
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
