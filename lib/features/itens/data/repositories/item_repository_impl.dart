@@ -42,4 +42,36 @@ class ItemRepositoryImpl implements ItemRepository {
       throw ServerException('Erro ao fazer upload das fotos: ${e.toString()}');
     }
   }
+
+  @override
+  Future<List<ItemModel>> getTodosItens() async {
+    try {
+      final querySnapshot = await _firestore.collection('itens').orderBy('criadoEm', descending: true).get();
+      return querySnapshot.docs.map((doc) {
+        try {
+          return ItemModel.fromFirestore(doc);
+        } catch (e) {
+          print("Erro ao converter item ${doc.id}: $e");
+          rethrow; // Ou lide com o erro de forma mais específica
+        }
+      }).toList();
+    } catch (e) {
+      throw ServerException('Erro ao buscar todos os itens: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<ItemModel?> getDetalhesItem(String itemId) async {
+    try {
+      final docSnapshot = await _firestore.collection('itens').doc(itemId).get();
+      if (docSnapshot.exists) {
+        return ItemModel.fromFirestore(docSnapshot);
+      } else {
+        return null; // Item não encontrado
+      }
+    } catch (e) {
+      print("Erro ao buscar detalhes do item $itemId: $e");
+      throw ServerException('Erro ao buscar detalhes do item: ${e.toString()}');
+    }
+  }
 }

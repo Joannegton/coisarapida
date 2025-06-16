@@ -50,6 +50,36 @@ class ItemModel extends Item {
     );
   }
 
+  factory ItemModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    if (data == null) {
+      // Ou lide com isso de outra forma, como lançar uma exceção específica
+      throw Exception("Documento ${doc.id} não encontrado ou dados nulos.");
+    }
+    return ItemModel(
+      id: doc.id,
+      nome: data['nome'] as String? ?? '',
+      descricao: data['descricao'] as String? ?? '',
+      categoria: data['categoria'] as String? ?? '',
+      fotos: List<String>.from(data['fotos'] as List? ?? []),
+      precoPorDia: (data['precoPorDia'] as num?)?.toDouble() ?? 0.0,
+      precoPorHora: (data['precoPorHora'] as num?)?.toDouble(),
+      caucao: (data['caucao'] as num?)?.toDouble(),
+      regrasUso: data['regrasUso'] as String?,
+      disponivel: data['disponivel'] as bool? ?? true,
+      aprovacaoAutomatica: data['aprovacaoAutomatica'] as bool? ?? false,
+      proprietarioId: data['proprietarioId'] as String? ?? '',
+      proprietarioNome: data['proprietarioNome'] as String? ?? '',
+      proprietarioReputacao: (data['proprietarioReputacao'] as num?)?.toDouble(),
+      localizacao: Localizacao.fromMap(data['localizacao'] as Map<String, dynamic>? ?? {}),
+      criadoEm: (data['criadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      atualizadoEm: (data['atualizadoEm'] as Timestamp?)?.toDate(),
+      avaliacao: (data['avaliacao'] as num?)?.toDouble() ?? 0.0,
+      totalAlugueis: data['totalAlugueis'] as int? ?? 0,
+      visualizacoes: data['visualizacoes'] as int? ?? 0,
+    );
+  }
+
   factory ItemModel.fromMap(Map<String, dynamic> map, String id) {
     return ItemModel(
       id: id,

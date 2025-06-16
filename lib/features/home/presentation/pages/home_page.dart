@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../providers/itens_provider.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../widgets/categoria_card.dart';
+import '../widgets/item_card.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela principal - busca e descoberta de itens para aluguel
@@ -141,11 +143,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       children: [
-                        _buildCategoriaCard('Ferramentas', Icons.build, Colors.orange),
-                        _buildCategoriaCard('Eletrônicos', Icons.devices, Colors.blue),
-                        _buildCategoriaCard('Esportes', Icons.sports_soccer, Colors.green),
-                        _buildCategoriaCard('Casa', Icons.home, Colors.purple),
-                        _buildCategoriaCard('Transporte', Icons.directions_bike, Colors.red),
+                        CategoriaCard(nome: 'Ferramentas', icone: Icons.build, cor: Colors.orange),
+                        CategoriaCard(nome: 'Eletrônicos', icone: Icons.devices, cor: Colors.blue),
+                        CategoriaCard(nome: 'Esportes', icone: Icons.sports_soccer, cor: Colors.green),
+                        CategoriaCard(nome: 'Casa', icone: Icons.home, cor: Colors.purple),
+                        CategoriaCard(nome: 'Transporte', icone: Icons.directions_bike, cor: Colors.red),
                       ],
                     ),
                   ),
@@ -179,7 +181,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   mainAxisSpacing: 12,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildItemCard(context, theme, itens[index]),
+                  (context, index) => ItemCard(item: itens[index]),
                   childCount: itens.take(6).length, // Mostrar apenas 6 itens na home
                 ),
               ),
@@ -238,134 +240,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
-
-  Widget _buildItemCard(BuildContext context, ThemeData theme, Map<String, dynamic> item) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push('${AppRoutes.detalhesItem}/${item['id']}'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Imagem do item
-            Expanded(
-              flex: 3,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  image: item['fotos'] != null && item['fotos'].isNotEmpty
-                      ? DecorationImage(
-                          image: NetworkImage(item['fotos'][0]),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: item['fotos'] == null || item['fotos'].isEmpty
-                    ? Icon(
-                        Icons.image,
-                        size: 48,
-                        color: Colors.grey.shade400,
-                      )
-                    : null,
-              ),
-            ),
-            
-            // Informações do item
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['nome'] ?? 'Item sem nome',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'R\$ ${item['precoPorDia']?.toStringAsFixed(2) ?? '0,00'}/dia',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          size: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            '${item['distancia']?.toStringAsFixed(1) ?? '0.0'} km',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.star,
-                          size: 12,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          '${item['avaliacao']?.toStringAsFixed(1) ?? '0.0'}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoriaCard(String nome, IconData icone, Color cor) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: cor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icone, color: cor, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Flexible( // Adicionado Flexible para o texto se ajustar ao espaço
-            child: Text(
-              nome,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
 
   Widget _buildCategoriaChip(String categoria, String label, IconData icone) {
     final isSelected = _categoriaSelecionada == categoria;

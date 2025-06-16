@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../home/presentation/providers/itens_provider.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../itens/domain/entities/item.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela de busca avançada com filtros
@@ -49,7 +50,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
               color: theme.colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withAlpha((255 * 0.05).round()),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -185,8 +186,8 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                   padding: const EdgeInsets.all(16),
                   itemCount: itensFiltrados.length,
                   itemBuilder: (context, index) => _buildItemListTile(
-                    context, 
-                    theme, 
+                    context,
+                    theme,
                     itensFiltrados[index],
                   ),
                 );
@@ -255,11 +256,11 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     );
   }
 
-  Widget _buildItemListTile(BuildContext context, ThemeData theme, Map<String, dynamic> item) {
+  Widget _buildItemListTile(BuildContext context, ThemeData theme, Item item) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.push('${AppRoutes.detalhesItem}/${item['id']}'),
+        onTap: () => context.push('${AppRoutes.detalhesItem}/${item.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -273,14 +274,14 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                   height: 80,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
-                    image: item['fotos'] != null && item['fotos'].isNotEmpty
+                    image: item.fotos.isNotEmpty
                         ? DecorationImage(
-                            image: NetworkImage(item['fotos'][0]),
+                            image: NetworkImage(item.fotos[0]),
                             fit: BoxFit.cover,
                           )
                         : null,
                   ),
-                  child: item['fotos'] == null || item['fotos'].isEmpty
+                  child: item.fotos.isEmpty
                       ? Icon(
                           Icons.image,
                           size: 32,
@@ -298,7 +299,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['nome'] ?? 'Item sem nome',
+                      item.nome,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -307,7 +308,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      item['categoria']?.toString().toUpperCase() ?? 'CATEGORIA',
+                      item.categoria.toUpperCase(),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -323,7 +324,8 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          '${item['distancia']?.toStringAsFixed(1) ?? '0.0'} km',
+                          // TODO: Calcular e exibir a distância real
+                          '${item.localizacao.cidade}', // Exemplo, idealmente seria a distância
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
                           ),
@@ -336,7 +338,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          '${item['avaliacao']?.toStringAsFixed(1) ?? '0.0'}',
+                          item.avaliacao.toStringAsFixed(1),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
                           ),
@@ -352,7 +354,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'R\$ ${item['precoPorDia']?.toStringAsFixed(2) ?? '0,00'}',
+                    'R\$ ${item.precoPorDia.toStringAsFixed(2)}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
@@ -368,11 +370,11 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: item['disponivel'] == true ? Colors.green : Colors.red,
+                      color: item.disponivel ? Colors.green : Colors.red,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      item['disponivel'] == true ? 'Disponível' : 'Indisponível',
+                      item.disponivel ? 'Disponível' : 'Indisponível',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -497,61 +499,63 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     );
   }
 
-  List<Map<String, dynamic>> _filtrarItens(List<Map<String, dynamic>> itens) {
+  List<Item> _filtrarItens(List<Item> itens) {
     var itensFiltrados = itens.where((item) {
       // Filtro por categoria
-      if (_categoriaSelecionada != 'todos' && item['categoria'] != _categoriaSelecionada) {
+      if (_categoriaSelecionada != 'todos' && item.categoria != _categoriaSelecionada) {
         return false;
       }
       
       // Filtro por disponibilidade
-      if (_apenasDisponiveis && item['disponivel'] != true) {
+      if (_apenasDisponiveis && !item.disponivel) {
         return false;
       }
       
       // Filtro por distância
-      if ((item['distancia'] ?? 0) > _distanciaMaxima) {
-        return false;
-      }
+      // TODO: Implementar cálculo de distância real e filtro
+      // if (calcularDistancia(item.localizacao) > _distanciaMaxima) {
+      //   return false;
+      // }
       
       // Filtro por preço
-      final preco = item['precoPorDia'] ?? 0;
+      final preco = item.precoPorDia;
       if (preco < _faixaPreco.start || preco > _faixaPreco.end) {
         return false;
       }
       
       // Filtro por avaliação
-      if ((item['avaliacao'] ?? 0) < _avaliacaoMinima) {
+      if (item.avaliacao < _avaliacaoMinima) {
         return false;
       }
       
       // Filtro por busca
       if (_buscaController.text.isNotEmpty) {
         final termo = _buscaController.text.toLowerCase();
-        final nome = (item['nome'] ?? '').toLowerCase();
-        final categoria = (item['categoria'] ?? '').toLowerCase();
+        final nome = item.nome.toLowerCase();
+        final descricao = item.descricao.toLowerCase();
         
-        if (!nome.contains(termo) && !categoria.contains(termo)) {
+        if (!nome.contains(termo) && !descricao.contains(termo)) {
           return false;
         }
       }
       
       return true;
     }).toList();
-    
+
     // Ordenação
     switch (_ordenarPor) {
       case 'distancia':
-        itensFiltrados.sort((a, b) => (a['distancia'] ?? 0).compareTo(b['distancia'] ?? 0));
+        // TODO: Ordenar por distância real quando implementado
+        // itensFiltrados.sort((a, b) => calcularDistancia(a.localizacao).compareTo(calcularDistancia(b.localizacao)));
         break;
       case 'preco_menor':
-        itensFiltrados.sort((a, b) => (a['precoPorDia'] ?? 0).compareTo(b['precoPorDia'] ?? 0));
+        itensFiltrados.sort((a, b) => a.precoPorDia.compareTo(b.precoPorDia));
         break;
       case 'preco_maior':
-        itensFiltrados.sort((a, b) => (b['precoPorDia'] ?? 0).compareTo(a['precoPorDia'] ?? 0));
+        itensFiltrados.sort((a, b) => b.precoPorDia.compareTo(a.precoPorDia));
         break;
       case 'avaliacao':
-        itensFiltrados.sort((a, b) => (b['avaliacao'] ?? 0).compareTo(a['avaliacao'] ?? 0));
+        itensFiltrados.sort((a, b) => b.avaliacao.compareTo(a.avaliacao));
         break;
     }
     

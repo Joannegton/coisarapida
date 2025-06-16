@@ -23,6 +23,12 @@ final itemControllerProvider = StateNotifierProvider<ItemController, AsyncValue<
   return ItemController(ref.watch(itemRepositoryProvider), ref);
 });
 
+// Provider para buscar detalhes de um item específico
+final detalhesItemProvider = FutureProvider.family<Item?, String>((ref, itemId) async {
+  final repository = ref.watch(itemRepositoryProvider);
+  return repository.getDetalhesItem(itemId);
+});
+
 class ItemController extends StateNotifier<AsyncValue<void>> {
   final ItemRepository _itemRepository;
   final Ref _ref;
