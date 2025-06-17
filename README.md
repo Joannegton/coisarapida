@@ -11,33 +11,44 @@ O aplicativo conta com diversas funcionalidades, organizadas em módulos:
 *   Cadastro de novos usuários.
 *   Recuperação de senha.
 *   Tela de Splash animada.
+*   Atualização de perfil do usuário (nome, telefone).
+
 
 **Navegação Principal (ShellRoute com Bottom Navigation):**
 *   **Início (`HomePage`):** Tela principal com saudação, busca rápida, categorias populares e itens próximos.
 *   **Buscar (`BuscarPage`):** Busca avançada de itens com filtros por categoria, distância, preço, avaliação e ordenação.
-*   **Favoritos (`FavoritosPage`):** Lista de itens favoritados pelo usuário, com filtros e ordenação.
-*   **Perfil (`PerfilPage`):** Perfil do usuário logado com suas informações, estatísticas (mockadas) e opções de configuração.
+**Favoritos (`FavoritosPage`):** Lista de itens favoritados pelo usuário, com persistência no Firebase, filtros e ordenação.
+*   **Perfil (`PerfilPage`):** Perfil do usuário logado com suas informações, estatísticas (baseadas nos dados do usuário), e opções de configuração e edição de perfil.
 
-**Gerenciamento de Itens:**
+
+**Gerenciamento de Itens (`itens`):**
 *   **Anunciar Item (`AnunciarItemPage`):** Formulário multi-etapas para cadastrar novos itens para aluguel, incluindo informações básicas, categoria, fotos e preços.
 *   **Detalhes do Item (`DetalhesItemPage`):** Visualização completa dos detalhes de um item, incluindo fotos, descrição, preços, informações do proprietário, regras, localização (mockada) e opção de alugar.
 
-**Interação Social e Comunicação:**
-*   **Perfil Público (`PerfilPublicoPage`):** Visualização do perfil de outros usuários, com suas estatísticas, avaliações (mockadas) e itens anunciados.
-*   **Chat (`ListaChatsPage`, `ChatPage`):** Sistema de chat para comunicação entre usuários (atualmente com dados mockados).
+
+**Interação Social e Comunicação (`perfil`, `chat`, `avaliacoes`):**
+*   **Perfil Público (`PerfilPublicoPage`):** Visualização do perfil de outros usuários, com suas estatísticas, avaliações recebidas e itens anunciados.
+*   **Chat (`ListaChatsPage`, `ChatPage`):** Sistema de chat para comunicação entre usuários, com persistência de mensagens no Firebase. Permite iniciar chat a partir da página de detalhes do item.
+*   **Avaliações (`AvaliacaoPage`):** Permite que usuários avaliem outros usuários após um aluguel, com persistência no Firebase.
+
 
 **Configurações:**
 *   **Configurações (`ConfiguracoesPage`):** Opções para alterar tema (Claro, Escuro, Sistema) e idioma (Português, Inglês), além de placeholders para outras configurações.
 
-**Segurança e Aluguéis (Funcionalidades em desenvolvimento/mockadas):**
+**Aluguéis (`alugueis`):**
+*   **Solicitar Aluguel (`SolicitarAluguelPage`):** Interface para o usuário selecionar datas e iniciar o processo de solicitação de aluguel de um item.
 *   **Aceite de Contrato (`AceiteContratoPage`):** Tela para visualização e aceite de um contrato digital gerado dinamicamente (conteúdo HTML).
-*   **Caução (`CaucaoPage`):** Tela para processamento de caução de segurança para aluguéis.
-*   **Status do Aluguel (`StatusAluguelPage`):** Acompanhamento do status de um aluguel, com contador de tempo, verificação de fotos e opções de denúncia.
+*   **Caução (`CaucaoPage`):** Tela para simulação do processamento de caução de segurança para aluguéis.
+*   **Status do Aluguel (`StatusAluguelPage`):** Acompanhamento do status de um aluguel, com contador de tempo, verificação de fotos (upload simulado) e opções de denúncia.
+*   **Solicitações de Aluguel (`SolicitacoesAluguelPage`):** Permite ao locador visualizar e gerenciar (aprovar/recusar) as solicitações de aluguel recebidas.
+*   **Meus Aluguéis (`MeusAlugueisPage`):** Lista os aluguéis do usuário (como locador e locatário).
+
+**Segurança (componentes e lógica distribuída em `seguranca` e `alugueis`):**
 *   **Verificação de Fotos (`UploadFotosVerificacao`):** Componente para upload de fotos do item antes e depois do aluguel.
 *   **Denúncias:** Lógica para registrar denúncias relacionadas a aluguéis.
 *   **Multa por Atraso:** Cálculo e aplicação de multas por atraso na devolução.
 
-**Entregas (Funcionalidades em desenvolvimento/mockadas):**
+**Entregas (`entregas` - Funcionalidades em desenvolvimento/mockadas):**
 *   **Nova Entrega (`NovaEntregaPage`):** Formulário multi-etapas para solicitar uma nova entrega.
 *   **Acompanhar Entrega (`AcompanharEntregaPage`):** Tela para acompanhar o status de uma entrega (atualmente com dados mockados e mapa placeholder).
 
@@ -48,7 +59,7 @@ O aplicativo conta com diversas funcionalidades, organizadas em módulos:
 *   **Firebase:** Plataforma BaaS (Backend as a Service) para:
     *   **FirebaseAuth:** Autenticação de usuários.
     *   **Cloud Firestore:** Banco de dados NoSQL para armazenamento de dados (usuários, itens, etc.).
-    *   **Firebase Storage:** (Implícito) Para armazenamento de fotos de itens e perfis.
+    *   **Firebase Storage:** Para armazenamento de fotos de itens, perfis e evidências.
 *   **Riverpod:** Solução robusta e flexível para gerenciamento de estado.
 *   **GoRouter:** Pacote para roteamento declarativo e navegação.
 *   **Validatorless:** Biblioteca para simplificar a validação de formulários.
@@ -97,15 +108,16 @@ O projeto segue uma arquitetura orientada a features, com uma clara separação 
 
 ## 📝 Status do Projeto
 
-O projeto está **em desenvolvimento**. Muitas funcionalidades principais de autenticação, navegação, gerenciamento de itens e perfil estão implementadas. Funcionalidades como chat, segurança avançada de aluguéis e entregas estão em estágio inicial ou utilizam dados mockados para demonstração da interface e fluxo.
+O projeto está **em desenvolvimento ativo**. Funcionalidades como autenticação, navegação, gerenciamento de itens, perfil, favoritos e chat (com persistência) estão bem implementadas. O fluxo de aluguel, incluindo solicitação, aceite de contrato e gerenciamento de solicitações, está funcional. Funcionalidades de segurança como denúncias e o fluxo de caução estão parcialmente implementadas ou simuladas. O módulo de entregas está em estágio inicial, utilizando dados mockados para demonstração da interface.
+
 
 ## 🔮 Próximos Passos (Sugestões)
 
 *   Implementação completa da lógica de negócios para chat, aluguéis e entregas.
-*   Integração com gateways de pagamento para caução e aluguéis.
+*   Integração real com gateways de pagamento para caução e aluguéis.
 *   Desenvolvimento de mapa em tempo real para acompanhamento de entregas.
 *   Implementação de notificações push.
-*   Testes unitários, de widget e de integração.
+*   Adição de testes unitários, de widget e de integração.
 *   Refinamento da UI/UX.
 *   Internacionalização completa das strings da UI.
 
