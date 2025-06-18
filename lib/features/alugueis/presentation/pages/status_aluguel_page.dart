@@ -363,7 +363,7 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
   final _formKey = GlobalKey<FormState>();
   final _descricaoController = TextEditingController();
   TipoDenuncia _tipoSelecionado = TipoDenuncia.outros;
-  List<File> _evidencias = [];
+  final List<File> _evidencias = [];
 
   final Map<TipoDenuncia, String> _tiposDescricao = {
     TipoDenuncia.naoDevolucao: 'Não devolução do item',

@@ -69,6 +69,7 @@ dev_dependencies:
   mockito: ^5.4.4
   integration_test:
     sdk: flutter
+  lint: ^2.8.0
 
 flutter:
   uses-material-design: true

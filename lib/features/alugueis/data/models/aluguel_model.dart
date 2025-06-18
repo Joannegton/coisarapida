@@ -66,7 +66,7 @@ class AluguelModel extends Aluguel {
       throw FormatException("Dados nulos para o documento Aluguel com ID: ${doc.id}");
     }
 
-    T _getField<T>(String key, {T? defaultValue, bool isRequired = true}) {
+    T getField<T>(String key, {T? defaultValue, bool isRequired = true}) {
       final value = data[key];
       if (value == null) {
         if (isRequired && defaultValue == null) {
@@ -84,7 +84,7 @@ class AluguelModel extends Aluguel {
       return value;
     }
 
-    DateTime _getTimestampField(String key, {bool isRequired = true}) {
+    DateTime getTimestampField(String key, {bool isRequired = true}) {
       final value = data[key];
       if (value == null) {
         if (isRequired) {
@@ -105,35 +105,35 @@ class AluguelModel extends Aluguel {
 
     return AluguelModel(
       id: doc.id,
-      itemId: _getField<String>('itemId'),
-      itemNome: _getField<String>('itemNome'),
-      itemFotoUrl: _getField<String>('itemFotoUrl', defaultValue: ''),
-      locadorId: _getField<String>('locadorId'),
-      locadorNome: _getField<String>('locadorNome'),
-      locatarioId: _getField<String>('locatarioId'),
-      locatarioNome: _getField<String>('locatarioNome'),
-      dataInicio: _getTimestampField('dataInicio'),
-      dataFim: _getTimestampField('dataFim'),
-      precoTotal: _getField<double>('precoTotal'),
-      caucaoValor: _getField<double?>('caucaoValor', isRequired: false),
+      itemId: getField<String>('itemId'),
+      itemNome: getField<String>('itemNome'),
+      itemFotoUrl: getField<String>('itemFotoUrl', defaultValue: ''),
+      locadorId: getField<String>('locadorId'),
+      locadorNome: getField<String>('locadorNome'),
+      locatarioId: getField<String>('locatarioId'),
+      locatarioNome: getField<String>('locatarioNome'),
+      dataInicio: getTimestampField('dataInicio'),
+      dataFim: getTimestampField('dataFim'),
+      precoTotal: getField<double>('precoTotal'),
+      caucaoValor: getField<double?>('caucaoValor', isRequired: false),
       status: StatusAluguel.values.firstWhere(
-        (e) => e.name == _getField<String>('status', defaultValue: StatusAluguel.solicitado.name),
+        (e) => e.name == getField<String>('status', defaultValue: StatusAluguel.solicitado.name),
         orElse: () => StatusAluguel.solicitado, // Fallback caso o valor não seja um enum válido
       ),
-      criadoEm: _getTimestampField('criadoEm'),
-      atualizadoEm: data['atualizadoEm'] != null ? _getTimestampField('atualizadoEm', isRequired: false) : null,
-      observacoesLocatario: _getField<String?>('observacoesLocatario', isRequired: false),
-      motivoRecusaLocador: _getField<String?>('motivoRecusaLocador', isRequired: false),
-      contratoId: _getField<String?>('contratoId', isRequired: false),
+      criadoEm: getTimestampField('criadoEm'),
+      atualizadoEm: data['atualizadoEm'] != null ? getTimestampField('atualizadoEm', isRequired: false) : null,
+      observacoesLocatario: getField<String?>('observacoesLocatario', isRequired: false),
+      motivoRecusaLocador: getField<String?>('motivoRecusaLocador', isRequired: false),
+      contratoId: getField<String?>('contratoId', isRequired: false),
       caucaoStatus: data['caucaoStatus'] != null
           ? StatusCaucaoAluguel.values.firstWhere((e) => e.name == data['caucaoStatus'], orElse: () => StatusCaucaoAluguel.naoAplicavel)
           : null,
-      caucaoMetodoPagamento: _getField<String?>('caucaoMetodoPagamento', isRequired: false),
-      caucaoTransacaoId: _getField<String?>('caucaoTransacaoId', isRequired: false),
-      caucaoDataBloqueio: data['caucaoDataBloqueio'] != null ? _getTimestampField('caucaoDataBloqueio', isRequired: false) : null,
-      caucaoDataLiberacao: data['caucaoDataLiberacao'] != null ? _getTimestampField('caucaoDataLiberacao', isRequired: false) : null,
-      caucaoMotivoRetencao: _getField<String?>('caucaoMotivoRetencao', isRequired: false),
-      caucaoValorRetido: _getField<double?>('caucaoValorRetido', isRequired: false),
+      caucaoMetodoPagamento: getField<String?>('caucaoMetodoPagamento', isRequired: false),
+      caucaoTransacaoId: getField<String?>('caucaoTransacaoId', isRequired: false),
+      caucaoDataBloqueio: data['caucaoDataBloqueio'] != null ? getTimestampField('caucaoDataBloqueio', isRequired: false) : null,
+      caucaoDataLiberacao: data['caucaoDataLiberacao'] != null ? getTimestampField('caucaoDataLiberacao', isRequired: false) : null,
+      caucaoMotivoRetencao: getField<String?>('caucaoMotivoRetencao', isRequired: false),
+      caucaoValorRetido: getField<double?>('caucaoValorRetido', isRequired: false),
     );
   }
 

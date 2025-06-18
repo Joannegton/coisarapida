@@ -209,7 +209,7 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Icon(
+                        const Icon(
                           Icons.star,
                           size: 14,
                           color: Colors.orange,

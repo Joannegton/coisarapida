@@ -13,17 +13,20 @@ import 'features/configuracoes/presentation/providers/idioma_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Habilitar modo Edge-to-Edge para a UI do sistema (barra de status/navegação)
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
   // Configurar orientação da tela
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Configurar barra de status
+  // Configurar estilo inicial da barra de status para edge-to-edge.
+  // O AnnotatedRegion no CoisaRapidaApp cuidará do estilo dinâmico dos ícones e cor de fundo.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
     ),
   );
 

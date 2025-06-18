@@ -297,7 +297,7 @@ class SegurancaRepository {
       }
       
       final diasAtraso = agora.difference(dataLimiteDevolucao).inDays;
-      final multiplicador = 1.5; // 50% de multa sobre o valor da diária
+      const multiplicador = 1.5; // 50% de multa sobre o valor da diária
       final multa = diasAtraso * valorDiaria * multiplicador;
       
       // Registrar multa no Firestore

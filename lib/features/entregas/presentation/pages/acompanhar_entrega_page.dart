@@ -177,23 +177,23 @@ class _AcompanharEntregaPageState extends ConsumerState<AcompanharEntregaPage> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
+                  const Row(
                     children: [
                       Icon(
                         Icons.star,
                         color: Colors.orange,
                         size: 16,
                       ),
-                      const SizedBox(width: 4),
-                      const Text('4.8'),
-                      const SizedBox(width: 16),
+                      SizedBox(width: 4),
+                      Text('4.8'),
+                      SizedBox(width: 16),
                       Icon(
                         Icons.local_shipping,
                         color: Colors.grey,
                         size: 16,
                       ),
-                      const SizedBox(width: 4),
-                      const Text('Moto'),
+                      SizedBox(width: 4),
+                      Text('Moto'),
                     ],
                   ),
                   const SizedBox(height: 8),

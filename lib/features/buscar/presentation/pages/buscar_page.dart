@@ -325,13 +325,13 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                         const SizedBox(width: 2),
                         Text(
                           // TODO: Calcular e exibir a distância real
-                          '${item.localizacao.cidade}', // Exemplo, idealmente seria a distância
+                          item.localizacao.cidade, // Exemplo, idealmente seria a distância
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Icon(
+                        const Icon(
                           Icons.star,
                           size: 14,
                           color: Colors.orange,

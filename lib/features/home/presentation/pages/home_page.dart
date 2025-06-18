@@ -140,7 +140,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     height: 80,
                     child: ListView(
                       scrollDirection: Axis.horizontal,
-                      children: [
+                      children: const [
                         CategoriaCard(nome: 'Ferramentas', icone: Icons.build, cor: Colors.orange),
                         CategoriaCard(nome: 'Eletrônicos', icone: Icons.devices, cor: Colors.blue),
                         CategoriaCard(nome: 'Esportes', icone: Icons.sports_soccer, cor: Colors.green),

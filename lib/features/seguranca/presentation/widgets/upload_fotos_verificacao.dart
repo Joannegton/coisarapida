@@ -21,8 +21,8 @@ class UploadFotosVerificacao extends ConsumerStatefulWidget {
 }
 
 class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao> {
-  List<File> _fotosAntes = [];
-  List<File> _fotosDepois = [];
+  final List<File> _fotosAntes = [];
+  final List<File> _fotosDepois = [];
   final _observacoesAntesController = TextEditingController();
   final _observacoesDepoisController = TextEditingController();
   bool _fotosAntesSalvas = false;

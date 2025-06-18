@@ -111,7 +111,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
               child: CircularProgressIndicator(),
             ))),
             error: (error, stack) => SliverToBoxAdapter(child: Center(child: Padding(
-              padding: EdgeInsets.all(32.0),
+              padding: const EdgeInsets.all(32.0),
               child: Text('Erro ao carregar detalhes do item: $error'),
             ))),
           ),
