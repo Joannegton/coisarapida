@@ -11,6 +11,8 @@ import '../../../../core/utils/snackbar_utils.dart';
 // Providers para controle de estado reativo usando Riverpod
 final senhaVisivelProvider = StateProvider<bool>((ref) => false);
 final loginEmProgressoProvider = StateProvider<_TipoLogin?>((ref) => null);
+// final senhaVisivelProvider = StateProvider<bool>((ref) => false);
+// final cadastroEmProgressoProvider = StateProvider<_TipoCadastro?>((ref) => null);
 
 enum _TipoLogin {
   email,
@@ -233,7 +235,7 @@ class _LoginFormWidgetState extends ConsumerState<LoginFormWidget> {
     );
   }
 
-  // Widget reutilizável para título, com key para identificar transições
+  // key para identificar transições
   Widget _buildTitulo(ThemeData theme, {required Key key}) {
     return Column(
       key: key,

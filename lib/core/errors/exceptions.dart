@@ -1,7 +1,6 @@
 /// Exceções customizadas do aplicativo
 library;
 
-/// Exceção base para erros do aplicativo
 abstract class AppException implements Exception {
   final String message;
   const AppException(this.message);

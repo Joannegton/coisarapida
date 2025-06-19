@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:validatorless/validatorless.dart';
@@ -12,6 +13,8 @@ enum _TipoCadastro {
   email,
   google,
 }
+
+
 
 class CadastroPage extends ConsumerStatefulWidget {
   const CadastroPage({super.key});
@@ -30,17 +33,12 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
   bool _senhaVisivel = false;
   bool _confirmarSenhaVisivel = false;
   bool _aceitouTermos = false;
-  bool _camposPreenchidos = false;
   _TipoCadastro? _cadastroEmProgresso;
 
 
   @override
   void initState() {
     super.initState();
-    _nomeController.addListener(_atualizarEstadoBotao);
-    _emailController.addListener(_atualizarEstadoBotao);
-    _senhaController.addListener(_atualizarEstadoBotao);
-    _confirmarSenhaController.addListener(_atualizarEstadoBotao);
   }
 
   @override
@@ -52,32 +50,10 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
     super.dispose();
   }
 
-  void _atualizarEstadoBotao() {
-    final bool camposEstaoPreenchidos =
-        _nomeController.text.trim().isNotEmpty &&
-        _emailController.text.trim().isNotEmpty &&
-          _senhaController.text.isNotEmpty &&
-          _confirmarSenhaController.text.isNotEmpty &&
-          _aceitouTermos;
-
-    if (_camposPreenchidos != camposEstaoPreenchidos) {
-      setState(() {
-        _camposPreenchidos = camposEstaoPreenchidos;
-      });
-    }
-  }
-
   Future<void> _fazerCadastro() async {
     if (!_formKey.currentState!.validate()) return;
     
-    if (!_aceitouTermos) {
-      SnackBarUtils.mostrarErro(
-        context, 
-        'Você deve aceitar os termos de uso',
-      );
-      return;
-    }
-
+    // A verificação de _aceitouTermos é feita pela lógica de habilitação do botão
     setState(() {
       _cadastroEmProgresso = _TipoCadastro.email;
     });
@@ -90,10 +66,10 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
   }
 
   Future<void> _loginComGoogle() async {
-    await ref.read(authControllerProvider.notifier).loginComGoogle();
     setState(() {
       _cadastroEmProgresso = _TipoCadastro.google;
     });
+    await ref.read(authControllerProvider.notifier).loginComGoogle();
   }
 
   @override
@@ -116,7 +92,9 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
         },
         error: (error, _) {
           SnackBarUtils.mostrarErro(context, error.toString());
-          setState(() => _cadastroEmProgresso = null);
+          if (mounted) {
+            setState(() => _cadastroEmProgresso = null);
+          }
         },
       );
     });
@@ -124,6 +102,10 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Criar Conta'),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -252,15 +234,17 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                     Checkbox(
                       value: _aceitouTermos,
                       onChanged: (value) {
-                        _aceitouTermos = value ?? false;
-                        _atualizarEstadoBotao();
+                        setState(() {
+                          _aceitouTermos = value ?? false;
+                        });
                       },
                     ),
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          _aceitouTermos = !_aceitouTermos;
-                          _atualizarEstadoBotao();
+                          setState(() {
+                            _aceitouTermos = !_aceitouTermos;
+                          });
                         },
                         child: Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -295,9 +279,17 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                 
                 const SizedBox(height: 32),
                 
-                ElevatedButton(
-                  onPressed: (authState.isLoading || !_camposPreenchidos) ? null : _fazerCadastro,
-                  style: ElevatedButton.styleFrom(
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _nomeController, // Pode ser qualquer um, ou agrupar com ValueNotifier<bool>
+                  builder: (context, _, __) { // Usamos ValueListenableBuilder para reconstruir ao digitar
+                    final bool camposValidos = _nomeController.text.trim().isNotEmpty &&
+                                              _emailController.text.trim().isNotEmpty &&
+                                              _senhaController.text.isNotEmpty &&
+                                              _confirmarSenhaController.text.isNotEmpty &&
+                                              _aceitouTermos;
+                    return ElevatedButton(
+                      onPressed: (authState.isLoading || !camposValidos) ? null : _fazerCadastro,
+                      style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     disabledBackgroundColor: theme.colorScheme.primary.withAlpha((255 * 0.6).round()),
                     foregroundColor: theme.colorScheme.onPrimary,
@@ -305,16 +297,18 @@ class _CadastroPageState extends ConsumerState<CadastroPage> {
                   ),
                   child: authState.isLoading && _cadastroEmProgresso == _TipoCadastro.email
                       ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: theme.colorScheme.onPrimary.withAlpha((255 * 0.38).round()),
-                          )
-                        )
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.onPrimary.withAlpha((255 * 0.38).round()),
+                        ),
+                      )
                       : const Text('Criar Conta'),
+                    );
+                  }
                 ),
-                
+
                 const SizedBox(height: 24),
                 
                 Row(

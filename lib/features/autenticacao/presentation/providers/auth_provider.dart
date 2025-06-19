@@ -1,34 +1,26 @@
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../domain/entities/usuario.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepositoryImpl(
-    firebaseAuth: FirebaseAuth.instance,
-    firestore: FirebaseFirestore.instance,
-    googleSignIn: GoogleSignIn(),
-  );
+  return AuthRepositoryImpl();
 });
 
-// Provider do estado de autenticação (stream)
+// Stream do usuário autenticado.
 final authStateProvider = StreamProvider<Usuario?>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   return authRepository.usuarioAtual;
 });
 
-// Provider para operações de autenticação
-final authControllerProvider = 
-    StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
+// Controller para ações de autenticação (login, cadastro, logout, etc.).
+final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
   return AuthController(ref.watch(authRepositoryProvider));
 });
 
-/// Controller para gerenciar operações de autenticação
+/// Gerencia o estado e as ações de autenticação.
 class AuthController extends StateNotifier<AsyncValue<void>> {
   final AuthRepository _authRepository;
 

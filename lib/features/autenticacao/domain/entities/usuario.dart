@@ -9,7 +9,6 @@ class Usuario {
   final DateTime criadoEm;
   final DateTime? atualizadoEm;
   final bool emailVerificado;
-  final TipoUsuario tipo;
   
   // Campos específicos para aluguel
   final double reputacao;
@@ -28,7 +27,6 @@ class Usuario {
     required this.criadoEm,
     this.atualizadoEm,
     required this.emailVerificado,
-    required this.tipo,
     this.reputacao = 0.0,
     this.totalAlugueis = 0,
     this.totalItensAlugados = 0,
@@ -46,7 +44,6 @@ class Usuario {
     DateTime? criadoEm,
     DateTime? atualizadoEm,
     bool? emailVerificado,
-    TipoUsuario? tipo,
     double? reputacao,
     int? totalAlugueis,
     int? totalItensAlugados,
@@ -63,7 +60,6 @@ class Usuario {
       criadoEm: criadoEm ?? this.criadoEm,
       atualizadoEm: atualizadoEm ?? this.atualizadoEm,
       emailVerificado: emailVerificado ?? this.emailVerificado,
-      tipo: tipo ?? this.tipo,
       reputacao: reputacao ?? this.reputacao,
       totalAlugueis: totalAlugueis ?? this.totalAlugueis,
       totalItensAlugados: totalItensAlugados ?? this.totalItensAlugados,
@@ -73,17 +69,14 @@ class Usuario {
     );
   }
 
+   // sobrescrita do operador de igualdade (==)
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Usuario && other.id == id;
+    if (identical(this, other)) return true; // Se for a mesma instância na memória
+    return other is Usuario && other.id == id; // Se for do tipo Usuario e tiver o mesmo id
   }
 
+  // sobrescrita do hashCode (geralmente sobrescrito junto com o ==)
   @override
-  int get hashCode => id.hashCode;
-}
-
-enum TipoUsuario {
-  usuario,
-  admin,
+  int get hashCode => id.hashCode; // O hashCode é baseado no id
 }

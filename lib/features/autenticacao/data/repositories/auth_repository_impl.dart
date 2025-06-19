@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'package:coisarapida/core/errors/errors_utils.dart';
-import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart' as domain;
+import 'package:coisarapida/features/autenticacao/data/models/endereco_model.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../domain/entities/usuario.dart' as domain;
+import '../../domain/entities/usuario.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/usuario_model.dart';
 import '../../../../core/errors/exceptions.dart';
 
-/// Implementação do repositório de autenticação usando Firebase
 class AuthRepositoryImpl implements AuthRepository {
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
@@ -25,7 +25,7 @@ class AuthRepositoryImpl implements AuthRepository {
         _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   @override
-  Stream<domain.Usuario?> get usuarioAtual {
+  Stream<Usuario?> get usuarioAtual {
     return _firebaseAuth.authStateChanges().asyncMap((user) async {
       if (user == null) return null;
       
@@ -41,7 +41,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<domain.Usuario> loginComEmail({
+  Future<Usuario> loginComEmail({
     required String email,
     required String senha,
   }) async {
@@ -64,7 +64,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<domain.Usuario> loginComGoogle() async {
+  Future<Usuario> loginComGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -85,14 +85,12 @@ class AuthRepositoryImpl implements AuthRepository {
         throw const AuthException('Falha na autenticação com Google');
       }
 
-      // Verificar se usuário já existe no Firestore
       final doc = await _firestore
           .collection('usuarios')
           .doc(userCredential.user!.uid)
           .get();
 
       if (!doc.exists) {
-        // Criar novo usuário no Firestore
         await _criarUsuarioFirestore(
           userCredential.user!,
           userCredential.user!.displayName ?? 'Usuário',
@@ -107,7 +105,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<domain.Usuario> cadastrarComEmail({
+  Future<Usuario> cadastrarComEmail({
     required String nome,
     required String email,
     required String senha,
@@ -122,13 +120,11 @@ class AuthRepositoryImpl implements AuthRepository {
         throw const AuthException('Falha ao criar conta');
       }
 
-      // Atualizar nome do usuário no Firebase Auth
+      // atualizar nome do usuário no Firebase Auth
       await credential.user!.updateDisplayName(nome);
 
-      // Criar usuário no Firestore
       await _criarUsuarioFirestore(credential.user!, nome);
 
-      // Enviar email de verificação
       await credential.user!.sendEmailVerification();
 
       return await _obterUsuarioFirestore(credential.user!.uid);
@@ -166,20 +162,18 @@ class AuthRepositoryImpl implements AuthRepository {
   bool get estaLogado => _firebaseAuth.currentUser != null;
 
   @override
-  domain.Usuario? get usuarioAtualSync {
+  Usuario? get usuarioAtualSync {
     final user = _firebaseAuth.currentUser;
     if (user == null) return null;
     
     // Retorna dados básicos do Firebase Auth
-    // Para dados completos, use o stream usuarioAtual
-    return domain.Usuario(
+    return Usuario(
       id: user.uid,
       nome: user.displayName ?? 'Usuário',
       email: user.email ?? '',
       fotoUrl: user.photoURL,
       criadoEm: user.metadata.creationTime ?? DateTime.now(),
       emailVerificado: user.emailVerified,
-      tipo: domain.TipoUsuario.usuario,
     );
   }
 
@@ -188,7 +182,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? nome,
     String? telefone,
     String? fotoUrl,
-    domain.Endereco? endereco,
+    Endereco? endereco,
     String? cpf,
   }) async {
     try {
@@ -233,10 +227,8 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = _firebaseAuth.currentUser;
       if (user == null) throw const AuthException('Usuário não autenticado');
 
-      // Excluir dados do Firestore
       await _firestore.collection('usuarios').doc(user.uid).delete();
 
-      // Excluir conta do Firebase Auth
       await user.delete();
     } catch (e) {
       throw AuthException('Erro ao excluir conta: ${e.toString()}');
@@ -244,18 +236,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<domain.Usuario?> getUsuario(String uid) async {
+  Future<Usuario?> getUsuario(String uid) async {
     try {
       return await _obterUsuarioFirestore(uid);
     } catch (e) {
-      // Se o usuário não for encontrado ou ocorrer outro erro, retorna null.
       return null;
     }
   }
 
   // Métodos auxiliares
-
-  Future<domain.Usuario> _obterUsuarioFirestore(String uid) async {
+  Future<Usuario> _obterUsuarioFirestore(String uid) async {
     final doc = await _firestore.collection('usuarios').doc(uid).get();
     
     if (!doc.exists) {
@@ -271,21 +261,14 @@ class AuthRepositoryImpl implements AuthRepository {
       nome: nome,
       email: user.email!,
       fotoUrl: user.photoURL,
-      criadoEm: FieldValue.serverTimestamp(), // Agora pode passar diretamente
-      atualizadoEm: FieldValue.serverTimestamp(), // Agora pode passar diretamente
+      criadoEm: FieldValue.serverTimestamp(),
+      atualizadoEm: FieldValue.serverTimestamp(),
       emailVerificado: user.emailVerified,
-      tipo: domain.TipoUsuario.usuario,
-      // Valores padrão para novos campos
-      reputacao: 0.0,
-      totalAlugueis: 0,
-      totalItensAlugados: 0,
-      verificado: false, // Pode ser atualizado após verificação de documentos
-      // cpf e endereco podem ser nulos inicialmente
     );
 
     await _firestore
         .collection('usuarios')
         .doc(user.uid)
-        .set(usuarioModel.toMap()); // O toMap agora lida com FieldValue
+        .set(usuarioModel.toMap());
   }
 }

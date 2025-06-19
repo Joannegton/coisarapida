@@ -20,4 +20,57 @@ class Endereco {
     this.latitude,
     this.longitude,
   });
+
+  Endereco copyWith({
+    String? cep,
+    String? rua,
+    String? numero,
+    String? complemento,
+    String? bairro,
+    String? cidade,
+    String? estado,
+    double? latitude,
+    double? longitude,
+  }) {
+    return Endereco(
+      cep: cep ?? this.cep,
+      rua: rua ?? this.rua,
+      numero: numero ?? this.numero,
+      complemento: complemento ?? this.complemento,
+      bairro: bairro ?? this.bairro,
+      cidade: cidade ?? this.cidade,
+      estado: estado ?? this.estado,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is Endereco &&
+        other.cep == cep &&
+        other.rua == rua &&
+        other.numero == numero &&
+        other.complemento == complemento &&
+        other.bairro == bairro &&
+        other.cidade == cidade &&
+        other.estado == estado &&
+        other.latitude == latitude &&
+        other.longitude == longitude;
+  }
+
+  @override
+  int get hashCode {
+    return cep.hashCode ^
+        rua.hashCode ^
+        numero.hashCode ^
+        complemento.hashCode ^
+        bairro.hashCode ^
+        cidade.hashCode ^
+        estado.hashCode ^
+        latitude.hashCode ^
+        longitude.hashCode;
+  }
 }

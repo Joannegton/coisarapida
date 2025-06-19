@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart'; // Import para SystemUiOverlayStyle
 import 'package:go_router/go_router.dart';
 import 'package:validatorless/validatorless.dart';
 
@@ -17,9 +18,21 @@ class EsqueciSenhaPage extends ConsumerStatefulWidget {
 class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  bool _envioEmProgresso = false;
+
+  bool get _isBotaoAtivo => _emailController.text.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onInputChanged);
+  }
+
+  void _onInputChanged() => setState(() {});
 
   @override
   void dispose() {
+    _emailController.removeListener(_onInputChanged);
     _emailController.dispose();
     super.dispose();
   }
@@ -27,8 +40,20 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
   Future<void> _enviarEmailRecuperacao() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await ref.read(authControllerProvider.notifier)
-        .enviarEmailRedefinicaoSenha(_emailController.text.trim());
+    setState(() {
+      _envioEmProgresso = true;
+    });
+
+    try {
+      await ref.read(authControllerProvider.notifier)
+          .enviarEmailRedefinicaoSenha(_emailController.text.trim());
+    } finally {
+      if (mounted) {
+        setState(() {
+          _envioEmProgresso = false;
+        });
+      }
+    }
   }
 
   @override
@@ -55,6 +80,10 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recuperar Senha'),
+        systemOverlayStyle: SystemUiOverlayStyle( 
+          statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -71,12 +100,12 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withAlpha((255 * 0.1).round()),
+                      color: theme.colorScheme.primary.withAlpha(25),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
                       Icons.lock_reset,
-                      size: 40,
+                      size: 45,
                       color: theme.colorScheme.primary,
                     ),
                   ),
@@ -102,7 +131,7 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                   textAlign: TextAlign.center,
                 ),
                 
-                const SizedBox(height: 48),
+                const SizedBox(height: 40),
                 
                 CampoTextoCustomizado(
                   controller: _emailController,
@@ -119,10 +148,7 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                 const SizedBox(height: 32),
                 
                 ElevatedButton(
-                  // A verificação do texto do controller pode ser feita diretamente aqui.
-                  // O listener no controller e o setState() em _onEmailChanged não são mais necessários
-                  // se o único propósito era habilitar/desabilitar este botão.
-                  onPressed: authState.isLoading || _emailController.text.trim().isEmpty 
+                  onPressed: (_envioEmProgresso || authState.isLoading || !_isBotaoAtivo )
                       ? null
                       : _enviarEmailRecuperacao,
                   style: ElevatedButton.styleFrom(
@@ -131,13 +157,13 @@ class _EsqueciSenhaPageState extends ConsumerState<EsqueciSenhaPage> {
                     foregroundColor: theme.colorScheme.onPrimary,
                     disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha((255 * 0.6).round()),
                   ),
-                  child: authState.isLoading
+                  child: _envioEmProgresso
                       ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: theme.colorScheme.onPrimary.withAlpha((255 * 0.38).round()),
+                            color: theme.colorScheme.onPrimary, // Cor simplificada para o spinner
                           )
                         )
                       : const Text('Enviar Email de Recuperação'),

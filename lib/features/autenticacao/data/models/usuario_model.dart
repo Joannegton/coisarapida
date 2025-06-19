@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/features/autenticacao/data/models/endereco_model.dart';
 import '../../domain/entities/usuario.dart';
-import '../../domain/entities/endereco.dart';
 
 /// Model para serialização/deserialização do usuário
 class UsuarioModel extends Usuario {
-  // Campos para armazenar o input original, que pode ser DateTime ou FieldValue
+  // input original, que pode ser DateTime ou FieldValue
   final dynamic _criadoEmInput;
   final dynamic _atualizadoEmInput;
 
@@ -14,10 +14,9 @@ class UsuarioModel extends Usuario {
     required super.email,
     super.telefone,
     super.fotoUrl,
-    required dynamic criadoEm, // Aceita DateTime ou FieldValue.serverTimestamp()
-    dynamic atualizadoEm,   // Aceita DateTime, FieldValue.serverTimestamp() ou null
+    required dynamic criadoEm, // Parâmetro do construtor UsuarioModel
+    dynamic atualizadoEm,    // Parâmetro do construtor UsuarioModel
     required super.emailVerificado,
-    required super.tipo,
     super.reputacao,
     super.totalAlugueis,
     super.totalItensAlugados,
@@ -27,9 +26,6 @@ class UsuarioModel extends Usuario {
   })  : _criadoEmInput = criadoEm,
         _atualizadoEmInput = atualizadoEm,
         super(
-          // Para a entidade Usuario (super), sempre passamos DateTime.
-          // Se o input for FieldValue, usamos DateTime.now() como um placeholder temporário.
-          // Após salvar e ler do Firestore, este campo será o DateTime correto do servidor.
           criadoEm: criadoEm is DateTime ? criadoEm : DateTime.now(),
           atualizadoEm: atualizadoEm is DateTime
               ? atualizadoEm
@@ -38,8 +34,6 @@ class UsuarioModel extends Usuario {
 
   /// Criar UsuarioModel a partir de Map
   factory UsuarioModel.fromMap(Map<String, dynamic> map, String id) {
-    // Ao ler do Firestore, 'criadoEm' e 'atualizadoEm' serão Timestamps.
-    // Convertemos para DateTime para o construtor do UsuarioModel.
     final dateTimeCriadoEm = (map['criadoEm'] as Timestamp).toDate();
     final dateTimeAtualizadoEm = map['atualizadoEm'] != null
         ? (map['atualizadoEm'] as Timestamp).toDate()
@@ -51,13 +45,9 @@ class UsuarioModel extends Usuario {
       email: map['email'] ?? '',
       telefone: map['telefone'],
       fotoUrl: map['fotoUrl'],
-      criadoEm: dateTimeCriadoEm, // Passa o DateTime convertido
-      atualizadoEm: dateTimeAtualizadoEm, // Passa o DateTime? convertido
+      criadoEm: dateTimeCriadoEm, 
+      atualizadoEm: dateTimeAtualizadoEm,
       emailVerificado: map['emailVerificado'] ?? false,
-      tipo: TipoUsuario.values.firstWhere(
-        (e) => e.name == map['tipo'],
-        orElse: () => TipoUsuario.usuario,
-      ),
       reputacao: (map['reputacao'] as num?)?.toDouble() ?? 0.0,
       totalAlugueis: map['totalAlugueis'] as int? ?? 0,
       totalItensAlugados: map['totalItensAlugados'] as int? ?? 0,
@@ -74,8 +64,6 @@ class UsuarioModel extends Usuario {
       'email': email,
       'telefone': telefone,
       'fotoUrl': fotoUrl,
-      // Usa o input original. Se for FieldValue, usa diretamente.
-      // Se for DateTime (ex: vindo de fromMap ou passado explicitamente), converte para Timestamp.
       'criadoEm': _criadoEmInput is FieldValue
           ? _criadoEmInput
           : Timestamp.fromDate(_criadoEmInput as DateTime),
@@ -85,7 +73,6 @@ class UsuarioModel extends Usuario {
               ? null
               : Timestamp.fromDate(_atualizadoEmInput as DateTime)),
       'emailVerificado': emailVerificado,
-      'tipo': tipo.name,
       'reputacao': reputacao,
       'totalAlugueis': totalAlugueis,
       'totalItensAlugados': totalItensAlugados,
@@ -106,7 +93,6 @@ class UsuarioModel extends Usuario {
       criadoEm: usuario.criadoEm,
       atualizadoEm: usuario.atualizadoEm,
       emailVerificado: usuario.emailVerificado,
-      tipo: usuario.tipo,
       reputacao: usuario.reputacao,
       totalAlugueis: usuario.totalAlugueis,
       totalItensAlugados: usuario.totalItensAlugados,
@@ -114,53 +100,5 @@ class UsuarioModel extends Usuario {
       cpf: usuario.cpf,
       endereco: usuario.endereco != null ? EnderecoModel.fromEntity(usuario.endereco!) : null,
     );
-  }
-}
-
-// Modelo para Endereco para serialização com Firestore
-class EnderecoModel extends Endereco {
-  const EnderecoModel({
-    required super.cep,
-    required super.rua,
-    required super.numero,
-    super.complemento,
-    required super.bairro,
-    required super.cidade,
-    required super.estado,
-    super.latitude,
-    super.longitude,
-  });
-
-  factory EnderecoModel.fromMap(Map<String, dynamic> map) {
-    return EnderecoModel(
-      cep: map['cep'] ?? '',
-      rua: map['rua'] ?? '',
-      numero: map['numero'] ?? '',
-      complemento: map['complemento'],
-      bairro: map['bairro'] ?? '',
-      cidade: map['cidade'] ?? '',
-      estado: map['estado'] ?? '',
-      latitude: (map['latitude'] as num?)?.toDouble(),
-      longitude: (map['longitude'] as num?)?.toDouble(),
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'cep': cep,
-      'rua': rua,
-      'numero': numero,
-      'complemento': complemento,
-      'bairro': bairro,
-      'cidade': cidade,
-      'estado': estado,
-      'latitude': latitude,
-      'longitude': longitude,
-    };
-  }
-
-  factory EnderecoModel.fromEntity(Endereco entity) {
-    return EnderecoModel(
-        cep: entity.cep, rua: entity.rua, numero: entity.numero, complemento: entity.complemento, bairro: entity.bairro, cidade: entity.cidade, estado: entity.estado, latitude: entity.latitude, longitude: entity.longitude);
   }
 }
