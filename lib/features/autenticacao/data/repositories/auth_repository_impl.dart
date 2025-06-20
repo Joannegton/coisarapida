@@ -28,15 +28,33 @@ class AuthRepositoryImpl implements AuthRepository {
   Stream<Usuario?> get usuarioAtual {
     return _firebaseAuth.authStateChanges().asyncMap((user) async {
       if (user == null) return null;
-      
-      try {
-        final doc = await _firestore.collection('usuarios').doc(user.uid).get();
-        if (!doc.exists) return null;
-        
-        return UsuarioModel.fromMap(doc.data()!, doc.id);
-      } catch (e) {
-        return null;
+
+      // Tenta buscar o usuário no Firestore com algumas retentativas em caso de usuário recém-criado.
+      for (int i = 0; i < 3; i++) {
+        try {
+          final doc = await _firestore.collection('usuarios').doc(user.uid).get();
+          if (doc.exists) {
+            return UsuarioModel.fromMap(doc.data()!, doc.id);
+          }
+
+          // verifica se o usuario foi criado muito recentemente.
+          bool recemCriado = user.metadata.creationTime != null &&
+                                DateTime.now().difference(user.metadata.creationTime!).inSeconds < 5;
+
+          if (!recemCriado) return null;
+
+          // É um usuário recém-criado e o documento não foi encontrado.
+          if (i < 2) { // Se não for a última tentativa
+            await Future.delayed(Duration(milliseconds: 400 + (i * 300)));
+          } else {
+            return null;
+          }
+        } catch (e) {
+          if (i == 2) return null;
+          await Future.delayed(Duration(milliseconds: 400 + (i * 300)));
+        }
       }
+      return null;
     });
   }
 

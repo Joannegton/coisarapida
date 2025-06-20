@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../../../../core/constants/app_routes.dart';
 
-/// Tela de splash com animação de carregamento
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
@@ -61,18 +60,16 @@ class _SplashPageState extends ConsumerState<SplashPage>
     ref.listenManual<AsyncValue<Usuario?>>(authStateProvider, (previous, nextState) {
       nextState.when(
         data: (usuario) {
-          if (!mounted) return; // Garante que o widget ainda está montado
+          if (!mounted) return;
           if (usuario != null) {
             context.go(AppRoutes.home);
           } else {
             context.go(AppRoutes.login);
           }
         },
-        loading: () {
-          // Não faz nada enquanto carrega, espera por data ou error.
-        },
+        loading: () {},
         error: (error, stackTrace) {
-          if (!mounted) return; // Garante que o widget ainda está montado
+          if (!mounted) return;
           context.go(AppRoutes.login);
         },
       );
@@ -96,7 +93,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo animado
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: SlideTransition(
@@ -105,7 +101,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.transparent,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
@@ -115,18 +111,13 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.bolt,
-                      size: 60,
-                      color: theme.colorScheme.primary,
-                    ),
+                    child: Image.asset('assets/images/coisa_rapida_logo_png.png'),
                   ),
                 ),
               ),
               
               const SizedBox(height: 32),
               
-              // Nome do app
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: SlideTransition(
@@ -142,7 +133,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Entregas urbanas instantâneas',
+                        'Mais rápido que pedir pro visinho',
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: Colors.white.withAlpha((255 * 0.8).round()),
                         ),
@@ -154,7 +145,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
               
               const SizedBox(height: 64),
               
-              // Indicador de carregamento
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: SizedBox(
@@ -162,7 +152,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                   height: 40,
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withAlpha((255 * 0.8).round()),
+                      Colors.white.withAlpha(204),
                     ),
                     strokeWidth: 3,
                   ),
