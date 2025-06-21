@@ -105,7 +105,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha((255 * 0.1).round()),
+                          color: Colors.black.withAlpha(25),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -135,7 +135,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       Text(
                         'Mais rápido que pedir pro visinho',
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: Colors.white.withAlpha((255 * 0.8).round()),
+                          color: Colors.white.withAlpha(204),
                         ),
                       ),
                     ],
