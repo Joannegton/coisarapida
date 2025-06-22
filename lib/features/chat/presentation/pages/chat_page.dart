@@ -53,16 +53,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final usuarioId = ref.watch(idUsuarioAtualProvider);
     final chatController = ref.watch(chatControllerProvider);
 
- // ETAPA 1: Adiciona um listener para reagir a erros do controller.
-    // Isso resolve a "falha silenciosa".
-    ref.listen<AsyncValue<void>>(chatControllerProvider, (_, state) {
-      state.whenOrNull(
-        error: (error, stackTrace) {
-          SnackBarUtils.mostrarErro(context, 'Falha ao enviar mensagem: $error');
-        },
-      );
-    });
-    
     return Scaffold(
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle(

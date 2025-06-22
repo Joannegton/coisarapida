@@ -1,11 +1,11 @@
 import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
-/// Tela de itens favoritos do usuário
 class FavoritosPage extends ConsumerStatefulWidget {
   const FavoritosPage({super.key});
 
@@ -24,6 +24,10 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
     
     return Scaffold(
       appBar: AppBar(
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarBrightness: theme.brightness == Brightness.light ? Brightness.dark : Brightness.light,
+          statusBarIconBrightness: theme.brightness == Brightness.light ? Brightness.dark : Brightness.light,
+        ),
         title: const Text('Meus Favoritos'),
         actions: [
           PopupMenuButton<String>(
@@ -57,9 +61,7 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
         ],
       ),
       body: Column(
-        children: [
-          // Filtros por categoria
-          Container(
+        children: [          Container(
             height: 60,
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: ListView(
@@ -77,7 +79,6 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
             ),
           ),
           
-          // Lista de favoritos
           Expanded(
             child: favoritosState.when(
               data: (itens) {
@@ -89,9 +90,7 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
                 
                 return RefreshIndicator(
                   onRefresh: () async {
-                    // Invalida o provider para forçar uma nova busca.
                     ref.invalidate(itensFavoritosProvider);
-                    // Aguarda o novo futuro do provider para o RefreshIndicator.
                     await ref.read(itensFavoritosProvider.future);
                   },
                   child: ListView.builder(
@@ -385,19 +384,19 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
   void _removerFavorito(String itemId) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Remover dos Favoritos'),
         content: const Text('Tem certeza que deseja remover este item dos seus favoritos?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-              onPressed: () async { // Tornar async
-                Navigator.of(context).pop(); // Fechar diálogo primeiro
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
                 try {
-                  await ref.read(favoritosProvider.notifier).removerFavorito(itemId); // Await
+                  await ref.read(favoritosProvider.notifier).removerFavorito(itemId);
                   SnackBarUtils.mostrarSucesso(context, 'Item removido dos favoritos');
                 } catch (e) {
                   SnackBarUtils.mostrarErro(context, 'Erro ao remover favorito: ${e.toString()}');

@@ -34,8 +34,9 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
 
   @override
   Widget build(BuildContext context) {
+    final favoritosState = ref.watch(favoritosProvider);
+    final isFavorito = favoritosState.contains(widget.itemId);
     final favoritosNotifier = ref.watch(favoritosProvider.notifier);
-    final isFavorito = favoritosNotifier.isFavorito(widget.itemId);
     final itemAsyncValue = ref.watch(detalhesItemProvider(widget.itemId));
     
     return Scaffold(

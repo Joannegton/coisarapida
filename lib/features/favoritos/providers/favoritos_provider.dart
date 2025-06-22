@@ -1,19 +1,37 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/features/favoritos/data/repositories/favorito_repository_impl.dart';
+import 'package:coisarapida/features/favoritos/domain/repositories/favorito_repository.dart';
 import 'package:coisarapida/features/favoritos/domain/usecases/adicionar_favorito_usecase.dart';
 import 'package:coisarapida/features/favoritos/domain/usecases/get_favoritos_ids_stream_usecase.dart';
 import 'package:coisarapida/features/favoritos/domain/usecases/remover_favorito_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart'; // Necessário para o ID do usuário
-import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart'; // Alterado para sua entidade Usuario
-import 'favorito_core_providers.dart'; // Importar os novos providers
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart'; 
 
-/// Provider para gerenciar itens favoritos
+final favoritoRepositoryProvider = Provider<FavoritoRepository>((ref) {
+  return FavoritoRepositoryImpl(firestore: FirebaseFirestore.instance);
+});
+
+final getFavoritosIdsStreamUseCaseProvider = Provider<GetFavoritosIdsStreamUseCase>((ref) {
+  final repository = ref.watch(favoritoRepositoryProvider);
+  return GetFavoritosIdsStreamUseCase(repository);
+});
+
+final adicionarFavoritoUseCaseProvider = Provider<AdicionarFavoritoUseCase>((ref) {
+  final repository = ref.watch(favoritoRepositoryProvider);
+  return AdicionarFavoritoUseCase(repository);
+});
+
+final removerFavoritoUseCaseProvider = Provider<RemoverFavoritoUseCase>((ref) {
+  final repository = ref.watch(favoritoRepositoryProvider);
+  return RemoverFavoritoUseCase(repository);
+});
+
 final favoritosProvider = StateNotifierProvider<FavoritosNotifier, List<String>>((ref) {
   return FavoritosNotifier(ref);
 });
 
-/// Provider para lista de itens favoritos com detalhes
 final itensFavoritosProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final firestore = FirebaseFirestore.instance;
   final favoritoIds = ref.watch(favoritosProvider);
@@ -65,10 +83,9 @@ final itensFavoritosProvider = FutureProvider<List<Map<String, dynamic>>>((ref) 
 class FavoritosNotifier extends StateNotifier<List<String>> {
   final Ref _ref;
   String? _userId;
-  ProviderSubscription? _authSubscription; // Alterado aqui
+  ProviderSubscription? _authSubscription;
   StreamSubscription? _favoritesSubscription;
 
-  // UseCases
   late final GetFavoritosIdsStreamUseCase _getFavoritosIdsStreamUseCase;
   late final AdicionarFavoritoUseCase _adicionarFavoritoUseCase;
   late final RemoverFavoritoUseCase _removerFavoritoUseCase;
@@ -79,7 +96,7 @@ class FavoritosNotifier extends StateNotifier<List<String>> {
     _adicionarFavoritoUseCase = _ref.read(adicionarFavoritoUseCaseProvider);
     _removerFavoritoUseCase = _ref.read(removerFavoritoUseCaseProvider);
 
-    _authSubscription = _ref.listen<AsyncValue<Usuario?>>( // Alterado para Usuario?
+    _authSubscription = _ref.listen<AsyncValue<Usuario?>>(
       usuarioAtualProvider,
       (_, next) {
         final user = next.valueOrNull;
@@ -99,8 +116,7 @@ class FavoritosNotifier extends StateNotifier<List<String>> {
       _favoritesSubscription = _getFavoritosIdsStreamUseCase
           .call(_userId!)
           .listen(
-        (ids) { // 'snapshot' aqui já é a List<String>
-          // final ids = snapshot.docs.map((doc) => doc.id).toList(); // Linha removida/alterada
+        (ids) {
           if (mounted) state = ids;
         },
         onError: (error) {
@@ -115,13 +131,13 @@ class FavoritosNotifier extends StateNotifier<List<String>> {
 
   Future<void> adicionarFavorito(String itemId) async {
     if (_userId == null) throw Exception('Usuário não logado para adicionar favorito.');
-    if (state.contains(itemId)) return; // Já é favorito
+    if (state.contains(itemId)) return;
 
-    state = [...state, itemId]; // Atualização otimista
+    state = [...state, itemId];
     try {
       await _adicionarFavoritoUseCase.call(userId: _userId!, itemId: itemId);
     } catch (e) { //melhorar os erros futuramente pq não tem erro direito
-      state = state.where((id) => id != itemId).toList(); // Reverte em caso de erro
+      state = state.where((id) => id != itemId).toList();
       print("Erro ao adicionar favorito no Firestore: $e");
       rethrow;
     }
