@@ -19,7 +19,7 @@ class DetalhesItemAppBarContentWidget extends StatelessWidget {
 
     return FlexibleSpaceBar(
       background: Padding(
-        padding: EdgeInsets.only(top: statusBarHeight), // Adiciona padding no topo igual à altura da status bar
+        padding: EdgeInsets.only(top: statusBarHeight),
         child: Stack(
             children: [
               // Carousel de fotos
@@ -44,7 +44,6 @@ class DetalhesItemAppBarContentWidget extends StatelessWidget {
                   ),
                 ),
 
-              // Indicador de fotos
               if (item.fotos.length > 1)
                 Positioned(
                   bottom: 16,
@@ -60,14 +59,13 @@ class DetalhesItemAppBarContentWidget extends StatelessWidget {
                         height: 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: fotoAtual == index ? Colors.white : Colors.white.withOpacity(0.5),
+                          color: fotoAtual == index ? Colors.white : Colors.white.withAlpha(127),
                         ),
                       ),
                     ),
                   ),
                 ),
 
-              // Status de disponibilidade
               Positioned(
                 top: 50,
                 right: 12,

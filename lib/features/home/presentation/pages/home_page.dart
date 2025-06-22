@@ -34,10 +34,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // AppBar com saudação
           SliverAppBar(
             expandedHeight: 140,
             floating: true,
+            pinned: true,
             backgroundColor: theme.colorScheme.primary,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -97,7 +97,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(60),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: GestureDetector(
                   onTap: () => context.push(AppRoutes.buscar),
                   child: Container(

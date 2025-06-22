@@ -1,5 +1,8 @@
+import 'package:coisarapida/features/chat/domain/entities/chat.dart';
 import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:coisarapida/features/chat/presentation/widget/mensagem_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,10 +11,9 @@ import '../../domain/entities/mensagem.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/constants/app_routes.dart';
 
-/// Tela de chat individual
 class ChatPage extends ConsumerStatefulWidget {
   final String chatId;
-  final String otherUserId; // Adicionado para facilitar a avaliação
+  final String otherUserId;
 
   const ChatPage(this.otherUserId, {
     super.key,
@@ -27,6 +29,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   final _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(chatControllerProvider.notifier).marcarMensagensComoLidas(widget.chatId);
+    });
+  }
+
+  @override
   void dispose() {
     _mensagemController.dispose();
     _scrollController.dispose();
@@ -37,17 +47,21 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mensagensState = ref.watch(mensagensChatProvider(widget.chatId));
-    final chatDetailsState = ref.watch(chatDetailsProvider(widget.chatId));
-    final currentUserId = ref.watch(currentUserIdProvider);
+    final chatDetalhesState = ref.watch(chatDetailsProvider(widget.chatId));
+    final usuarioId = ref.watch(idUsuarioAtualProvider);
     final chatController = ref.watch(chatControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: chatDetailsState.when(
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+        ),
+        title: chatDetalhesState.when(
           data: (chat) {
             if (chat == null) return const Text('Chat');
 
-            final bool souLocador = chat.locadorId == currentUserId;
+            final bool souLocador = chat.locadorId == usuarioId;
             final String outroUsuarioNome = souLocador ? chat.locatarioNome : chat.locadorNome;
             final String outroUsuarioFoto = souLocador ? chat.locatarioFoto : chat.locadorFoto;
             final String outroUsuarioId = souLocador ? chat.locatarioId : chat.locadorId;
@@ -102,17 +116,15 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => _mostrarOpcoes(context, chatDetailsState.valueOrNull, currentUserId, widget.otherUserId),
+            onPressed: () => _mostrarOpcoes(context, chatDetalhesState.valueOrNull, usuarioId, widget.otherUserId),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Lista de mensagens
           Expanded(
             child: mensagensState.when(
               data: (mensagens) {
-                // Scroll para o final quando novas mensagens chegam
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (_scrollController.hasClients) {
                     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -122,18 +134,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16),
                   itemCount: mensagens.length,
-                  itemBuilder: (context, index) => _buildMensagem(
-                    context,
-                    theme,
-                    mensagens[index], currentUserId,
-                ),
+                  itemBuilder: (context, index) => MensagemWidget(mensagem: mensagens[index]),
               );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
                 child: Text('Erro ao carregar mensagens: $error'),
               ),
-            ), // Adicionada vírgula aqui
+            ),
           ),
           
           // Campo de entrada
@@ -143,7 +151,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               color: theme.colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withAlpha(25),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -193,80 +201,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _buildMensagem(BuildContext context, ThemeData theme, Mensagem mensagem, String? currentUserId) {
-    final isMinhaMsg = mensagem.remetenteId == currentUserId;
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: isMinhaMsg 
-            ? MainAxisAlignment.end 
-            : MainAxisAlignment.start,
-        children: [
-          if (!isMinhaMsg) ...[
-            GestureDetector(
-              onTap: () => _abrirPerfilUsuario(context, mensagem.remetenteId),
-              child: CircleAvatar( // Removido 'const'
-                radius: 16,
-                backgroundImage: null, // Definido como null pois não há URL de imagem do remetente na entidade Mensagem ainda
-                // Quando você adicionar 'remetenteFotoUrl' à entidade Mensagem, você pode usar:
-                // backgroundImage: mensagem.remetenteFotoUrl != null && mensagem.remetenteFotoUrl!.isNotEmpty
-                //    ? NetworkImage(mensagem.remetenteFotoUrl!)
-                //    : null,
-                backgroundColor: theme.colorScheme.secondaryContainer,
-                child: Text(mensagem.remetenteNome.isNotEmpty ? mensagem.remetenteNome[0].toUpperCase() : '?', style: TextStyle(color: theme.colorScheme.onSecondaryContainer)),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isMinhaMsg 
-                    ? theme.colorScheme.primary 
-                    : Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(18).copyWith(
-                  bottomLeft: isMinhaMsg ? const Radius.circular(18) : const Radius.circular(4),
-                  bottomRight: isMinhaMsg ? const Radius.circular(4) : const Radius.circular(18),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mensagem.conteudo,
-                    style: TextStyle(
-                      color: isMinhaMsg ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatarHora(mensagem.enviadaEm),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isMinhaMsg 
-                          ? Colors.white.withOpacity(0.7)
-                          : Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (isMinhaMsg) ...[
-            const SizedBox(width: 8),
-            Icon(
-              mensagem.lida ? Icons.done_all : Icons.done,
-              size: 16,
-              color: mensagem.lida ? Colors.blue : Colors.grey,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   void _abrirPerfilUsuario(BuildContext context, String usuarioId) {
     context.push('/perfil-publico/$usuarioId');
   }
@@ -292,16 +226,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         );
       }
     });
-    
-    // O StreamProvider já atualiza automaticamente, não precisa de refresh manual aqui.
   }
 
   void _mostrarOpcoes(BuildContext context, Chat? chat, String? currentUserId, String otherUserIdFromParam) {
     if (chat == null || currentUserId == null) return;
 
     final bool souLocador = chat.locadorId == currentUserId;
-    // Prioriza o otherUserId passado como parâmetro para a página,
-    // caso contrário, tenta deduzir do chat.
     final String idDoOutroUsuarioParaAvaliar = otherUserIdFromParam.isNotEmpty
         ? otherUserIdFromParam
         : (souLocador ? chat.locatarioId : chat.locadorId);
@@ -328,21 +258,19 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 context.push('${AppRoutes.detalhesItem}/${chat.itemId}');
               },
             ),
-            // Opção de Avaliar (Provisório)
+            //TODO Opção de Avaliar (Provisório)
             ListTile(
               leading: const Icon(Icons.star_outline, color: Colors.amber),
               title: const Text('Avaliar Usuário (Teste)'),
               onTap: () {
                 Navigator.pop(context);
-                // Para este exemplo, o aluguelId será fixo, mas na prática viria do contexto do chat/item
-                // O itemId vem do chat atual.
                 const String aluguelIdProvisorio = "aluguel_chat_temp_123";
                 context.pushNamed(
                   AppRoutes.avaliacao,
                   queryParameters: {
                     'avaliadoId': idDoOutroUsuarioParaAvaliar,
                     'aluguelId': aluguelIdProvisorio,
-                    'itemId': chat.itemId, // Passando o itemId do chat
+                    'itemId': chat.itemId,
                   },
                 );
               },
@@ -369,7 +297,5 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  String _formatarHora(DateTime data) {
-    return '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
-  }
+  
 }

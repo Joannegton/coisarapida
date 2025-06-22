@@ -4,6 +4,7 @@ import 'package:coisarapida/features/itens/presentation/widgets/sessao_fotos.dar
 import 'package:coisarapida/features/itens/presentation/widgets/sessao_precos.dart';
 import 'package:flutter/material.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/entities/item.dart' show Localizacao; // Para o tipo Localizacao
@@ -21,7 +22,6 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   final _formKey = GlobalKey<FormState>();
   final _pageController = PageController();
   
-  // Controladores dos campos
   final _nomeController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _precoDiaController = TextEditingController();
@@ -58,7 +58,6 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
 
   @override
   void dispose() {
-    // Remover listeners antes de dar dispose nos controllers
     _nomeController.removeListener(_atualizarEstadoBotao);
     _descricaoController.removeListener(_atualizarEstadoBotao);
     _precoDiaController.removeListener(_atualizarEstadoBotao);
@@ -82,6 +81,10 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
     
     return Scaffold(
       appBar: AppBar(
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+          statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+        ),
         title: const Text('Anunciar Item'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
@@ -165,9 +168,9 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
                   : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
-                disabledBackgroundColor: theme.colorScheme.primary.withAlpha((255 * 0.6).round()),
+                disabledBackgroundColor: theme.colorScheme.primary.withAlpha(153),
                 foregroundColor: theme.colorScheme.onPrimary,
-                disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha((255 * 0.6).round()),
+                disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha(153),
               ),
               child: Text(_paginaAtual == 3 ? 'Publicar Item' : 'Próximo'),
             ),
@@ -236,7 +239,7 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
       SnackBarUtils.mostrarErro(context, 'Preencha corretamente todos os campos obrigatórios (marcados em vermelho).');
       if (_nomeController.text.trim().isEmpty || _descricaoController.text.trim().isEmpty) {
         _pageController.jumpToPage(0);
-      } else if (_precoDiaController.text.trim().isEmpty) { // Assumindo que este é o último FormField obrigatório
+      } else if (_precoDiaController.text.trim().isEmpty) {
         _pageController.jumpToPage(3);
       }
       return;
@@ -283,7 +286,7 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
       }
 
       localizacao = Localizacao(
-        latitude: enderecoUsuario.latitude ?? 0.0, // TODO: Lidar com lat/long nulos ou obter via geocoding
+        latitude: enderecoUsuario.latitude ?? 0.0,
         longitude: enderecoUsuario.longitude ?? 0.0,
         endereco: enderecoCompleto.trim(),
         bairro: enderecoUsuario.bairro,
@@ -314,12 +317,12 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
       aprovacaoAutomatica: _aprovacaoAutomatica,
       localizacao: localizacao,
     ).then((_) {
-      Navigator.of(context).pop(); // Fechar dialog de loading
+      Navigator.of(context).pop();
       SnackBarUtils.mostrarSucesso(context, 'Item publicado com sucesso! 🎉');
-      context.pop(); // Voltar para tela anterior
+      context.pop();
     }).catchError((error) {
       print('Erro ao publicar item: $error');
-      Navigator.of(context).pop(); // Fechar dialog de loading
+      Navigator.of(context).pop();
       SnackBarUtils.mostrarErro(context, 'Erro ao publicar item: ${error.toString()}');
     });
   }

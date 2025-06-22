@@ -117,4 +117,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, stackTrace);
     }
   }
+
+  Future<Usuario?> buscarUsuario(String id) async {
+    try {
+      return await _authRepository.getUsuario(id);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      return null;
+    }
+  }
 }

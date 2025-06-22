@@ -1,5 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import 'package:coisarapida/features/chat/domain/entities/chat.dart';
 import 'package:coisarapida/features/chat/domain/entities/mensagem.dart' as chat_entity; // Alias para evitar conflito
+import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:coisarapida/features/chat/presentation/providers/chat_provider.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart' as auth_providers; // Alias para auth_provider
 import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
@@ -10,7 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/snackbar_utils.dart';
-import '../providers/item_provider.dart'; // Para detalhesItemProvider
+import '../providers/item_provider.dart';
 import '../widgets/detalhes_item_app_bar_content_widget.dart';
 import '../widgets/detalhes_item_bottom_bar_widget.dart';
 import '../widgets/detalhes_item_content_widget.dart';
@@ -45,11 +49,9 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
           SliverAppBar(
             expandedHeight: 300,
             systemOverlayStyle: SystemUiOverlayStyle(
-              // Mantém a cor da status bar transparente
               statusBarColor: Colors.transparent,
-              // Ajusta o brilho dos ícones da status bar com base no tema atual
-              // Se o tema do app for escuro, os ícones da status bar serão claros, e vice-versa.
               statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+              statusBarBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
             ),
             pinned: true,
             flexibleSpace: itemAsyncValue.when(
@@ -131,6 +133,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   }
 
   Future<void> _abrirOuCriarChat(Item item) async {
+    final chatRepository = ref.read(chatRepositoryProvider);
     final authRepository = ref.read(auth_providers.authRepositoryProvider);
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -141,46 +144,43 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     final currentUserId = currentUser.uid;
     final proprietarioId = item.proprietarioId;
 
-    // Não permitir chat consigo mesmo
     if (currentUserId == proprietarioId) {
       SnackBarUtils.mostrarInfo(context, "Você não pode iniciar um chat consigo mesmo.");
       return;
     }
 
-    // Gerar ID do chat de forma consistente
-    List<String> ids = [currentUserId, proprietarioId];
-    ids.sort(); // Garante que o ID seja o mesmo independente de quem inicia
-    String chatId = '${ids[0]}_${ids[1]}_${item.id}';
+    final chatExistente = await ref.read(chatControllerProvider.notifier).buscarChat(currentUserId: currentUserId, otherUserId: proprietarioId);
 
-    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
-    final chatSnap = await chatRef.get();
+    String chatId;
 
-    // Buscar informações do proprietário (locador)
-    final proprietarioUser = await authRepository.getUsuario(item.proprietarioId);
+    if (chatExistente != null) {
+      chatId = chatExistente.id;
+    } else {
+      final proprietarioUser = await ref.read(authControllerProvider.notifier).buscarUsuario(item.proprietarioId);
+      if (proprietarioUser == null) {
+        SnackBarUtils.mostrarErro(context, "Não foi possível encontrar o proprietário do item.");
+        return;
+      }
 
-    if (!chatSnap.exists) {
-      // Criar novo chat
-      final novoChat = chat_entity.Chat(
+      List<String> ids = [currentUserId, proprietarioId];
+      ids.sort();
+      chatId = '${ids[0]}_${ids[1]}';
+
+      final novoChat = Chat(
         id: chatId,
         itemId: item.id,
         itemNome: item.nome,
-        itemFoto: item.fotos.isNotEmpty ? item.fotos.first : '', // Pega a primeira foto do item
-        locadorId: item.proprietarioId,
-        locadorNome: proprietarioUser?.nome ?? item.proprietarioNome, // Usa o nome do perfil se disponível
-        locadorFoto: proprietarioUser?.fotoUrl ?? '', // Usa a foto do perfil se disponível
+        itemFoto: item.fotos.isNotEmpty ? item.fotos.first : '',
+        locadorId: proprietarioUser.id,
+        locadorNome: proprietarioUser.nome,
+        locadorFoto: proprietarioUser.fotoUrl ?? '',
         locatarioId: currentUserId,
         locatarioNome: currentUser.displayName ?? 'Usuário Anônimo',
         locatarioFoto: currentUser.photoURL ?? '',
-        criadoEm: DateTime.now(),
-        atualizadoEm: DateTime.now(),
+        criadoEm: DateTime.now(), // Será substituído pelo server timestamp no toMap
       );
-      final chatDataParaSalvar = novoChat.toMap();
-      print("Tentando criar chat com os seguintes dados: $chatDataParaSalvar"); // Log dos dados
-      await chatRef.set(chatDataParaSalvar).catchError((error) {
-        print("Erro ao criar chat no Firestore (detalhes_item_page): $error"); // Log de erro específico
-        SnackBarUtils.mostrarErro(context, "Erro ao iniciar chat. Tente novamente.");
-        throw error;
-      });
+
+      await ref.read(chatControllerProvider.notifier).criarChat(novoChat);
     }
     context.push('${AppRoutes.chat}/$chatId');
   }
