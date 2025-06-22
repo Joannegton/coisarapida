@@ -3,13 +3,15 @@ import '../../domain/entities/item.dart';
 
 class DetalhesItemBottomBarWidget extends StatelessWidget {
   final Item item;
-  final VoidCallback onChatPressed;
+  final bool isCreatingChat;
+  final VoidCallback? onChatPressed;
   final VoidCallback onAlugarPressed;
 
   const DetalhesItemBottomBarWidget({
     super.key,
+    required this.isCreatingChat,
     required this.item,
-    required this.onChatPressed,
+    this.onChatPressed,
     required this.onAlugarPressed,
   });
 
@@ -35,7 +37,13 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onChatPressed,
                 icon: const Icon(Icons.chat),
-                label: const Text('Conversar'),
+                label: isCreatingChat
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ) 
+                  : const Text('Conversar'),
               ),
             ),
             const SizedBox(width: 12),

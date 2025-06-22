@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/chat/domain/entities/mensagem.dart';
 import 'package:coisarapida/features/chat/presentation/providers/chat_provider.dart';
 import 'package:flutter/material.dart';

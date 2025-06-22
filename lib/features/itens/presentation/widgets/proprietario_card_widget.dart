@@ -3,12 +3,12 @@ import '../../domain/entities/item.dart';
 
 class ProprietarioCardWidget extends StatelessWidget {
   final Item item;
-  final VoidCallback onChatPressed;
+  final VoidCallback? onChatPressed;
 
   const ProprietarioCardWidget({
     super.key,
     required this.item,
-    required this.onChatPressed,
+    this.onChatPressed,
   });
 
   @override

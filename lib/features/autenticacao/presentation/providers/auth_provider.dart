@@ -9,10 +9,13 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
 });
 
-// Stream do usuário autenticado.
-final authStateProvider = StreamProvider<Usuario?>((ref) {
+final usuarioAtualProvider = StreamProvider<Usuario?>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   return authRepository.usuarioAtual;
+});
+
+final idUsuarioAtualProvider = Provider<String?>((ref) {
+  return ref.watch(usuarioAtualProvider).value?.id;
 });
 
 // Controller para ações de autenticação (login, cadastro, logout, etc.).

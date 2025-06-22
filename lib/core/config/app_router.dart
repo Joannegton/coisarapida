@@ -123,21 +123,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       //   builder: (context, state) => const ListaChatsPage(),
       // ),
       GoRoute(
-        path: '${AppRoutes.chat}/:chatParam', // Ex: /chat/chat_OTHERUSERID ou /chat/CHATDOCUMENTID_OTHERUSERID
+        path: '${AppRoutes.chat}/:chatId', // Ex: /chat/chat_OTHERUSERID ou /chat/CHATDOCUMENTID_OTHERUSERID
         name: 'chat',
         builder: (context, state) {
-          String chatParam = state.pathParameters['chatParam'] ?? '';
-          String chatId = chatParam; // Por padrão, o chatParam é o chatId
-          String otherUserId = '';
-
-          // Lógica para extrair otherUserId se o chatParam tiver um formato específico
-          // Exemplo: se o formato for "chat_OTHERUSERID"
-          if (chatParam.startsWith('chat_')) {
-            otherUserId = chatParam.substring('chat_'.length);
-            // Neste caso, o chatId pode ser o próprio chatParam ou você pode ter outra lógica para obtê-lo
-            // Se o chatId é o mesmo que "chat_OTHERUSERID", então chatId = chatParam;
-          }
-          return ChatPage(otherUserId, chatId: chatId);
+          String chatId = state.pathParameters['chatId']!;
+          
+          final otherUserId = state.extra as String; 
+          
+          return ChatPage(chatId: chatId, otherUserId: otherUserId);
         },
       ),
 

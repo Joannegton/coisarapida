@@ -112,4 +112,10 @@ class Chat {
     final data = doc.data()!;
     return Chat.fromMap(data..['id'] = doc.id);
   }
+
+  static String generateChatId({required String userId1, required String userId2, required String itemId}) {
+    List<String> ids = [userId1, userId2];
+    ids.sort();
+    return '${ids[0]}_${ids[1]}_$itemId';
+  }
 }

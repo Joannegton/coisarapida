@@ -11,13 +11,13 @@ class AuthGuard extends ChangeNotifier {
 
   AuthGuard(this._ref) {
     // Escutar mudanças no estado de autenticação
-    _ref.listen(authStateProvider, (previous, next) {
+    _ref.listen(usuarioAtualProvider, (previous, next) {
       notifyListeners();
     });
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
-    final authState = _ref.read(authStateProvider);
+    final authState = _ref.read(usuarioAtualProvider);
     final isLoggedIn = authState.hasValue && authState.value != null;
     
     final isOnSplash = state.uri.toString() == AppRoutes.splash;

@@ -16,13 +16,10 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<Chat?> buscarChat({required String usuarioId, required String outroUsuarioId}) async {
-    List<String> ids = [usuarioId, outroUsuarioId];
-    ids.sort();
-    String chatId = '${ids[0]}_${ids[1]}';
+  Future<Chat?> buscarChat({required String usuarioId, required String outroUsuarioId, required String itemId}) async {
+    final chatId = Chat.generateChatId(userId1: usuarioId, userId2: outroUsuarioId, itemId: itemId);
 
     final chatDoc = await _firestore.collection('chats').doc(chatId).get();
-
     if (chatDoc.exists) {
       return Chat.fromFirestore(chatDoc);
     }
@@ -33,12 +30,15 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<void> enviarMensagem({
     required String chatId,
     required String userId,
+    required String otherUserId,
     required String userDisplayName,
     required String conteudo,
   }) async {
-    final mensagemId = _firestore.collection('chats').doc(chatId).collection('messages').doc().id;
+    final batch = _firestore.batch();
+    final chatRef = _firestore.collection('chats').doc(chatId);
+    final messageRef = chatRef.collection('messages').doc();
     final novaMensagem = Mensagem(
-      id: mensagemId,
+      id: messageRef.id,
       chatId: chatId,
       remetenteId: userId,
       remetenteNome: userDisplayName,
@@ -47,67 +47,73 @@ class ChatRepositoryImpl implements ChatRepository {
       enviadaEm: DateTime.now(),
     );
 
-    await _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .doc(mensagemId)
-        .set(novaMensagem.toMap());
+    // 1. Adiciona a nova mensagem em um batch
+    batch.set(messageRef, novaMensagem.toMap());
 
-    final chatDoc = await _firestore.collection('chats').doc(chatId).get();
-    if (chatDoc.exists) {
-      final data = chatDoc.data();
-      if (data == null) return;
+    // 2. Atualiza o documento do chat no mesmo batch
+    batch.update(chatRef, {
+      'ultimaMensagem': novaMensagem.toMap(),
+      'atualizadoEm': FieldValue.serverTimestamp(),
+      'mensagensNaoLidas.$otherUserId': FieldValue.increment(1),
+    });
 
-      final String locadorId = data['locadorId'];
-      final String locatarioId = data['locatarioId'];
-      final String outroUserId = (locadorId == userId) ? locatarioId : locadorId;
-
-      await _firestore.collection('chats').doc(chatId).update({
-        'ultimaMensagem': novaMensagem.toMap(),
-        'atualizadoEm': FieldValue.serverTimestamp(),
-        'mensagensNaoLidas.$outroUserId': FieldValue.increment(1),
-      });
-    }
+    await batch.commit();
   }
 
   @override
   Future<void> marcarMensagensComoLidas({
     required String chatId,
     required String userId,
+    required String outroUserId,
   }) async {
     final chatRef = _firestore.collection('chats').doc(chatId);
+    final batch = _firestore.batch();
+    
+    batch.update(chatRef, {
+      'mensagensNaoLidas.$userId': 0,
+      'atualizadoEm': FieldValue.serverTimestamp(),
+    });
 
-    final chatDoc = await chatRef.get();
-    if (!chatDoc.exists) return;
-    final data = chatDoc.data();
-    if (data == null) return;
-
-    final String locadorId = data['locadorId'];
-    final String locatarioId = data['locatarioId'];
-    final String outroUserId = (locadorId == userId) ? locatarioId : locadorId;
-
-    final unreadMessagesQuery = chatRef
+    final unreadMessagesSnapshot = await chatRef
         .collection('messages')
         .where('remetenteId', isEqualTo: outroUserId)
         .where('lida', isEqualTo: false)
         .get();
 
-    final results = await Future.wait([
-      chatRef.update({
-        'mensagensNaoLidas.$userId': 0,
-        'atualizadoEm': FieldValue.serverTimestamp(),
-      }),
-      unreadMessagesQuery,
-    ]);
-
-    final unreadMessagesSnapshot = results[1] as QuerySnapshot<Map<String, dynamic>>;
-    if (unreadMessagesSnapshot.docs.isEmpty) return;
-
-    final batch = _firestore.batch();
-    for (final doc in unreadMessagesSnapshot.docs) {
-      batch.update(doc.reference, {'lida': true});
+    if (unreadMessagesSnapshot.docs.isNotEmpty) {
+      for (final doc in unreadMessagesSnapshot.docs) {
+        batch.update(doc.reference, {'lida': true});
+      }
     }
+
+
     await batch.commit();
+  }
+
+  @override
+  Stream<List<Chat>> getChatsStream(String userId) {
+    return _firestore
+        .collection('chats')
+        .where('participantes', arrayContains: userId)
+        .orderBy('atualizadoEm', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => Chat.fromFirestore(doc)).toList());
+  }
+
+  @override
+  Stream<List<Mensagem>> getMessagesStream(String chatId) {
+    return _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('enviadaEm', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => Mensagem.fromFirestore(doc)).toList());
+  }
+
+  @override
+  Future<Chat?> getChatDetails(String chatId) async {
+    final doc = await _firestore.collection('chats').doc(chatId).get();
+    return doc.exists ? Chat.fromFirestore(doc) : null;
   }
 }

@@ -17,7 +17,7 @@ final favoritosProvider = StateNotifierProvider<FavoritosNotifier, List<String>>
 final itensFavoritosProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final firestore = FirebaseFirestore.instance;
   final favoritoIds = ref.watch(favoritosProvider);
-  final authState = ref.watch(authStateProvider);
+  final authState = ref.watch(usuarioAtualProvider);
   final userId = authState.valueOrNull?.id;
 
   if (userId == null) {
@@ -80,7 +80,7 @@ class FavoritosNotifier extends StateNotifier<List<String>> {
     _removerFavoritoUseCase = _ref.read(removerFavoritoUseCaseProvider);
 
     _authSubscription = _ref.listen<AsyncValue<Usuario?>>( // Alterado para Usuario?
-      authStateProvider,
+      usuarioAtualProvider,
       (_, next) {
         final user = next.valueOrNull;
         _updateUserAndSubscribeToFavorites(user?.id);

@@ -28,7 +28,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final authState = ref.watch(authStateProvider);
+    final authState = ref.watch(usuarioAtualProvider);
     final itensState = ref.watch(itensProximosProvider);
 
     return Scaffold(

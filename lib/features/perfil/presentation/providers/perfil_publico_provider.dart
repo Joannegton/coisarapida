@@ -41,7 +41,7 @@ final perfilPublicoDetalhadoProvider = FutureProvider.family<PerfilPublicoDetalh
 
 // Provider para os dados detalhados do usuário logado
 final meuPerfilProvider = FutureProvider<Usuario>((ref) async {
-  final authState = ref.watch(authStateProvider);
+  final authState = ref.watch(usuarioAtualProvider);
   // Usa .valueOrNull para obter o usuário diretamente se já estiver carregado,
   // ou espera pelo estado de data. Lança exceção se não houver usuário.
   final userId = authState.asData?.value?.id;

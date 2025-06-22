@@ -7,13 +7,13 @@ import 'proprietario_card_widget.dart';
 
 class DetalhesItemContentWidget extends StatelessWidget {
   final Item item;
-  final VoidCallback onChatPressed;
+  final VoidCallback? onChatPressed;
   final String Function(DateTime) formatarData;
 
   const DetalhesItemContentWidget({
     super.key,
     required this.item,
-    required this.onChatPressed,
+    this.onChatPressed,
     required this.formatarData,
   });
 
@@ -77,12 +77,10 @@ class DetalhesItemContentWidget extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Informações do proprietário
           ProprietarioCardWidget(item: item, onChatPressed: onChatPressed),
 
           const SizedBox(height: 20),
 
-          // Descrição
           Text(
             'Descrição',
             style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),

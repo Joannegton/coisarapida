@@ -16,7 +16,7 @@ final aluguelControllerProvider = StateNotifierProvider<AluguelController, Async
 
 final StreamProvider<List<Aluguel>> meusAlugueisProvider = StreamProvider<List<Aluguel>>((ref) {
   // Correção: Usar authStateProvider para obter o usuário
-  final usuarioAsyncValue = ref.watch(authStateProvider);
+  final usuarioAsyncValue = ref.watch(usuarioAtualProvider);
   final userId = usuarioAsyncValue.whenData((usuario) => usuario?.id).valueOrNull;
 
   if (userId == null) return Stream.value([]);
@@ -25,7 +25,7 @@ final StreamProvider<List<Aluguel>> meusAlugueisProvider = StreamProvider<List<A
 
 final solicitacoesRecebidasProvider = StreamProvider<List<Aluguel>>((ref) {
   try {
-    final usuarioAsyncValue = ref.watch(authStateProvider);
+    final usuarioAsyncValue = ref.watch(usuarioAtualProvider);
     final locadorId = usuarioAsyncValue.whenData((usuario) => usuario?.id).valueOrNull;
 
     if (locadorId == null) {

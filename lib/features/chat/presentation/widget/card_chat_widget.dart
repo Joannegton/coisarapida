@@ -1,4 +1,5 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/chat/domain/entities/chat.dart';
 import 'package:coisarapida/features/chat/domain/entities/mensagem.dart';
 import 'package:coisarapida/features/chat/presentation/providers/chat_provider.dart';
@@ -20,6 +21,7 @@ class CardChatWidget extends ConsumerWidget {
 
     final bool souLocador = chat.locadorId == usuarioId;
     final String outroUsuarioNome = souLocador ? chat.locatarioNome : chat.locadorNome;
+    final String outroUsuarioId = souLocador ? chat.locatarioId : chat.locadorId;
     final String outroUsuarioFoto = souLocador ? chat.locatarioFoto : chat.locadorFoto;
     final int mensagensNaoLidasParaMim = chat.mensagensNaoLidas[usuarioId] ?? 0;
     final bool temMensagensNaoLidas = mensagensNaoLidasParaMim > 0;
@@ -121,7 +123,8 @@ class CardChatWidget extends ConsumerWidget {
             ),
           ),
         ),
-        onTap: () => context.push('${AppRoutes.chat}/${chat.id}'),
+        // Passa o ID do outro usuário como 'extra' para a página de chat
+        onTap: () => context.push('${AppRoutes.chat}/${chat.id}', extra: outroUsuarioId),
       ),
     );
   }

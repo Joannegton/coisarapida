@@ -27,7 +27,7 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       // Correção: Usar authStateProvider para obter o usuário
-      final usuarioAsyncValue = _ref.read(authStateProvider);
+      final usuarioAsyncValue = _ref.read(usuarioAtualProvider);
       final locatario = usuarioAsyncValue.valueOrNull;
 
       if (locatario == null) {

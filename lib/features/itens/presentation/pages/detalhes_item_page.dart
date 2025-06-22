@@ -1,14 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
-import 'package:coisarapida/features/chat/domain/entities/chat.dart';
-import 'package:coisarapida/features/chat/domain/entities/mensagem.dart' as chat_entity; // Alias para evitar conflito
 import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
-import 'package:coisarapida/features/chat/presentation/providers/chat_provider.dart';
-import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart' as auth_providers; // Alias para auth_provider
 import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
+import 'package:coisarapida/shared/widgets/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,6 +30,7 @@ class DetalhesItemPage extends ConsumerStatefulWidget {
 
 class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   int _fotoAtual = 0;
+  bool _isCreatingChat = false;
 
   @override
   Widget build(BuildContext context) {
@@ -103,8 +99,8 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
               return SliverToBoxAdapter(
                 child: DetalhesItemContentWidget(
                   item: item,
-                  onChatPressed: () => _abrirOuCriarChat(item),
-                  formatarData: _formatarData,
+                  onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
+                  formatarData: Utils.formatarData,
                 ),
               );
             },
@@ -123,7 +119,8 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
         data: (item) => item != null
             ? DetalhesItemBottomBarWidget(
                 item: item,
-                onChatPressed: () => _abrirOuCriarChat(item),
+                isCreatingChat: _isCreatingChat,
+                onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
                 onAlugarPressed: () => _solicitarAluguel(item),
               )
             : null,
@@ -133,68 +130,43 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   }
 
   Future<void> _abrirOuCriarChat(Item item) async {
-    final chatRepository = ref.read(chatRepositoryProvider);
-    final authRepository = ref.read(auth_providers.authRepositoryProvider);
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      SnackBarUtils.mostrarErro(context, "Você precisa estar logado para iniciar um chat.");
-      return;
-    }
+    if (_isCreatingChat) return;
 
-    final currentUserId = currentUser.uid;
-    final proprietarioId = item.proprietarioId;
+    setState(() {
+      _isCreatingChat = true;
+    });
 
-    if (currentUserId == proprietarioId) {
-      SnackBarUtils.mostrarInfo(context, "Você não pode iniciar um chat consigo mesmo.");
-      return;
-    }
+    try {
+      final usuarioAtual = ref.read(usuarioAtualProvider).value;
 
-    final chatExistente = await ref.read(chatControllerProvider.notifier).buscarChat(currentUserId: currentUserId, otherUserId: proprietarioId);
-
-    String chatId;
-
-    if (chatExistente != null) {
-      chatId = chatExistente.id;
-    } else {
-      final proprietarioUser = await ref.read(authControllerProvider.notifier).buscarUsuario(item.proprietarioId);
-      if (proprietarioUser == null) {
-        SnackBarUtils.mostrarErro(context, "Não foi possível encontrar o proprietário do item.");
+      if (usuarioAtual == null) {
+        SnackBarUtils.mostrarErro(context, "Você precisa estar logado para iniciar uma conversa.");
         return;
       }
 
-      List<String> ids = [currentUserId, proprietarioId];
-      ids.sort();
-      chatId = '${ids[0]}_${ids[1]}';
+      final currentUserId = usuarioAtual.id;
+      final proprietarioId = item.proprietarioId;
 
-      final novoChat = Chat(
-        id: chatId,
-        itemId: item.id,
-        itemNome: item.nome,
-        itemFoto: item.fotos.isNotEmpty ? item.fotos.first : '',
-        locadorId: proprietarioUser.id,
-        locadorNome: proprietarioUser.nome,
-        locadorFoto: proprietarioUser.fotoUrl ?? '',
-        locatarioId: currentUserId,
-        locatarioNome: currentUser.displayName ?? 'Usuário Anônimo',
-        locatarioFoto: currentUser.photoURL ?? '',
-        criadoEm: DateTime.now(), // Será substituído pelo server timestamp no toMap
-      );
+      if (currentUserId == proprietarioId) {
+        SnackBarUtils.mostrarInfo(context, "Você não pode iniciar um chat consigo mesmo.");
+        return;
+      }
 
-      await ref.read(chatControllerProvider.notifier).criarChat(novoChat);
+      final chatId = await ref.read(chatControllerProvider.notifier).abrirOuCriarChat(usuarioAtual: usuarioAtual, item: item);
+
+      if (mounted) context.push('${AppRoutes.chat}/$chatId', extra: proprietarioId);
+    } catch (e) {
+      if (mounted) SnackBarUtils.mostrarErro(context, 'Falha ao iniciar chat: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingChat = false;
+        });
+      }
     }
-    context.push('${AppRoutes.chat}/$chatId');
   }
 
   void _solicitarAluguel(Item item) {
-    // Navegar para a SolicitarAluguelPage, passando o item como 'extra'
     context.push(AppRoutes.solicitarAluguel, extra: item);
-  }
-
-  String _formatarData(DateTime data) {
-    final meses = [
-      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-    ];
-    return '${data.day} ${meses[data.month - 1]} ${data.year}';
   }
 }

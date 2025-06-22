@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/chat/domain/entities/chat.dart';
 import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:coisarapida/features/chat/presentation/widget/mensagem_widget.dart';
@@ -15,9 +16,10 @@ class ChatPage extends ConsumerStatefulWidget {
   final String chatId;
   final String otherUserId;
 
-  const ChatPage(this.otherUserId, {
+  const ChatPage({
     super.key,
     required this.chatId,
+    required this.otherUserId,
   });
 
   @override
@@ -32,7 +34,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(chatControllerProvider.notifier).marcarMensagensComoLidas(widget.chatId);
+      ref.read(chatControllerProvider.notifier).marcarMensagensComoLidas(widget.chatId, widget.otherUserId);
     });
   }
 
@@ -51,6 +53,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final usuarioId = ref.watch(idUsuarioAtualProvider);
     final chatController = ref.watch(chatControllerProvider);
 
+ // ETAPA 1: Adiciona um listener para reagir a erros do controller.
+    // Isso resolve a "falha silenciosa".
+    ref.listen<AsyncValue<void>>(chatControllerProvider, (_, state) {
+      state.whenOrNull(
+        error: (error, stackTrace) {
+          SnackBarUtils.mostrarErro(context, 'Falha ao enviar mensagem: $error');
+        },
+      );
+    });
+    
     return Scaffold(
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle(
@@ -213,6 +225,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     
     await ref.read(chatControllerProvider.notifier).enviarMensagem(
       widget.chatId,
+      widget.otherUserId,
       conteudo,
     );
     
