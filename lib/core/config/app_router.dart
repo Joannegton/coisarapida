@@ -75,14 +75,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const BuscarPage(),
           ),
           GoRoute(
-            path: AppRoutes.favoritos,
-            name: 'favoritos',
-            builder: (context, state) => const FavoritosPage(),
-          ),
-          GoRoute(
             path: AppRoutes.listaChats,
-            name: 'lista-chats-shell',
+            name: 'lista-chats',
             builder: (context, state) => const ListaChatsPage(),
+          ),
+           GoRoute(
+            path: AppRoutes.solicitacoesAluguel,
+            name: 'solicitacoes-aluguel',
+            builder: (context, state) => const SolicitacoesAluguelPage(),
           ),
           GoRoute(
             path: AppRoutes.menu,
@@ -204,9 +204,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
-        path: AppRoutes.solicitacoesAluguel,
-        name: 'solicitacoes-aluguel',
-        builder: (context, state) => const SolicitacoesAluguelPage(),
+        path: AppRoutes.favoritos,
+        name: 'favoritos',
+        builder: (context, state) => const FavoritosPage(),
       ),
       
       // Avaliação

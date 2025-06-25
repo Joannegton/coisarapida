@@ -34,9 +34,9 @@ class BottonNavigation extends ConsumerWidget {
             label: 'Buscar',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_outline),
-            activeIcon: Icon(Icons.favorite),
-            label: 'Favoritos',
+            icon: Icon(Icons.assignment_outlined),
+            activeIcon: Icon(Icons.assignment),
+            label: 'Solicitações',
           ),
           BottomNavigationBarItem(
             label: 'Conversas',
@@ -65,7 +65,7 @@ class BottonNavigation extends ConsumerWidget {
     final String location = GoRouterState.of(context).uri.toString();
     if (location.startsWith(AppRoutes.home)) return 0;
     if (location.startsWith(AppRoutes.buscar)) return 1;
-    if (location.startsWith(AppRoutes.favoritos)) return 2;
+    if (location.startsWith(AppRoutes.solicitacoesAluguel)) return 2;
     if (location.startsWith(AppRoutes.listaChats)) return 3;
     if (location.startsWith(AppRoutes.menu)) return 4;
     return 0;
@@ -80,7 +80,7 @@ class BottonNavigation extends ConsumerWidget {
         GoRouter.of(context).go(AppRoutes.buscar);
         break;
       case 2:
-        GoRouter.of(context).go(AppRoutes.favoritos);
+        GoRouter.of(context).go(AppRoutes.solicitacoesAluguel);
         break;
       case 3:
         GoRouter.of(context).go(AppRoutes.listaChats);
