@@ -52,9 +52,9 @@ class BottonNavigation extends ConsumerWidget {
             ),
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Perfil',
+            icon: Icon(Icons.menu_outlined),
+            activeIcon: Icon(Icons.menu),
+            label: 'Mais',
           ),
         ],
       ),
@@ -67,7 +67,7 @@ class BottonNavigation extends ConsumerWidget {
     if (location.startsWith(AppRoutes.buscar)) return 1;
     if (location.startsWith(AppRoutes.favoritos)) return 2;
     if (location.startsWith(AppRoutes.listaChats)) return 3;
-    if (location.startsWith(AppRoutes.perfil)) return 4;
+    if (location.startsWith(AppRoutes.menu)) return 4;
     return 0;
   }
 
@@ -86,7 +86,7 @@ class BottonNavigation extends ConsumerWidget {
         GoRouter.of(context).go(AppRoutes.listaChats);
         break;
       case 4:
-        GoRouter.of(context).go(AppRoutes.perfil);
+        GoRouter.of(context).go(AppRoutes.menu);
         break;
     }
   }

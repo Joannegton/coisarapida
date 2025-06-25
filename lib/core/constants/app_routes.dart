@@ -10,14 +10,19 @@ class AppRoutes {
   static const String home = '/home';
   static const String buscar = '/buscar';
   static const String favoritos = '/favoritos';
-  static const String perfil = '/perfil';
-  
+  static const String menu = '/menu';
+  static const String listaChats = '/chats';
+
   // Itens
   static const String anunciarItem = '/anunciar-item';
   static const String detalhesItem = '/item';
   static const String editarItem = '/editar-item';
   static const String meusItens = '/meus-itens';
   
+  // Perfil
+  static const String perfilPublico = '/perfil-publico';
+  static const String editarPerfil = '/editar-perfil';
+
   // Aluguéis
   static const String solicitarAluguel = '/solicitar-aluguel';
   static const String meusAlugueis = '/meus-alugueis';
@@ -26,7 +31,6 @@ class AppRoutes {
   
   // Chat e Comunicação
   static const String chat = '/chat';
-  static const String listaChats = '/chats';
   
   // Financeiro
   static const String carteira = '/carteira';

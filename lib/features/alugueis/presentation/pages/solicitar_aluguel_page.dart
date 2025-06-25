@@ -54,7 +54,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       final precoTotal = (dias > 0 ? dias : 1) * widget.item.precoPorDia;
 
       // Obter dados do locatário (usuário logado)
-      final usuarioAsyncValue = ref.read(usuarioAtualProvider);
+      final usuarioAsyncValue = ref.read(usuarioAtualStreamProvider);
       final locatario = usuarioAsyncValue.valueOrNull;
 
       if (locatario == null) {

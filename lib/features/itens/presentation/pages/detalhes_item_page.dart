@@ -2,7 +2,7 @@ import 'package:coisarapida/features/autenticacao/presentation/providers/auth_pr
 import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
-import 'package:coisarapida/shared/widgets/utils.dart';
+import 'package:coisarapida/shared/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -138,7 +138,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     });
 
     try {
-      final usuarioAtual = ref.read(usuarioAtualProvider).value;
+      final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
 
       if (usuarioAtual == null) {
         SnackBarUtils.mostrarErro(context, "Você precisa estar logado para iniciar uma conversa.");

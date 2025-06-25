@@ -6,6 +6,7 @@ import 'package:coisarapida/features/alugueis/presentation/pages/status_aluguel_
 import 'package:coisarapida/features/avaliacoes/presentation/pages/avaliacao_page.dart';
 import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
+import 'package:coisarapida/features/menu/presentation/pages/menu_mais_page.dart';
 import 'package:coisarapida/shared/widgets/botton_navigation_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -84,9 +85,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ListaChatsPage(),
           ),
           GoRoute(
-            path: AppRoutes.perfil,
-            name: 'perfil',
-            builder: (context, state) => const PerfilPage(),
+            path: AppRoutes.menu,
+            name: 'menu',
+            builder: (context, state) => const MenuMaisPage(),
           ),
         ],
       ),
@@ -105,14 +106,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Perfil público
+      // Perfil
       GoRoute(
-        path: '/perfil-publico/:id',
+        path: '${AppRoutes.perfilPublico}/:id',
         name: 'perfil-publico',
         builder: (context, state) => PerfilPublicoPage(
           usuarioId: state.pathParameters['id']!,
         ),
       ),
+
+      GoRoute(
+        path: '${AppRoutes.editarPerfil}',
+        name: 'editar-perfil',
+        builder: (context, state) => const MenuPage(),
+      ),
+
+
 
       // Chat
       // A rota principal de lista de chats agora está dentro do ShellRoute.

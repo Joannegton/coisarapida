@@ -9,13 +9,30 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
 });
 
-final usuarioAtualProvider = StreamProvider<Usuario?>((ref) {
+final usuarioAtualStreamProvider = StreamProvider<Usuario?>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   return authRepository.usuarioAtual;
 });
 
 final idUsuarioAtualProvider = Provider<String?>((ref) {
-  return ref.watch(usuarioAtualProvider).value?.id;
+  return ref.watch(usuarioAtualStreamProvider).value?.id;
+});
+
+final usuarioProvider = FutureProvider<Usuario>((ref) async {
+  final usuarioAtualProvider = ref.watch(usuarioAtualStreamProvider);
+  final usuarioId = usuarioAtualProvider.asData?.value?.id;
+
+  if (usuarioId == null) {
+    throw Exception('Usuário não encontrado.');
+  }
+
+  final usuario = await ref.watch(authRepositoryProvider).getUsuario(usuarioId);
+
+  if (usuario == null) {
+    throw Exception('Usuário não encontrado.');
+  }
+
+  return usuario;
 });
 
 // Controller para ações de autenticação (login, cadastro, logout, etc.).

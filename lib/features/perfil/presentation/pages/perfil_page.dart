@@ -1,69 +1,76 @@
+import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
-import '../providers/perfil_publico_provider.dart'; // Para o novo meuPerfilProvider
+import '../providers/perfil_publico_provider.dart'; 
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
-import '../../../autenticacao/domain/entities/usuario.dart'; // Para o tipo Usuario
-/// Tela de perfil do usuário
-class PerfilPage extends ConsumerWidget {
-  const PerfilPage({super.key});
+
+class MenuPage extends ConsumerWidget {
+  const MenuPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final meuPerfilState = ref.watch(meuPerfilProvider);
+    final meuPerfilState = ref.watch(meuPerfilProviderApagar);
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Meu Perfil'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _editarPerfil(context),
-          ),
-        ],
-      ),
+      // appBar: AppBar(
+      //   systemOverlayStyle: SystemUiOverlayStyle(
+      //     statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+      //     statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+      //   ),
+      //   title: const Text('Ajustar titulo'),
+      //   actions: [
+      //     IconButton(
+      //       icon: const Icon(Icons.edit),
+      //       onPressed: () => _editarPerfil(context),
+      //     ),
+      //   ],
+      // ),
       body: meuPerfilState.when(
         data: (usuario) {
           
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                // Foto e informações básicas
-                _buildCabecalhoPerfil(context, theme, usuario),
-                
-                const SizedBox(height: 32),
-                
-                // Informações pessoais
-                _buildSecaoInformacoes(context, theme, usuario, ref),
-                
-                const SizedBox(height: 24),
-                
-                // Botão para Solicitações Recebidas
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.inbox_outlined),
-                  label: const Text('Solicitações de Aluguel Recebidas'),
-                  onPressed: () => context.push(AppRoutes.solicitacoesAluguel),
-                ),
-                const SizedBox(height: 24),
-                
-                // Estatísticas
-                _buildSecaoEstatisticas(context, theme, usuario),
-                
-                const SizedBox(height: 24),
-                
-                // Configurações rápidas
-                _buildSecaoConfiguracoes(context, theme),
-                
-                const SizedBox(height: 32),
-                
-                // Botão de logout
-                _buildBotaoLogout(context, theme, ref),
-              ],
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // Foto e informações básicas
+                  _buildCabecalhoPerfil(context, theme, usuario),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Informações pessoais
+                  _buildSecaoInformacoes(context, theme, usuario, ref),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Botão para Solicitações Recebidas
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.inbox_outlined),
+                    label: const Text('Solicitações de Aluguel Recebidas'),
+                    onPressed: () => context.push(AppRoutes.solicitacoesAluguel),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Estatísticas
+                  _buildSecaoEstatisticas(context, theme, usuario),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Configurações rápidas
+                  _buildSecaoConfiguracoes(context, theme),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Botão de logout
+                  _buildBotaoLogout(context, theme, ref),
+                ],
+              ),
             ),
           );
         },
@@ -79,7 +86,7 @@ class PerfilPage extends ConsumerWidget {
               Text('Erro ao carregar perfil: $error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.invalidate(meuPerfilProvider),
+                onPressed: () => ref.invalidate(meuPerfilProviderApagar),
                 child: const Text('Tentar Novamente'),
               ),
             ],
@@ -539,7 +546,7 @@ class PerfilPage extends ConsumerWidget {
                   try {
                     await onSalvar(controller.text.trim());
                     SnackBarUtils.mostrarSucesso(context, '$titulo atualizado com sucesso!');
-                    ref.invalidate(meuPerfilProvider); // Atualiza os dados do perfil na tela
+                    ref.invalidate(meuPerfilProviderApagar); // Atualiza os dados do perfil na tela
                   } catch (e) {
                     SnackBarUtils.mostrarErro(context, 'Erro ao atualizar $titulo: ${e.toString()}');
                   }

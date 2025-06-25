@@ -51,7 +51,7 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final currentUserAsyncValue = _ref.read(usuarioAtualProvider);
+      final currentUserAsyncValue = _ref.read(usuarioAtualStreamProvider);
       final auth_user.Usuario? currentUser = currentUserAsyncValue.asData?.value;
 
       if (currentUser == null) {

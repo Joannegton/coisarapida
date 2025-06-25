@@ -57,7 +57,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   void _navegarAposAutenticacao() {
     if (!mounted) return;
 
-    ref.listenManual<AsyncValue<Usuario?>>(usuarioAtualProvider, (previous, nextState) {
+    ref.listenManual<AsyncValue<Usuario?>>(usuarioAtualStreamProvider, (previous, nextState) {
       nextState.when(
         data: (usuario) {
           if (!mounted) return;

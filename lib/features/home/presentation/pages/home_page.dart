@@ -28,10 +28,21 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final authState = ref.watch(usuarioAtualProvider);
+    final authState = ref.watch(usuarioAtualStreamProvider);
     final itensState = ref.watch(itensProximosProvider);
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push(AppRoutes.anunciarItem),
+        icon: const Icon(Icons.add),
+        label: const Text('Anunciar'),
+        backgroundColor: theme.colorScheme.secondary,
+        foregroundColor: theme.colorScheme.onSecondary,
+        elevation: 4.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -62,7 +73,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           data: (usuario) => Text(
                             'Olá, ${usuario?.nome.split(' ').first ?? 'Usuário'}! 👋',
                             style: theme.textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
+                              color: theme.colorScheme.onPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -224,17 +235,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(AppRoutes.anunciarItem),
-        icon: const Icon(Icons.add),
-        label: const Text('Anunciar'),
-        backgroundColor: theme.colorScheme.secondary,
-        foregroundColor: theme.colorScheme.onSecondary,
-        elevation: 4.0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-        ),
       ),
     );
   }

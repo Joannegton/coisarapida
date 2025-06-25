@@ -273,7 +273,7 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
     );
 
     Localizacao localizacao;
-    final currentUser = ref.read(usuarioAtualProvider).asData?.value;
+    final currentUser = ref.read(usuarioAtualStreamProvider).asData?.value;
 
     if (currentUser?.endereco != null) {
       final enderecoUsuario = currentUser!.endereco!;
