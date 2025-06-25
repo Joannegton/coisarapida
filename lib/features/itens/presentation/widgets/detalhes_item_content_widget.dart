@@ -26,7 +26,6 @@ class DetalhesItemContentWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nome e categoria
           Text(
             item.nome,
             style: theme.textTheme.headlineSmall?.copyWith(
@@ -37,7 +36,7 @@ class DetalhesItemContentWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withAlpha(25),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -90,7 +89,6 @@ class DetalhesItemContentWidget extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Regras de uso
           if (item.regrasUso != null && item.regrasUso!.isNotEmpty) ...[
             Text(
               'Regras de Uso',
@@ -100,9 +98,9 @@ class DetalhesItemContentWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withAlpha(25),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                border: Border.all(color: Colors.orange.withAlpha(76)),
               ),
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Icon(Icons.warning, color: Colors.orange, size: 20),
@@ -119,7 +117,6 @@ class DetalhesItemContentWidget extends StatelessWidget {
 
           // Localização
           LocalizacaoCardWidget(item: item),
-          const SizedBox(height: 100), // Espaço para o botão fixo
         ],
       ),
     );

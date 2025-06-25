@@ -28,7 +28,6 @@ class LocalizacaoCardWidget extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(item.localizacao.endereco),
             Text('${item.localizacao.bairro}, ${item.localizacao.cidade} - ${item.localizacao.estado}'),
             const SizedBox(height: 8),
             // TODO: Implementar cálculo de distância real

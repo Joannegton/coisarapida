@@ -15,7 +15,6 @@ import '../widgets/detalhes_item_bottom_bar_widget.dart';
 import '../widgets/detalhes_item_content_widget.dart';
 import '../../../../core/constants/app_routes.dart';
 
-/// Tela de detalhes do item com informações completas
 class DetalhesItemPage extends ConsumerStatefulWidget {
   final String itemId;
   
@@ -38,17 +37,18 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     final isFavorito = favoritosState.contains(widget.itemId);
     final favoritosNotifier = ref.watch(favoritosProvider.notifier);
     final itemAsyncValue = ref.watch(detalhesItemProvider(widget.itemId));
+    final theme = Theme.of(context);
     
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
         slivers: [
-          // AppBar com fotos
           SliverAppBar(
+            backgroundColor: theme.colorScheme.surface,
             expandedHeight: 300,
             systemOverlayStyle: SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
-              statusBarBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+              statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+              statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
             ),
             pinned: true,
             flexibleSpace: itemAsyncValue.when(
@@ -71,7 +71,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
               IconButton(
                 icon: Icon(
                   isFavorito ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorito ? Colors.red : Colors.white,
+                  color: isFavorito ? Colors.red : theme.colorScheme.onSurface,
                 ),
                 onPressed: () {
                   favoritosNotifier.toggleFavorito(widget.itemId);
@@ -82,13 +82,12 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.share, color: Colors.white),
+                icon: Icon(Icons.share, color: theme.colorScheme.onSurface),
                 onPressed: () => SnackBarUtils.mostrarInfo(context, 'Compartilhar em desenvolvimento'),
               ),
             ],
           ),
           
-          // Conteúdo
           itemAsyncValue.when(
             data: (item) {
               if (item == null) {
@@ -122,7 +121,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                 item: item,
                 isCreatingChat: _isCreatingChat,
                 onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
-                onAlugarPressed: () => _solicitarAluguel(item),
+                onAlugarPressed: () => context.push(AppRoutes.solicitarAluguel, extra: item),
               )
             : null,
         orElse: () => const SizedBox.shrink(),
@@ -167,7 +166,4 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     }
   }
 
-  void _solicitarAluguel(Item item) {
-    context.push(AppRoutes.solicitarAluguel, extra: item);
-  }
 }
