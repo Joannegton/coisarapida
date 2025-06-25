@@ -1,6 +1,7 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/cabecalho_perfil_widget.dart';
+import 'package:coisarapida/features/menu/presentation/widgets/configuracoes_rapidas.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/menu_list_tile_widget.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/minhas_estatistica_widget.dart';
 import 'package:flutter/material.dart';
@@ -70,6 +71,7 @@ class MenuMaisPage extends ConsumerWidget {
               const Divider(height: 1),
               const SizedBox(height: 16),
               MinhasEstatisticaWidget(usuario: usuario),
+              const ConfiguracoesRapidas()
             ]),
           ),
           SliverToBoxAdapter(

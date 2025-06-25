@@ -37,8 +37,11 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buscar Itens'),
-        backgroundColor: theme.colorScheme.surface,
+        title: Text('Buscar Itens', style: TextStyle(
+          color: theme.colorScheme.onPrimary,
+          fontWeight: FontWeight.bold,
+        )),
+        backgroundColor: theme.colorScheme.primary,
         elevation: 0,
       ),
       body: Column(

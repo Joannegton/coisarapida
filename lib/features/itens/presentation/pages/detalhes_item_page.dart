@@ -101,7 +101,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                 child: DetalhesItemContentWidget(
                   item: item,
                   onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
-                  formatarData: Utils.formatarData,
+                  formatarData: Utils.formatarDataPorExtenso,
                 ),
               );
             },

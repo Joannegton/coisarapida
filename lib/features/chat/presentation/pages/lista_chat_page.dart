@@ -16,11 +16,14 @@ class ListaChatsPage extends ConsumerWidget {
     
     return Scaffold( 
       appBar: AppBar(
-        title: const Text('Conversas'),
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
-          statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+        title: Text(
+          'Conversas', 
+          style: TextStyle(
+            color: theme.colorScheme.onPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        backgroundColor: theme.colorScheme.primary,
       ),
       body: chatsState.when(
         data: (chats) {
@@ -28,11 +31,14 @@ class ListaChatsPage extends ConsumerWidget {
             return const SemConversasWidget();
           }
           
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(chatsProvider.future),
-            child: ListView.builder(
-              itemCount: chats.length,
-              itemBuilder: (context, index) => CardChatWidget(chat: chats[index]),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: RefreshIndicator(
+              onRefresh: () => ref.refresh(chatsProvider.future),
+              child: ListView.builder(
+                itemCount: chats.length,
+                itemBuilder: (context, index) => CardChatWidget(chat: chats[index]),
+              ),
             ),
           );
         },
