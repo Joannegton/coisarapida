@@ -1,24 +1,108 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum StatusAluguel {
-  solicitado,       // Locatário solicitou o aluguel
-  aprovado,         // Locador aprovou a solicitação
-  recusado,         // Locador recusou a solicitação
-  pagamentoPendente,// Aguardando pagamento do locatário (após aprovação)
-  confirmado,       // Pagamento confirmado, aguardando retirada/entrega
-  emAndamento,      // Item com o locatário
-  devolucaoPendente,// Locatário marcou para devolver
-  concluido,        // Item devolvido e tudo OK
-  cancelado,        // Aluguel cancelado por uma das partes
-  disputa,          // Problema reportado
+  solicitado,       
+  aprovado,         
+  recusado,       
+  pagamentoPendente,
+  confirmado,     
+  emAndamento,   
+  devolucaoPendente,
+  concluido,        
+  cancelado,        
+  disputa,          
 }
 
-/// Status possíveis da caução integrada ao aluguel
-enum StatusCaucaoAluguel {
+enum StatusAluguelCaucao {
   pendentePagamento, // Aguardando pagamento/bloqueio da caução
   bloqueada,         // Valor bloqueado com sucesso
   liberada,          // Caução liberada após devolução
   utilizadaParcialmente, // Parte da caução utilizada
   utilizadaTotalmente,   // Toda a caução utilizada
   naoAplicavel,      // Se o item não exigir caução
+}
+
+class AluguelCaucao {
+  final double valor;
+  final StatusAluguelCaucao status;
+  final String? metodoPagamento;
+  final String? transacaoId;
+  final DateTime? dataBloqueio;
+  final DateTime? dataLiberacao;
+  final String? motivoRetencao;
+  final double? valorRetido;
+
+  AluguelCaucao({
+    required this.valor,
+    required this.status,
+    this.metodoPagamento,
+    this.transacaoId,
+    this.dataBloqueio,
+    this.dataLiberacao,
+    this.motivoRetencao,
+    this.valorRetido,
+  });
+
+  AluguelCaucao copyWith({
+    double? valor,
+    StatusAluguelCaucao? status,
+    String? metodoPagamento,
+    String? transacaoId,
+    DateTime? dataBloqueio,
+    DateTime? dataLiberacao,
+    String? motivoRetencao,
+    double? valorRetido,
+  }) {
+    return AluguelCaucao(
+      valor: valor ?? this.valor,
+      status: status ?? this.status,
+      metodoPagamento: metodoPagamento ?? this.metodoPagamento,
+      transacaoId: transacaoId ?? this.transacaoId,
+      dataBloqueio: dataBloqueio ?? this.dataBloqueio,
+      dataLiberacao: dataLiberacao ?? this.dataLiberacao,
+      motivoRetencao: motivoRetencao ?? this.motivoRetencao,
+      valorRetido: valorRetido ?? this.valorRetido,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'valor': valor,
+      'status': status.name,
+      'metodoPagamento': metodoPagamento,
+      'transacaoId': transacaoId,
+      'dataBloqueio': dataBloqueio != null ? Timestamp.fromDate(dataBloqueio!) : null,
+      'dataLiberacao': dataLiberacao != null ? Timestamp.fromDate(dataLiberacao!) : null,
+      'motivoRetencao': motivoRetencao,
+      'valorRetido': valorRetido,
+    };
+  }
+
+  factory AluguelCaucao.fromMap(Map<String, dynamic> map) {
+    DateTime? toDateTime(dynamic value) {
+      if (value is Timestamp) {
+        return value.toDate();
+      }
+      if (value is String) {
+        return DateTime.tryParse(value);
+      }
+      return null;
+    }
+
+    return AluguelCaucao(
+      valor: (map['valor'] as num?)?.toDouble() ?? 0.0,
+      status: StatusAluguelCaucao.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => StatusAluguelCaucao.naoAplicavel,
+      ),
+      metodoPagamento: map['metodoPagamento'],
+      transacaoId: map['transacaoId'],
+      dataBloqueio: toDateTime(map['dataBloqueio']),
+      dataLiberacao: toDateTime(map['dataLiberacao']),
+      motivoRetencao: map['motivoRetencao'],
+      valorRetido: (map['valorRetido'] as num?)?.toDouble(),
+    );
+  }
 }
 
 class Aluguel {
@@ -33,23 +117,13 @@ class Aluguel {
   final DateTime dataInicio;
   final DateTime dataFim;
   final double precoTotal;
-  final double? caucaoValor; // Valor do caução, se aplicável
   final StatusAluguel status;
   final DateTime criadoEm;
   final DateTime? atualizadoEm;
-  final String? observacoesLocatario; // Observações do locatário ao solicitar
-  final String? motivoRecusaLocador;  // Motivo se o locador recusar
-  final String? contratoId; // ID do contrato assinado, se houver
-
-  // Campos da Caução Integrados
-  final StatusCaucaoAluguel? caucaoStatus;
-  final String? caucaoMetodoPagamento;
-  final String? caucaoTransacaoId;
-  final DateTime? caucaoDataBloqueio;
-  final DateTime? caucaoDataLiberacao;
-  final String? caucaoMotivoRetencao; // Se parte da caução for retida
-  final double? caucaoValorRetido;    // Valor retido da caução
-
+  final String? observacoesLocatario;
+  final String? motivoRecusaLocador;
+  final String? contratoId;
+  final AluguelCaucao caucao;
 
   Aluguel({
     required this.id,
@@ -63,20 +137,13 @@ class Aluguel {
     required this.dataInicio,
     required this.dataFim,
     required this.precoTotal,
-    this.caucaoValor,
     required this.status,
     required this.criadoEm,
+    required this.caucao,
     this.atualizadoEm,
     this.observacoesLocatario,
     this.motivoRecusaLocador,
     this.contratoId,
-    this.caucaoStatus,
-    this.caucaoMetodoPagamento,
-    this.caucaoTransacaoId,
-    this.caucaoDataBloqueio,
-    this.caucaoDataLiberacao,
-    this.caucaoMotivoRetencao,
-    this.caucaoValorRetido,
   });
 
   Aluguel copyWith({
@@ -91,20 +158,13 @@ class Aluguel {
     DateTime? dataInicio,
     DateTime? dataFim,
     double? precoTotal,
-    double? caucaoValor,
     StatusAluguel? status,
     DateTime? criadoEm,
     DateTime? atualizadoEm,
     String? observacoesLocatario,
     String? motivoRecusaLocador,
     String? contratoId,
-    StatusCaucaoAluguel? caucaoStatus,
-    String? caucaoMetodoPagamento,
-    String? caucaoTransacaoId,
-    DateTime? caucaoDataBloqueio,
-    DateTime? caucaoDataLiberacao,
-    String? caucaoMotivoRetencao,
-    double? caucaoValorRetido,
+    AluguelCaucao? caucao,
   }) {
     return Aluguel(
       id: id ?? this.id,
@@ -118,20 +178,13 @@ class Aluguel {
       dataInicio: dataInicio ?? this.dataInicio,
       dataFim: dataFim ?? this.dataFim,
       precoTotal: precoTotal ?? this.precoTotal,
-      caucaoValor: caucaoValor ?? this.caucaoValor,
       status: status ?? this.status,
       criadoEm: criadoEm ?? this.criadoEm,
       atualizadoEm: atualizadoEm ?? this.atualizadoEm,
       observacoesLocatario: observacoesLocatario ?? this.observacoesLocatario,
       motivoRecusaLocador: motivoRecusaLocador ?? this.motivoRecusaLocador,
       contratoId: contratoId ?? this.contratoId,
-      caucaoStatus: caucaoStatus ?? this.caucaoStatus,
-      caucaoMetodoPagamento: caucaoMetodoPagamento ?? this.caucaoMetodoPagamento,
-      caucaoTransacaoId: caucaoTransacaoId ?? this.caucaoTransacaoId,
-      caucaoDataBloqueio: caucaoDataBloqueio ?? this.caucaoDataBloqueio,
-      caucaoDataLiberacao: caucaoDataLiberacao ?? this.caucaoDataLiberacao,
-      caucaoMotivoRetencao: caucaoMotivoRetencao ?? this.caucaoMotivoRetencao,
-      caucaoValorRetido: caucaoValorRetido ?? this.caucaoValorRetido,
+      caucao: caucao ?? this.caucao,
     );
   }
 }

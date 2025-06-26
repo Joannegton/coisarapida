@@ -37,21 +37,27 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
       // Gerar um ID único para o aluguel no cliente ou deixar o Firestore gerar
       final aluguelId = FirebaseFirestore.instance.collection('alugueis').doc().id;
 
+      // Criar o objeto de caução a partir dos dados do item
+      final caucaoDoAluguel = AluguelCaucao(
+        valor: item.valorCaucao ?? 0.0,
+        status: (item.valorCaucao ?? 0.0) > 0 ? StatusAluguelCaucao.pendentePagamento : StatusAluguelCaucao.naoAplicavel,
+      );
+
       final novoAluguel = Aluguel(
         id: aluguelId,
         itemId: item.id,
         itemNome: item.nome,
         itemFotoUrl: item.fotos.isNotEmpty ? item.fotos.first : '',
         locadorId: item.proprietarioId,
-        locadorNome: item.proprietarioNome, // Assumindo que o item tem o nome do proprietário
+        locadorNome: item.proprietarioNome,
         locatarioId: locatario.id,
         locatarioNome: locatario.nome,
         dataInicio: dataInicio,
         dataFim: dataFim,
         precoTotal: precoTotal,
-        // caucaoValor: item.caucao, // Se o item tiver um campo de caução
         status: StatusAluguel.solicitado,
-        criadoEm: DateTime.now(), // O model converterá para Timestamp
+        criadoEm: DateTime.now(),
+        caucao: caucaoDoAluguel,
         observacoesLocatario: observacoesLocatario,
       );
 

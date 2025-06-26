@@ -32,7 +32,7 @@ class AluguelRepositoryImpl implements AluguelRepository {
       if (novoStatus == StatusAluguel.recusado && motivo != null) {
         dataToUpdate['motivoRecusaLocador'] = motivo;
       }
-      // Adicionar outras lógicas de campos baseadas no status, se necessário
+      // adc outras logicas de campos baseadas no status, se necessário
       await _firestore.collection('alugueis').doc(aluguelId).update(dataToUpdate);
     } catch (e) {
       throw ServerException('Erro ao atualizar status do aluguel: ${e.toString()}');
@@ -63,7 +63,7 @@ class AluguelRepositoryImpl implements AluguelRepository {
     } else if (comoLocatario) {
       query = query.where('locatarioId', isEqualTo: usuarioId);
     } else {
-      // Se nenhum for especificado, pode retornar vazio ou lançar erro,
+      // TODO Se nenhum for especificado, pode retornar vazio ou lançar erro,
       // ou buscar por 'participantes' como padrão.
       query = query.where('participantes', arrayContains: usuarioId);
     }
@@ -111,10 +111,10 @@ class AluguelRepositoryImpl implements AluguelRepository {
   }) async {
     try {
       await _firestore.collection('alugueis').doc(aluguelId).update({
-        'caucaoStatus': StatusCaucaoAluguel.bloqueada.name,
-        'caucaoMetodoPagamento': metodoPagamento,
-        'caucaoTransacaoId': transacaoId,
-        'caucaoDataBloqueio': FieldValue.serverTimestamp(),
+        'caucao.status': StatusAluguelCaucao.bloqueada.name,
+        'caucao.metodoPagamento': metodoPagamento,
+        'caucao.transacaoId': transacaoId,
+        'caucao.dataBloqueio': FieldValue.serverTimestamp(),
         'atualizadoEm': FieldValue.serverTimestamp(),
       });
     } catch (e) {
@@ -130,10 +130,10 @@ class AluguelRepositoryImpl implements AluguelRepository {
   }) async {
     try {
       await _firestore.collection('alugueis').doc(aluguelId).update({
-        'caucaoStatus': valorRetido != null && valorRetido > 0 ? StatusCaucaoAluguel.utilizadaParcialmente.name : StatusCaucaoAluguel.liberada.name,
-        'caucaoDataLiberacao': FieldValue.serverTimestamp(),
-        'caucaoMotivoRetencao': motivoRetencao,
-        'caucaoValorRetido': valorRetido,
+        'caucao.status': valorRetido != null && valorRetido > 0 ? StatusAluguelCaucao.utilizadaParcialmente.name : StatusAluguelCaucao.liberada.name,
+        'caucao.dataLiberacao': FieldValue.serverTimestamp(),
+        'caucao.motivoRetencao': motivoRetencao,
+        'caucao.valorRetido': valorRetido,
         'atualizadoEm': FieldValue.serverTimestamp(),
       });
     } catch (e) {

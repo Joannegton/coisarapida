@@ -13,8 +13,12 @@ class MenuMaisPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usuario = ref.watch(usuarioAtualStreamProvider).value!;
+    final usuario = ref.watch(usuarioAtualStreamProvider).value;
     final theme = Theme.of(context);
+
+    if (usuario == null) {
+      context.go(AppRoutes.login);
+    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -26,7 +30,7 @@ class MenuMaisPage extends ConsumerWidget {
             backgroundColor: theme.colorScheme.primary,
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(30), 
-              child: CabecalhoPerfilWidget(usuario: usuario),
+              child: CabecalhoPerfilWidget(usuario: usuario!),
             ),
           ),
           SliverList(

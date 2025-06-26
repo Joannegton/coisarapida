@@ -42,7 +42,7 @@ class InformacoesAdicionaisWidget extends StatelessWidget {
             const SizedBox(height: 12),
             _buildInfoRow(
               'Caução',
-              item.caucao != null ? 'R\$ ${item.caucao!.toStringAsFixed(2)}' : 'Não exigido',
+              item.valorCaucao != null ? 'R\$ ${item.valorCaucao!.toStringAsFixed(2)}' : 'Não exigido',
             ),
             _buildInfoRow('Aprovação', item.aprovacaoAutomatica ? 'Automática' : 'Manual'),
             _buildInfoRow('Total de aluguéis do item', '${item.totalAlugueis}'),

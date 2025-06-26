@@ -1,21 +1,29 @@
-import 'package:coisarapida/core/constants/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../seguranca/presentation/providers/seguranca_provider.dart';
-import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela para aceite do contrato digital
 class AceiteContratoPage extends ConsumerStatefulWidget {
   final String aluguelId;
   final Map<String, dynamic> dadosAluguel;
 
+  // Callbacks para notificar o pai sobre mudanças no estado dos checkboxes
+  final ValueChanged<bool> onAceiteTermosChanged;
+  final ValueChanged<bool> onAceiteResponsabilidadeChanged;
+  final ValueChanged<bool> onAceiteCaucaoChanged;
+
+  // Estado atual dos checkboxes, passado do pai
+  final bool aceiteTermos;
+  final bool aceiteResponsabilidade;
+  final bool aceiteCaucao;
+
   const AceiteContratoPage({
     super.key,
-    required this.aluguelId,
-    required this.dadosAluguel,
+    required this.aluguelId, required this.dadosAluguel,
+    required this.onAceiteTermosChanged, required this.onAceiteResponsabilidadeChanged, required this.onAceiteCaucaoChanged,
+    required this.aceiteTermos, required this.aceiteResponsabilidade, required this.aceiteCaucao,
   });
 
   @override
@@ -23,28 +31,15 @@ class AceiteContratoPage extends ConsumerStatefulWidget {
 }
 
 class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
-  bool _aceiteTermos = false;
-  bool _aceiteResponsabilidade = false;
-  bool _aceiteCaucao = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    
-    // Gerar contrato ao inicializar
+    // gera contrato ao inicializar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _gerarContrato();
     });
-  }
-
-  void _gerarContrato() {
-    ref.read(contratoProvider(widget.aluguelId).notifier).gerarContrato(
-      locatarioId: widget.dadosAluguel['locatarioId'],
-      locadorId: widget.dadosAluguel['locadorId'],
-      itemId: widget.dadosAluguel['itemId'],
-      dadosAluguel: widget.dadosAluguel,
-    );
   }
 
   @override
@@ -52,12 +47,7 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
     final contratoState = ref.watch(contratoProvider(widget.aluguelId));
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Contrato de Aluguel'),
-        backgroundColor: theme.colorScheme.surface,
-      ),
-      body: contratoState.when(
+    return contratoState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
           child: Column(
@@ -148,30 +138,27 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
                       
                       const SizedBox(height: 24),
                       
-                      // Resumo dos valores
-                      _buildResumoValores(),
+                      _buildResumoValores(theme),
                       
                       const SizedBox(height: 24),
                       
-                      // Checkboxes de aceite
                       _buildCheckboxesAceite(theme),
                     ],
                   ),
                 ),
               ),
-              
-              // Botões de ação
-              _buildBotoesAcao(theme, contrato),
             ],
           );
         },
-      ),
     );
   }
 
-  Widget _buildResumoValores() {
-    final theme = Theme.of(context);
-    
+  double _getDadosAluguelDouble(String key) => (widget.dadosAluguel[key] as num?)?.toDouble() ?? 0.0;
+
+  Widget _buildResumoValores(ThemeData theme) {
+    final valorAluguel = _getDadosAluguelDouble('valorAluguel');
+    final valorCaucao = _getDadosAluguelDouble('valorCaucao');
+    final valorDiaria = _getDadosAluguelDouble('valorDiaria');
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -189,25 +176,24 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
           ),
           const SizedBox(height: 12),
           
-          _buildLinhaValor('Valor do Aluguel:', 'R\$ ${((widget.dadosAluguel['valorAluguel'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'),
-          _buildLinhaValor('Caução (bloqueada):', 'R\$ ${((widget.dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'),
-          _buildLinhaValor('Multa por atraso/dia:', 'R\$ ${((widget.dadosAluguel['valorDiaria'] as num?)?.toDouble() ?? 0.0 * 1.5).toStringAsFixed(2)}'),
+          _buildLinhaValor(theme, 'Valor do Aluguel:', 'R\$ ${valorAluguel.toStringAsFixed(2)}'),
+          _buildLinhaValor(theme, 'Caução (bloqueada):', 'R\$ ${valorCaucao.toStringAsFixed(2)}'),
+          _buildLinhaValor(theme, 'Multa por atraso/dia:', 'R\$ ${(valorDiaria * 1.5).toStringAsFixed(2)}'),
           
           const Divider(),
           
           _buildLinhaValor(
-            'Total a pagar agora:', 
-            'R\$ ${(((widget.dadosAluguel['valorAluguel'] as num?)?.toDouble() ?? 0.0) + ((widget.dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0)).toStringAsFixed(2)}',
+            theme,
+            'Total a pagar agora:',
+            'R\$ ${(valorAluguel + valorCaucao).toStringAsFixed(2)}',
             destaque: true,
           ),
         ],
       ),
     );
   }
-
-  Widget _buildLinhaValor(String label, String valor, {bool destaque = false}) {
-    final theme = Theme.of(context);
-    
+  
+  Widget _buildLinhaValor(ThemeData theme, String label, String valor, {bool destaque = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -235,35 +221,29 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
     return Column(
       children: [
         CheckboxListTile(
-          value: _aceiteTermos,
+          value: widget.aceiteTermos,
           onChanged: (value) {
-            setState(() {
-              _aceiteTermos = value ?? false;
-            });
+            widget.onAceiteTermosChanged(value ?? false);
           },
           title: const Text('Li e aceito os termos do contrato'),
           subtitle: const Text('Confirmo que li todo o conteúdo acima'),
           controlAffinity: ListTileControlAffinity.leading,
         ),
-        
+
         CheckboxListTile(
-          value: _aceiteResponsabilidade,
+          value: widget.aceiteResponsabilidade,
           onChanged: (value) {
-            setState(() {
-              _aceiteResponsabilidade = value ?? false;
-            });
+            widget.onAceiteResponsabilidadeChanged(value ?? false);
           },
           title: const Text('Aceito total responsabilidade pelo item'),
           subtitle: const Text('Comprometo-me a devolver em perfeitas condições'),
           controlAffinity: ListTileControlAffinity.leading,
         ),
-        
+
         CheckboxListTile(
-          value: _aceiteCaucao,
+          value: widget.aceiteCaucao,
           onChanged: (value) {
-            setState(() {
-              _aceiteCaucao = value ?? false;
-            });
+            widget.onAceiteCaucaoChanged(value ?? false);
           },
           title: const Text('Autorizo o bloqueio da caução'),
           subtitle: Text('R\$ ${widget.dadosAluguel['valorCaucao']} será bloqueado no meu cartão'),
@@ -272,113 +252,14 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
       ],
     );
   }
-
-  Widget _buildBotoesAcao(ThemeData theme, contrato) {
-    final todosAceitos = _aceiteTermos && _aceiteResponsabilidade && _aceiteCaucao;
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Cancelar'),
-              ),
-            ),
-            
-            const SizedBox(width: 16),
-            
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: todosAceitos ? () => _confirmarAceite(contrato) : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: todosAceitos ? theme.colorScheme.primary : null,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Aceitar e Continuar',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+  
+  void _gerarContrato() {
+    ref.read(contratoProvider(widget.aluguelId).notifier).gerarContrato(
+      locatarioId: widget.dadosAluguel['locatarioId'],
+      locadorId: widget.dadosAluguel['locadorId'],
+      itemId: widget.dadosAluguel['itemId'],
+      dadosAluguel: widget.dadosAluguel,
     );
-  }
-
-  void _confirmarAceite(contrato) async {
-    // Variável para controlar se o diálogo de loading foi fechado
-    bool loadingDialogClosed = false;
-
-    try {
-      // Mostrar loading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => const AlertDialog( // Usar dialogContext
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Processando aceite...'),
-            ],
-          ),
-        ),
-      );
-
-      // Aceitar contrato
-      await ref.read(contratoProvider(widget.aluguelId).notifier)
-          .aceitarContrato(contrato.id);
-
-      // Não é mais necessário criar uma caução separada aqui.
-
-      // Fechar loading
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Tentar com rootNavigator
-        loadingDialogClosed = true;
-      }
-
-      // Mostrar sucesso
-      SnackBarUtils.mostrarSucesso(
-        context,
-        'Contrato aceito com sucesso! ✅',
-      );
-
-      // Navegar para próxima tela (caução)
-      if (mounted) {
-        // Passar os dados do aluguel para a CaucaoPage também
-        context.pushReplacement(
-          '${AppRoutes.caucao}/${widget.aluguelId}', 
-          extra: widget.dadosAluguel);
-      }
-    } catch (e) {
-      // Fechar loading
-      debugPrint('[AceiteContratoPage] Erro capturado em _confirmarAceite: $e');
-      if (mounted && !loadingDialogClosed) { // Só tenta fechar se não foi fechado no try
-        Navigator.of(context, rootNavigator: true).pop();
-        loadingDialogClosed = true;
-      }
-      
-      SnackBarUtils.mostrarErro(
-        context,
-        'Erro ao aceitar contrato: $e',
-      );
-    }
   }
 
   @override

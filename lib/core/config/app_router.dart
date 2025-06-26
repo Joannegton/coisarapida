@@ -1,4 +1,3 @@
-import 'package:coisarapida/features/alugueis/presentation/pages/aceite_contrato_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/caucao_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitacoes_aluguel_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitar_aluguel_page.dart';
@@ -150,20 +149,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ConfiguracoesPage(),
       ),
 
-      // Rotas de segurança
-      GoRoute(
-        path: '${AppRoutes.aceiteContrato}/:aluguelId',
-        name: 'aceite-contrato',
-        builder: (context, state) {
-          final aluguelId = state.pathParameters['aluguelId']!;
-          final dadosAluguel = state.extra as Map<String, dynamic>;
-          return AceiteContratoPage(
-            aluguelId: aluguelId,
-            dadosAluguel: dadosAluguel,
-          );
-        },
-      ),
-
       // alugueis
       GoRoute(
         path: AppRoutes.solicitarAluguel,
@@ -184,19 +169,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final aluguelId = state.pathParameters['aluguelId']!;
           final dadosAluguel = state.extra as Map<String, dynamic>;
           return StatusAluguelPage(
-            aluguelId: aluguelId,
-            dadosAluguel: dadosAluguel,
-          );
-        },
-      ),
-
-      GoRoute(
-        path: '${AppRoutes.caucao}/:aluguelId',
-        name: 'caucao',
-        builder: (context, state) {
-          final aluguelId = state.pathParameters['aluguelId']!;
-          final dadosAluguel = state.extra as Map<String, dynamic>? ?? {}; // Lida com extra nulo
-          return CaucaoPage(
             aluguelId: aluguelId,
             dadosAluguel: dadosAluguel,
           );

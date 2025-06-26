@@ -78,7 +78,7 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
         fotos: allFotoUrls,
         precoPorDia: precoPorDia,
         precoPorHora: precoPorHora,
-        caucao: caucao,
+        valorCaucao: caucao,
         regrasUso: regrasUso,
         disponivel: true, // Novo item é sempre disponível inicialmente
         aprovacaoAutomatica: aprovacaoAutomatica,

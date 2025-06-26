@@ -7,7 +7,7 @@ class Item {
   final List<String> fotos;
   final double precoPorDia;
   final double? precoPorHora;
-  final double? caucao;
+  final double? valorCaucao;
   final String? regrasUso;
   final bool disponivel;
   final bool aprovacaoAutomatica;
@@ -31,7 +31,7 @@ class Item {
     required this.fotos,
     required this.precoPorDia,
     this.precoPorHora,
-    this.caucao,
+    this.valorCaucao,
     this.regrasUso,
     required this.disponivel,
     required this.aprovacaoAutomatica,
@@ -76,7 +76,7 @@ class Item {
       fotos: fotos ?? this.fotos,
       precoPorDia: precoPorDia ?? this.precoPorDia,
       precoPorHora: precoPorHora ?? this.precoPorHora,
-      caucao: caucao ?? this.caucao,
+      valorCaucao: caucao ?? this.valorCaucao,
       regrasUso: regrasUso ?? this.regrasUso,
       disponivel: disponivel ?? this.disponivel,
       aprovacaoAutomatica: aprovacaoAutomatica ?? this.aprovacaoAutomatica,

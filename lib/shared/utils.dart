@@ -8,7 +8,16 @@ class Utils {
   }
 
   static String formatarData(DateTime data) {
-    // Formato D/M/AAAA
     return "${data.day}/${data.month}/${data.year}";
+  }
+    // TODO: pesquisar o pacote `intl` melhor para formatar data.
+    // ex: DateFormat.yMd().add_jm().format(dateTime)
+  static String formatarDataHora(DateTime data) {
+    final dia = data.day.toString().padLeft(2, '0');
+    final mes = data.month.toString().padLeft(2, '0');
+    final ano = data.year;
+    final hora = data.hour.toString().padLeft(2, '0');
+    final minuto = data.minute.toString().padLeft(2, '0');
+    return '$dia/$mes/$ano às $hora:$minuto';
   }
 }
