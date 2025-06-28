@@ -34,10 +34,9 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   int _paginaAtual = 0;
   late String _alugueId;
   late Map<String, dynamic> _dadosAluguel;
-  bool _aceiteTermos = false; // Novo estado
-  bool _aceiteResponsabilidade = false; // Novo estado
-  bool _aceiteCaucao = false; // Novo estado
-  // Estados da CaucaoPage
+  bool _aceiteTermos = false;
+  bool _aceiteResponsabilidade = false; 
+  bool _aceiteCaucao = false;
   String _metodoPagamento = 'cartao';
   bool _isProcessing = false;
 
@@ -141,7 +140,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   }
 
   Widget _buildBotoesNavegacao(ThemeData theme, Usuario locatario, AsyncValue<ContratoDigital?> contratoState) {
-    String buttonText = ''; // Initialize with an empty string
+    String buttonText = '';
     VoidCallback? onPressedCallback;
     Widget? buttonChild;
 

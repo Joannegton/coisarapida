@@ -17,6 +17,7 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   ChatController(this._ref) : super(const AsyncValue.data(null));
 
+  //TODO melhorar
   Future<String> abrirOuCriarChat({
     required Usuario usuarioAtual,
     required Item item,

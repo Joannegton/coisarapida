@@ -2,15 +2,22 @@ import 'package:coisarapida/core/utils/snackbar_utils.dart';
 import 'package:coisarapida/features/alugueis/domain/entities/aluguel.dart';
 import 'package:coisarapida/features/alugueis/presentation/controllers/aluguel_controller.dart';
 import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_providers.dart' hide aluguelControllerProvider;
-import 'package:coisarapida/shared/utils.dart';
+import 'package:coisarapida/features/alugueis/presentation/widgets/card_solicitacoes_widget.dart';
+import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SolicitacoesAluguelPage extends ConsumerWidget {
+class SolicitacoesAluguelPage extends ConsumerStatefulWidget {
   const SolicitacoesAluguelPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConsumerStatefulWidget> createState() => _SolicitacoesAluguelPageState();
+}
+
+class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPage> {
+
+  @override
+  Widget build(BuildContext context) {
     final solicitacoesAsync = ref.watch(solicitacoesRecebidasProvider);
     final theme = Theme.of(context);
 
@@ -21,52 +28,21 @@ class SolicitacoesAluguelPage extends ConsumerWidget {
       ),
       body: solicitacoesAsync.when(
         data: (solicitacoes) {
-          debugPrint('[SolicitacoesAluguelPage] WHEN: Data recebida com ${solicitacoes.length} solicitações.');
           if (solicitacoes.isEmpty) {
             return const Center(child: Text('Nenhuma solicitação pendente.'));
           }
+
           final listView = ListView.builder(
             itemCount: solicitacoes.length,
             itemBuilder: (context, index) {
               final aluguel = solicitacoes[index];
-              final periodoFormatado = '${Utils.formatarData(aluguel.dataInicio)} a ${Utils.formatarData(aluguel.dataFim)}';
               
-              final cardWidget = Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(aluguel.itemNome, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      Text('Solicitante: ${aluguel.locatarioNome}'),
-                      Text('Período: $periodoFormatado'),
-                      Text('Valor Total: R\$ ${aluguel.precoTotal.toStringAsFixed(2)}'),
-                      if (aluguel.observacoesLocatario != null && aluguel.observacoesLocatario!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text('Obs: ${aluguel.observacoesLocatario}', style: const TextStyle(fontStyle: FontStyle.italic)),
-                        ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisSize: MainAxisSize.min, // Adicionado para restringir a largura da Row
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(onPressed: () => _recusarSolicitacao(context, ref, aluguel), child: const Text('Recusar', style: TextStyle(color: Colors.red))),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(88, 36), // Garante um tamanho mínimo finito
-                            ),
-                            onPressed: () => _aprovarSolicitacao(context, ref, aluguel), 
-                            child: const Text('Aprovar')),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+              return CardSolicitacoesWidget(
+                aluguel: aluguel,
+                onAprovarSolicitacao: () => _aprovarSolicitacao(context, aluguel),
+                onRecusarSolicitacao: () => _recusarSolicitacao(context, ref, aluguel), 
+                onChatPressed: () => _abrirChat(),
               );
-              return cardWidget;
             },
           );
           return listView;
@@ -81,7 +57,7 @@ class SolicitacoesAluguelPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _aprovarSolicitacao(BuildContext context, WidgetRef ref, Aluguel aluguel) async {
+  Future<void> _aprovarSolicitacao(BuildContext context, Aluguel aluguel) async {
     final controller = ref.read(aluguelControllerProvider.notifier);
     try {
       await controller.atualizarStatusAluguel(aluguel.id, StatusAluguel.aprovado);
@@ -156,6 +132,10 @@ class SolicitacoesAluguelPage extends ConsumerWidget {
     motivoController.dispose();
   }
 
+  //TODO implementar
+  Future<void> _abrirChat() async {
+    final controller = ref.read(chatControllerProvider.notifier);
+  }
   
 
 }
