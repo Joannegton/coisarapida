@@ -1,5 +1,6 @@
 import 'dart:io';
-import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart' as auth_user;
+import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart'
+    as auth_user;
 import 'package:coisarapida/features/itens/data/models/item_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,12 +20,14 @@ final itemRepositoryProvider = Provider<ItemRepository>((ref) {
 });
 
 // Provider para ItemController
-final itemControllerProvider = StateNotifierProvider<ItemController, AsyncValue<void>>((ref) {
+final itemControllerProvider =
+    StateNotifierProvider<ItemController, AsyncValue<void>>((ref) {
   return ItemController(ref.watch(itemRepositoryProvider), ref);
 });
 
 // Provider para buscar detalhes de um item específico
-final detalhesItemProvider = FutureProvider.family<Item?, String>((ref, itemId) async {
+final detalhesItemProvider =
+    FutureProvider.family<Item?, String>((ref, itemId) async {
   final repository = ref.watch(itemRepositoryProvider);
   return repository.getDetalhesItem(itemId);
 });
@@ -33,7 +36,8 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
   final ItemRepository _itemRepository;
   final Ref _ref;
 
-  ItemController(this._itemRepository, this._ref) : super(const AsyncValue.data(null));
+  ItemController(this._itemRepository, this._ref)
+      : super(const AsyncValue.data(null));
 
   Future<void> publicarItem({
     required String nome,
@@ -41,6 +45,9 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
     required String categoria,
     required List<String> fotosPaths, // Caminhos locais ou URLs existentes
     required double precoPorDia,
+    double? precoVenda,
+    required TipoItem tipo,
+    required EstadoItem estado,
     double? precoPorHora,
     double? caucao,
     String? regrasUso,
@@ -52,7 +59,8 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       final currentUserAsyncValue = _ref.read(usuarioAtualStreamProvider);
-      final auth_user.Usuario? currentUser = currentUserAsyncValue.asData?.value;
+      final auth_user.Usuario? currentUser =
+          currentUserAsyncValue.asData?.value;
 
       if (currentUser == null) {
         throw Exception('Usuário não autenticado para publicar item.');
@@ -60,14 +68,18 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
 
       final itemId = FirebaseFirestore.instance.collection('itens').doc().id;
 
-      List<File> filesToUpload = fotosPaths.where((p) => !p.startsWith('http')).map((p) => File(p)).toList();
-      List<String> existingUrls = fotosPaths.where((p) => p.startsWith('http')).toList();
-      
+      List<File> filesToUpload = fotosPaths
+          .where((p) => !p.startsWith('http'))
+          .map((p) => File(p))
+          .toList();
+      List<String> existingUrls =
+          fotosPaths.where((p) => p.startsWith('http')).toList();
+
       List<String> uploadedUrls = [];
       if (filesToUpload.isNotEmpty) {
         uploadedUrls = await _itemRepository.uploadFotos(filesToUpload, itemId);
       }
-      
+
       final allFotoUrls = [...existingUrls, ...uploadedUrls];
 
       final item = ItemModel(
@@ -77,6 +89,9 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
         categoria: categoria,
         fotos: allFotoUrls,
         precoPorDia: precoPorDia,
+        precoVenda: precoVenda,
+        tipo: tipo,
+        estado: estado,
         precoPorHora: precoPorHora,
         valorCaucao: caucao,
         regrasUso: regrasUso,
@@ -85,8 +100,10 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
         proprietarioId: currentUser.id,
         proprietarioNome: currentUser.nome,
         proprietarioReputacao: currentUser.reputacao,
-        localizacao: localizacao, // Certifique-se de que este objeto está preenchido
-        criadoEm: DateTime.now(), // Firestore usará FieldValue.serverTimestamp() no toMap
+        localizacao:
+            localizacao, // Certifique-se de que este objeto está preenchido
+        criadoEm: DateTime
+            .now(), // Firestore usará FieldValue.serverTimestamp() no toMap
         avaliacao: 0.0,
         totalAlugueis: 0,
         visualizacoes: 0,

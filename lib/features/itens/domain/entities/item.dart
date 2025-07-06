@@ -7,6 +7,9 @@ class Item {
   final List<String> fotos;
   final double precoPorDia;
   final double? precoPorHora;
+  final double? precoVenda; // NOVO: Preço para venda
+  final TipoItem tipo; // NOVO: Aluguel ou Venda
+  final EstadoItem estado; // NOVO: Novo, Usado, etc.
   final double? valorCaucao;
   final String? regrasUso;
   final bool disponivel;
@@ -17,7 +20,7 @@ class Item {
   final Localizacao localizacao;
   final DateTime criadoEm;
   final DateTime? atualizadoEm;
-  
+
   // Estatísticas
   final double avaliacao;
   final int totalAlugueis;
@@ -33,6 +36,9 @@ class Item {
     this.precoPorHora,
     this.valorCaucao,
     this.regrasUso,
+    this.precoVenda, // NOVO: Preço para venda
+    this.tipo = TipoItem.aluguel, // NOVO: Aluguel por padrão
+    this.estado = EstadoItem.usado, // NOVO: Usado por padrão
     required this.disponivel,
     required this.aprovacaoAutomatica,
     required this.proprietarioId,
@@ -54,6 +60,9 @@ class Item {
     List<String>? fotos,
     double? precoPorDia,
     double? precoPorHora,
+    double? precoVenda,
+    TipoItem? tipo,
+    EstadoItem? estado,
     double? caucao,
     String? regrasUso,
     bool? disponivel,
@@ -76,13 +85,17 @@ class Item {
       fotos: fotos ?? this.fotos,
       precoPorDia: precoPorDia ?? this.precoPorDia,
       precoPorHora: precoPorHora ?? this.precoPorHora,
+      precoVenda: precoVenda ?? this.precoVenda,
+      tipo: tipo ?? this.tipo,
+      estado: estado ?? this.estado,
       valorCaucao: caucao ?? this.valorCaucao,
       regrasUso: regrasUso ?? this.regrasUso,
       disponivel: disponivel ?? this.disponivel,
       aprovacaoAutomatica: aprovacaoAutomatica ?? this.aprovacaoAutomatica,
       proprietarioId: proprietarioId ?? this.proprietarioId,
       proprietarioNome: proprietarioNome ?? this.proprietarioNome,
-      proprietarioReputacao: proprietarioReputacao ?? this.proprietarioReputacao,
+      proprietarioReputacao:
+          proprietarioReputacao ?? this.proprietarioReputacao,
       localizacao: localizacao ?? this.localizacao,
       criadoEm: criadoEm ?? this.criadoEm,
       atualizadoEm: atualizadoEm ?? this.atualizadoEm,
@@ -100,6 +113,21 @@ class Item {
 
   @override
   int get hashCode => id.hashCode;
+}
+
+/// Enum para tipo do item
+enum TipoItem {
+  aluguel,
+  venda,
+  ambos, // Item pode ser alugado ou vendido
+}
+
+/// Enum para estado do item
+enum EstadoItem {
+  novo,
+  seminovo,
+  usado,
+  precisaReparo,
 }
 
 /// Entidade para localização do item

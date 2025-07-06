@@ -1,9 +1,12 @@
+import 'package:coisarapida/features/home/presentation/providers/home_provider.dart';
+import 'package:coisarapida/features/home/presentation/providers/itens_provider.dart';
+import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
-import '../providers/itens_provider.dart';
+
 import '../../../../core/constants/app_routes.dart';
 import '../widgets/categoria_card.dart';
 import '../widgets/item_card.dart';
@@ -16,12 +19,19 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
-  final _buscaController = TextEditingController();
+class _HomePageState extends ConsumerState<HomePage>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
 
   @override
   void dispose() {
-    _buscaController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -29,7 +39,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final authState = ref.watch(usuarioAtualStreamProvider);
-    final itensState = ref.watch(itensProximosProvider);
+    final tipoFiltro = ref.watch(homeTabFilterProvider);
+    final itensAsyncValue = ref.watch(itensProximosProvider);
+    final itensFiltrados = ref.watch(itensFiltradosProvider(tipoFiltro));
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -94,7 +106,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Descubra itens incríveis perto de você',
+                          'Alugue ou compre itens incríveis perto de você',
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: Colors.white.withOpacity(0.9),
                           ),
@@ -109,25 +121,59 @@ class _HomePageState extends ConsumerState<HomePage> {
               preferredSize: const Size.fromHeight(60),
               child: Container(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: GestureDetector(
-                  onTap: () => context.push(AppRoutes.buscar),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, color: Colors.grey),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Buscar furadeira, bike, cadeira...',
-                          style: TextStyle(color: Colors.grey.shade600),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.push(AppRoutes.buscar),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search, color: Colors.grey),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Buscar furadeira, bike, cadeira...',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Tabs para filtrar
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: Colors.white,
+                      labelColor: Colors.white,
+                      onTap: (index) {
+                        // Atualiza o estado do provider ao clicar na tab
+                        final notifier =
+                            ref.read(homeTabFilterProvider.notifier);
+                        switch (index) {
+                          case 0:
+                            notifier.state = null; // Todos
+                            break;
+                          case 1:
+                            notifier.state = TipoItem.aluguel;
+                            break;
+                          case 2:
+                            notifier.state = TipoItem.venda;
+                            break;
+                        }
+                      },
+                      unselectedLabelColor: Colors.white.withOpacity(0.7),
+                      tabs: const [
+                        Tab(text: 'Todos'),
+                        Tab(text: 'Aluguel'),
+                        Tab(text: 'Venda'),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -152,11 +198,26 @@ class _HomePageState extends ConsumerState<HomePage> {
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       children: const [
-                        CategoriaCard(nome: 'Ferramentas', icone: Icons.build, cor: Colors.orange),
-                        CategoriaCard(nome: 'Eletrônicos', icone: Icons.devices, cor: Colors.blue),
-                        CategoriaCard(nome: 'Esportes', icone: Icons.sports_soccer, cor: Colors.green),
-                        CategoriaCard(nome: 'Casa', icone: Icons.home, cor: Colors.purple),
-                        CategoriaCard(nome: 'Transporte', icone: Icons.directions_bike, cor: Colors.red),
+                        CategoriaCard(
+                            nome: 'Ferramentas',
+                            icone: Icons.build,
+                            cor: Colors.orange),
+                        CategoriaCard(
+                            nome: 'Eletrônicos',
+                            icone: Icons.devices,
+                            cor: Colors.blue),
+                        CategoriaCard(
+                            nome: 'Esportes',
+                            icone: Icons.sports_soccer,
+                            cor: Colors.green),
+                        CategoriaCard(
+                            nome: 'Casa',
+                            icone: Icons.home,
+                            cor: Colors.purple),
+                        CategoriaCard(
+                            nome: 'Transporte',
+                            icone: Icons.directions_bike,
+                            cor: Colors.red),
                       ],
                     ),
                   ),
@@ -170,7 +231,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Perto de Você',
+                _getTituloSecao(tipoFiltro),
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -179,19 +240,22 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
 
           // Grid de itens
-          itensState.when(
-            data: (itens) => SliverPadding(
+          itensAsyncValue.when(
+            data: (_) => SliverPadding(
+              // Usamos a lista filtrada abaixo, o `_` ignora a lista completa
               padding: const EdgeInsets.all(16),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.75,
+                  childAspectRatio: 0.7, // Ajuste para caber melhor os badges
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => ItemCard(item: itens[index]),
-                  childCount: itens.take(6).length, // Mostrar apenas 6 itens na home
+                  (context, index) => ItemCard(item: itensFiltrados[index]),
+                  childCount: itensFiltrados
+                      .take(6)
+                      .length, // Mostrar apenas 6 itens na home
                 ),
               ),
             ),
@@ -237,5 +301,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       ),
     );
+  }
+
+  String _getTituloSecao(TipoItem? filtro) {
+    switch (filtro) {
+      case TipoItem.aluguel:
+        return 'Para Alugar';
+      case TipoItem.venda:
+        return 'Para Vender';
+      default:
+        return 'Perto de Você';
+    }
   }
 }

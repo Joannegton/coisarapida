@@ -10,6 +10,9 @@ class ItemModel extends Item {
     required super.fotos,
     required super.precoPorDia,
     super.precoPorHora,
+    super.precoVenda,
+    required super.tipo,
+    required super.estado,
     super.valorCaucao,
     super.regrasUso,
     required super.disponivel,
@@ -19,7 +22,7 @@ class ItemModel extends Item {
     super.proprietarioReputacao,
     required super.localizacao,
     required super.criadoEm, // Expect DateTime for entity
-    super.atualizadoEm,   // Expect DateTime? for entity
+    super.atualizadoEm, // Expect DateTime? for entity
     super.avaliacao,
     super.totalAlugueis,
     super.visualizacoes,
@@ -34,6 +37,9 @@ class ItemModel extends Item {
       fotos: entity.fotos,
       precoPorDia: entity.precoPorDia,
       precoPorHora: entity.precoPorHora,
+      precoVenda: entity.precoVenda,
+      tipo: entity.tipo,
+      estado: entity.estado,
       valorCaucao: entity.valorCaucao,
       regrasUso: entity.regrasUso,
       disponivel: entity.disponivel,
@@ -50,6 +56,20 @@ class ItemModel extends Item {
     );
   }
 
+  static TipoItem _tipoItemFromString(String? tipo) {
+    return TipoItem.values.firstWhere(
+      (e) => e.name == tipo,
+      orElse: () => TipoItem.aluguel, // Padrão de segurança
+    );
+  }
+
+  static EstadoItem _estadoItemFromString(String? estado) {
+    return EstadoItem.values.firstWhere(
+      (e) => e.name == estado,
+      orElse: () => EstadoItem.usado, // Padrão de segurança
+    );
+  }
+
   factory ItemModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     if (data == null) {
@@ -63,6 +83,9 @@ class ItemModel extends Item {
       categoria: data['categoria'] as String? ?? '',
       fotos: List<String>.from(data['fotos'] as List? ?? []),
       precoPorDia: (data['precoPorDia'] as num?)?.toDouble() ?? 0.0,
+      precoVenda: (data['precoVenda'] as num?)?.toDouble(),
+      tipo: _tipoItemFromString(data['tipo'] as String?),
+      estado: _estadoItemFromString(data['estado'] as String?),
       precoPorHora: (data['precoPorHora'] as num?)?.toDouble(),
       valorCaucao: (data['caucao'] as num?)?.toDouble(),
       regrasUso: data['regrasUso'] as String?,
@@ -70,8 +93,10 @@ class ItemModel extends Item {
       aprovacaoAutomatica: data['aprovacaoAutomatica'] as bool? ?? false,
       proprietarioId: data['proprietarioId'] as String? ?? '',
       proprietarioNome: data['proprietarioNome'] as String? ?? '',
-      proprietarioReputacao: (data['proprietarioReputacao'] as num?)?.toDouble(),
-      localizacao: Localizacao.fromMap(data['localizacao'] as Map<String, dynamic>? ?? {}),
+      proprietarioReputacao:
+          (data['proprietarioReputacao'] as num?)?.toDouble(),
+      localizacao: Localizacao.fromMap(
+          data['localizacao'] as Map<String, dynamic>? ?? {}),
       criadoEm: (data['criadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
       atualizadoEm: (data['atualizadoEm'] as Timestamp?)?.toDate(),
       avaliacao: (data['avaliacao'] as num?)?.toDouble() ?? 0.0,
@@ -88,6 +113,9 @@ class ItemModel extends Item {
       categoria: map['categoria'] ?? '',
       fotos: List<String>.from(map['fotos'] ?? []),
       precoPorDia: (map['precoPorDia'] as num?)?.toDouble() ?? 0.0,
+      precoVenda: (map['precoVenda'] as num?)?.toDouble(),
+      tipo: _tipoItemFromString(map['tipo'] as String?),
+      estado: _estadoItemFromString(map['estado'] as String?),
       precoPorHora: (map['precoPorHora'] as num?)?.toDouble(),
       valorCaucao: (map['caucao'] as num?)?.toDouble(),
       regrasUso: map['regrasUso'],
@@ -112,6 +140,9 @@ class ItemModel extends Item {
       'categoria': categoria,
       'fotos': fotos,
       'precoPorDia': precoPorDia,
+      'precoVenda': precoVenda,
+      'tipo': tipo.name,
+      'estado': estado.name,
       'precoPorHora': precoPorHora,
       'caucao': valorCaucao,
       'regrasUso': regrasUso,

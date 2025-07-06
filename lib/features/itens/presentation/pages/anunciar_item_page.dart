@@ -7,7 +7,7 @@ import 'package:coisarapida/features/autenticacao/presentation/providers/auth_pr
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../domain/entities/item.dart' show Localizacao; // Para o tipo Localizacao
+import '../../domain/entities/item.dart';
 import '../providers/item_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
@@ -21,20 +21,24 @@ class AnunciarItemPage extends ConsumerStatefulWidget {
 class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   final _formKey = GlobalKey<FormState>();
   final _pageController = PageController();
-  
+
   final _nomeController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _precoDiaController = TextEditingController();
+  final _precoVendaController = TextEditingController();
   final _precoHoraController = TextEditingController();
   final _caucaoController = TextEditingController();
   final _regrasController = TextEditingController();
-  
+
+  // Estado para os novos campos
   int _paginaAtual = 0;
   String _categoriaSelecionada = '';
   List<String> _fotosUrls = [];
+  TipoItem _tipoItem = TipoItem.aluguel;
+  EstadoItem _estadoItem = EstadoItem.usado;
   bool _aluguelPorHora = false;
   bool _aprovacaoAutomatica = false;
-  
+
   final List<Map<String, dynamic>> _categorias = [
     {'id': 'ferramentas', 'nome': 'Ferramentas', 'icone': Icons.build},
     {'id': 'eletronicos', 'nome': 'Eletrônicos', 'icone': Icons.devices},
@@ -52,6 +56,7 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
     _nomeController.addListener(_atualizarEstadoBotao);
     _descricaoController.addListener(_atualizarEstadoBotao);
     _precoDiaController.addListener(_atualizarEstadoBotao);
+    _precoVendaController.addListener(_atualizarEstadoBotao);
     _precoHoraController.addListener(_atualizarEstadoBotao);
     _caucaoController.addListener(_atualizarEstadoBotao);
   }
@@ -61,12 +66,14 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
     _nomeController.removeListener(_atualizarEstadoBotao);
     _descricaoController.removeListener(_atualizarEstadoBotao);
     _precoDiaController.removeListener(_atualizarEstadoBotao);
+    _precoVendaController.removeListener(_atualizarEstadoBotao);
     _precoHoraController.removeListener(_atualizarEstadoBotao);
     _caucaoController.removeListener(_atualizarEstadoBotao);
 
     _nomeController.dispose();
     _descricaoController.dispose();
     _precoDiaController.dispose();
+    _precoVendaController.dispose();
     _precoHoraController.removeListener(_atualizarEstadoBotao);
     _caucaoController.removeListener(_atualizarEstadoBotao);
     super.dispose();
@@ -75,15 +82,20 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   void _atualizarEstadoBotao() {
     setState(() {});
   }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
-          statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: theme.brightness == Brightness.dark
+              ? Brightness.light
+              : Brightness.dark,
+          statusBarIconBrightness: theme.brightness == Brightness.dark
+              ? Brightness.light
+              : Brightness.dark,
         ),
         title: const Text('Anunciar Item'),
         bottom: PreferredSize(
@@ -108,10 +120,9 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
           },
           children: [
             InformacoesSection(
-              nomeController: _nomeController, 
-              descricaoController: _descricaoController, 
-              regrasController: _regrasController
-            ),
+                nomeController: _nomeController,
+                descricaoController: _descricaoController,
+                regrasController: _regrasController),
             CategoriasSection(
               categorias: _categorias,
               categoriaSelecionada: _categoriaSelecionada,
@@ -130,8 +141,19 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
             ),
             SessaoPrecos(
               precoDiaController: _precoDiaController,
+              precoVendaController: _precoVendaController,
               precoHoraController: _precoHoraController,
               caucaoController: _caucaoController,
+              tipoItem: _tipoItem,
+              onTipoItemChanged: (valor) {
+                if (valor != null) {
+                  setState(() => _tipoItem = valor);
+                }
+              },
+              estadoItem: _estadoItem,
+              onEstadoItemChanged: (valor) {
+                if (valor != null) setState(() => _estadoItem = valor);
+              },
               aluguelPorHora: _aluguelPorHora,
               aprovacaoAutomatica: _aprovacaoAutomatica,
               onAluguelPorHoraChanged: (valor) {
@@ -168,9 +190,11 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
                   : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
-                disabledBackgroundColor: theme.colorScheme.primary.withAlpha(153),
+                disabledBackgroundColor:
+                    theme.colorScheme.primary.withAlpha(153),
                 foregroundColor: theme.colorScheme.onPrimary,
-                disabledForegroundColor: theme.colorScheme.onPrimary.withAlpha(153),
+                disabledForegroundColor:
+                    theme.colorScheme.onPrimary.withAlpha(153),
               ),
               child: Text(_paginaAtual == 3 ? 'Publicar Item' : 'Próximo'),
             ),
@@ -181,16 +205,30 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   }
 
   bool _isBotaoProximoHabilitado() {
-    if (_paginaAtual == 0) return _nomeController.text.isNotEmpty && _descricaoController.text.isNotEmpty;
-    
+    if (_paginaAtual == 0)
+      return _nomeController.text.isNotEmpty &&
+          _descricaoController.text.isNotEmpty;
+
     if (_paginaAtual == 1) return _categoriaSelecionada.isNotEmpty;
 
     if (_paginaAtual == 2) return _fotosUrls.isNotEmpty;
-    
-    if (_paginaAtual == 3) return _precoDiaController.text.isNotEmpty;
-    
+
+    if (_paginaAtual == 3) {
+      final isAluguelValido =
+          (_tipoItem == TipoItem.aluguel || _tipoItem == TipoItem.ambos) &&
+              _precoDiaController.text.isNotEmpty;
+      final isVendaValida =
+          (_tipoItem == TipoItem.venda || _tipoItem == TipoItem.ambos) &&
+              _precoVendaController.text.isNotEmpty;
+
+      if (_tipoItem == TipoItem.ambos) return isAluguelValido && isVendaValida;
+      if (_tipoItem == TipoItem.aluguel) return isAluguelValido;
+      if (_tipoItem == TipoItem.venda) return isVendaValida;
+    }
+
     return true;
   }
+
   void _voltarPagina() {
     _pageController.previousPage(
       duration: const Duration(milliseconds: 300),
@@ -224,8 +262,20 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
         }
         return true;
       case 3:
-        if (_precoDiaController.text.isEmpty) {
+        if ((_tipoItem == TipoItem.aluguel || _tipoItem == TipoItem.ambos) &&
+            _precoDiaController.text.isEmpty) {
           SnackBarUtils.mostrarErro(context, 'Preço por dia é obrigatório');
+          return false;
+        }
+        if ((_tipoItem == TipoItem.venda || _tipoItem == TipoItem.ambos) &&
+            _precoVendaController.text.isEmpty) {
+          SnackBarUtils.mostrarErro(
+              context, 'Preço de venda é obrigatório para venda');
+          return false;
+        }
+        if (_aluguelPorHora && _precoHoraController.text.isEmpty) {
+          SnackBarUtils.mostrarErro(
+              context, 'Preço por hora é obrigatório se a opção estiver ativa');
           return false;
         }
         return true;
@@ -236,23 +286,31 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
 
   void _publicarItem() {
     if (!_formKey.currentState!.validate()) {
-      SnackBarUtils.mostrarErro(context, 'Preencha corretamente todos os campos obrigatórios (marcados em vermelho).');
-      if (_nomeController.text.trim().isEmpty || _descricaoController.text.trim().isEmpty) {
+      SnackBarUtils.mostrarErro(context,
+          'Preencha corretamente todos os campos obrigatórios (marcados em vermelho).');
+      if (_nomeController.text.trim().isEmpty ||
+          _descricaoController.text.trim().isEmpty) {
         _pageController.jumpToPage(0);
-      } else if (_precoDiaController.text.trim().isEmpty) {
+      } else if (((_tipoItem == TipoItem.aluguel ||
+                  _tipoItem == TipoItem.ambos) &&
+              _precoDiaController.text.trim().isEmpty) ||
+          ((_tipoItem == TipoItem.venda || _tipoItem == TipoItem.ambos) &&
+              _precoVendaController.text.trim().isEmpty)) {
         _pageController.jumpToPage(3);
       }
       return;
     }
 
     if (_categoriaSelecionada.isEmpty) {
-      SnackBarUtils.mostrarErro(context, 'Selecione uma categoria para o item.');
+      SnackBarUtils.mostrarErro(
+          context, 'Selecione uma categoria para o item.');
       _pageController.jumpToPage(1);
       return;
     }
 
     if (_fotosUrls.isEmpty) {
-      SnackBarUtils.mostrarErro(context, 'Adicione pelo menos uma foto do item.');
+      SnackBarUtils.mostrarErro(
+          context, 'Adicione pelo menos uma foto do item.');
       _pageController.jumpToPage(2);
       return;
     }
@@ -281,7 +339,8 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
       if (enderecoUsuario.numero.isNotEmpty) {
         enderecoCompleto += ", ${enderecoUsuario.numero}";
       }
-      if (enderecoUsuario.complemento != null && enderecoUsuario.complemento!.isNotEmpty) {
+      if (enderecoUsuario.complemento != null &&
+          enderecoUsuario.complemento!.isNotEmpty) {
         enderecoCompleto += " - ${enderecoUsuario.complemento}";
       }
 
@@ -305,25 +364,34 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
       );
     }
 
-    ref.read(itemControllerProvider.notifier).publicarItem(
-      nome: _nomeController.text.trim(),
-      descricao: _descricaoController.text.trim(),
-      categoria: _categoriaSelecionada,
-      fotosPaths: _fotosUrls,
-      precoPorDia: double.tryParse(_precoDiaController.text) ?? 0.0,
-      precoPorHora: _aluguelPorHora ? (double.tryParse(_precoHoraController.text) ?? 0.0) : null,
-      caucao: double.tryParse(_caucaoController.text),
-      regrasUso: _regrasController.text.trim(),
-      aprovacaoAutomatica: _aprovacaoAutomatica,
-      localizacao: localizacao,
-    ).then((_) {
+    ref
+        .read(itemControllerProvider.notifier)
+        .publicarItem(
+          nome: _nomeController.text.trim(),
+          descricao: _descricaoController.text.trim(),
+          categoria: _categoriaSelecionada,
+          fotosPaths: _fotosUrls,
+          tipo: _tipoItem,
+          estado: _estadoItem,
+          precoPorDia: double.tryParse(_precoDiaController.text) ?? 0.0,
+          precoVenda: double.tryParse(_precoVendaController.text),
+          precoPorHora: _aluguelPorHora
+              ? (double.tryParse(_precoHoraController.text) ?? 0.0)
+              : null,
+          caucao: double.tryParse(_caucaoController.text),
+          regrasUso: _regrasController.text.trim(),
+          aprovacaoAutomatica: _aprovacaoAutomatica,
+          localizacao: localizacao,
+        )
+        .then((_) {
       Navigator.of(context).pop();
       SnackBarUtils.mostrarSucesso(context, 'Item publicado com sucesso! 🎉');
       context.pop();
     }).catchError((error) {
       print('Erro ao publicar item: $error');
       Navigator.of(context).pop();
-      SnackBarUtils.mostrarErro(context, 'Erro ao publicar item: ${error.toString()}');
+      SnackBarUtils.mostrarErro(
+          context, 'Erro ao publicar item: ${error.toString()}');
     });
   }
 }

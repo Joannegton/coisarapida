@@ -5,7 +5,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String cadastro = '/cadastro';
   static const String esqueciSenha = '/esqueci-senha';
-  
+
   // Principais
   static const String home = '/home';
   static const String buscar = '/buscar';
@@ -18,7 +18,7 @@ class AppRoutes {
   static const String detalhesItem = '/item';
   static const String editarItem = '/editar-item';
   static const String meusItens = '/meus-itens';
-  
+
   // Perfil
   static const String perfilPublico = '/perfil-publico';
   static const String editarPerfil = '/editar-perfil';
@@ -28,15 +28,15 @@ class AppRoutes {
   static const String meusAlugueis = '/meus-alugueis';
   static const String detalhesAluguel = '/aluguel';
   static const String solicitacoesAluguel = '/solicitacoes-aluguel';
-  
+
   // Chat e Comunicação
   static const String chat = '/chat';
-  
+
   // Financeiro
   static const String carteira = '/carteira';
   static const String pagamento = '/pagamento';
   static const String extrato = '/extrato';
-  
+
   // Configurações
   static const String configuracoes = '/configuracoes';
   static const String notificacoes = '/notificacoes';
@@ -51,4 +51,9 @@ class AppRoutes {
   // Rota de avaliação
   static const String avaliacao = '/avaliacao';
 
+  // TODO Rotas de venda não usados
+  static const String venderItem = '/vender-item';
+  static const String comprarItem = '/comprar-item';
+  static const String minhasVendas = '/minhas-vendas';
+  static const String minhasCompras = '/minhas-compras';
 }
