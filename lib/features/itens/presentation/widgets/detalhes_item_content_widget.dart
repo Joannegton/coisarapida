@@ -52,25 +52,45 @@ class DetalhesItemContentWidget extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Preços
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              Expanded(
-                child: PrecoCardWidget(
-                  titulo: 'Por Dia',
-                  preco: 'R\$ ${item.precoPorDia.toStringAsFixed(2)}',
-                  cor: theme.colorScheme.primary,
-                ),
-              ),
-              if (item.precoPorHora != null && item.precoPorHora! > 0) ...[
-                const SizedBox(width: 12),
-                Expanded(
+              // Preço de Venda (se aplicável)
+              if ((item.tipo == TipoItem.venda ||
+                      item.tipo == TipoItem.ambos) &&
+                  item.precoVenda != null)
+                Flexible(
                   child: PrecoCardWidget(
-                    titulo: 'Por Hora',
+                    titulo: 'Preço de Venda',
+                    preco: 'R\$ ${item.precoVenda!.toStringAsFixed(2)}',
+                    cor: Colors.green.shade700,
+                    isPrincipal: true,
+                  ),
+                ),
+
+              // Preço de Aluguel por Dia (se aplicável)
+              if (item.tipo == TipoItem.aluguel || item.tipo == TipoItem.ambos)
+                Flexible(
+                  child: PrecoCardWidget(
+                    titulo: 'Aluguel por Dia',
+                    preco: 'R\$ ${item.precoPorDia.toStringAsFixed(2)}',
+                    cor: theme.colorScheme.primary,
+                  ),
+                ),
+
+              // Preço de Aluguel por Hora (se aplicável)
+              if ((item.tipo == TipoItem.aluguel ||
+                      item.tipo == TipoItem.ambos) &&
+                  item.precoPorHora != null &&
+                  item.precoPorHora! > 0)
+                Flexible(
+                  child: PrecoCardWidget(
+                    titulo: 'Aluguel por Hora',
                     preco: 'R\$ ${item.precoPorHora!.toStringAsFixed(2)}',
                     cor: theme.colorScheme.secondary,
                   ),
                 ),
-              ]
             ],
           ),
 
@@ -82,7 +102,8 @@ class DetalhesItemContentWidget extends StatelessWidget {
 
           Text(
             'Descrição',
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(item.descricao, style: theme.textTheme.bodyLarge),
@@ -92,7 +113,8 @@ class DetalhesItemContentWidget extends StatelessWidget {
           if (item.regrasUso != null && item.regrasUso!.isNotEmpty) ...[
             Text(
               'Regras de Uso',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Container(
@@ -102,10 +124,13 @@ class DetalhesItemContentWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.orange.withAlpha(76)),
               ),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Icon(Icons.warning, color: Colors.orange, size: 20),
                 const SizedBox(width: 8),
-                Expanded(child: Text(item.regrasUso!, style: theme.textTheme.bodyMedium)),
+                Expanded(
+                    child: Text(item.regrasUso!,
+                        style: theme.textTheme.bodyMedium)),
               ]),
             ),
             const SizedBox(height: 20),

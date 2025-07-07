@@ -51,9 +51,9 @@ class AppRoutes {
   // Rota de avaliação
   static const String avaliacao = '/avaliacao';
 
-  // TODO Rotas de venda não usados
-  static const String venderItem = '/vender-item';
+  // Rotas de venda
   static const String comprarItem = '/comprar-item';
+  //TODO não implementados
   static const String minhasVendas = '/minhas-vendas';
   static const String minhasCompras = '/minhas-compras';
 }

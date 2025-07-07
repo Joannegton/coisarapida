@@ -24,6 +24,19 @@ class InformacoesAdicionaisWidget extends StatelessWidget {
     );
   }
 
+  String _getTextoEstado(EstadoItem estado) {
+    switch (estado) {
+      case EstadoItem.novo:
+        return 'Novo';
+      case EstadoItem.seminovo:
+        return 'Seminovo';
+      case EstadoItem.usado:
+        return 'Usado';
+      case EstadoItem.precisaReparo:
+        return 'Com defeito/Precisa de reparo';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -41,12 +54,20 @@ class InformacoesAdicionaisWidget extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
-              'Caução',
-              item.valorCaucao != null ? 'R\$ ${item.valorCaucao!.toStringAsFixed(2)}' : 'Não exigido',
+              'Condição',
+              _getTextoEstado(item.estado),
             ),
-            _buildInfoRow('Aprovação', item.aprovacaoAutomatica ? 'Automática' : 'Manual'),
+            _buildInfoRow(
+              'Caução',
+              item.valorCaucao != null
+                  ? 'R\$ ${item.valorCaucao!.toStringAsFixed(2)}'
+                  : 'Não exigido',
+            ),
+            _buildInfoRow('Aprovação',
+                item.aprovacaoAutomatica ? 'Automática' : 'Manual'),
             _buildInfoRow('Total de aluguéis do item', '${item.totalAlugueis}'),
-            _buildInfoRow('Avaliação do item', '${item.avaliacao.toStringAsFixed(1)} ⭐'),
+            _buildInfoRow(
+                'Avaliação do item', '${item.avaliacao.toStringAsFixed(1)} ⭐'),
             _buildInfoRow('Anunciado em', formatarData(item.criadoEm)),
           ],
         ),

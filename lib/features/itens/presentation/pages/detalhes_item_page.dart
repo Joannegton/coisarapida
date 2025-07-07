@@ -17,7 +17,7 @@ import '../../../../core/constants/app_routes.dart';
 
 class DetalhesItemPage extends ConsumerStatefulWidget {
   final String itemId;
-  
+
   const DetalhesItemPage({
     super.key,
     required this.itemId,
@@ -38,7 +38,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     final favoritosNotifier = ref.watch(favoritosProvider.notifier);
     final itemAsyncValue = ref.watch(detalhesItemProvider(widget.itemId));
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
@@ -47,8 +47,12 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
             backgroundColor: theme.colorScheme.surface,
             expandedHeight: 300,
             systemOverlayStyle: SystemUiOverlayStyle(
-              statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
-              statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+              statusBarIconBrightness: theme.brightness == Brightness.dark
+                  ? Brightness.light
+                  : Brightness.dark,
+              statusBarBrightness: theme.brightness == Brightness.dark
+                  ? Brightness.light
+                  : Brightness.dark,
             ),
             pinned: true,
             flexibleSpace: itemAsyncValue.when(
@@ -64,8 +68,10 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                   },
                 );
               },
-              loading: () => const FlexibleSpaceBar(background: Center(child: CircularProgressIndicator())),
-              error: (error, stack) => FlexibleSpaceBar(background: Center(child: Text('Erro: $error'))),
+              loading: () => const FlexibleSpaceBar(
+                  background: Center(child: CircularProgressIndicator())),
+              error: (error, stack) => FlexibleSpaceBar(
+                  background: Center(child: Text('Erro: $error'))),
             ),
             actions: [
               IconButton(
@@ -77,21 +83,25 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                   favoritosNotifier.toggleFavorito(widget.itemId);
                   SnackBarUtils.mostrarSucesso(
                     context,
-                    isFavorito ? 'Removido dos favoritos' : 'Adicionado aos favoritos',
+                    isFavorito
+                        ? 'Removido dos favoritos'
+                        : 'Adicionado aos favoritos',
                   );
                 },
               ),
               IconButton(
                 icon: Icon(Icons.share, color: theme.colorScheme.onSurface),
-                onPressed: () => SnackBarUtils.mostrarInfo(context, 'Compartilhar em desenvolvimento'),
+                onPressed: () => SnackBarUtils.mostrarInfo(
+                    context, 'Compartilhar em desenvolvimento'),
               ),
             ],
           ),
-          
           itemAsyncValue.when(
             data: (item) {
               if (item == null) {
-                return const SliverToBoxAdapter(child: Center(child: Padding(
+                return const SliverToBoxAdapter(
+                    child: Center(
+                        child: Padding(
                   padding: EdgeInsets.all(32.0),
                   child: Text('Item não encontrado ou removido.'),
                 )));
@@ -99,16 +109,21 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
               return SliverToBoxAdapter(
                 child: DetalhesItemContentWidget(
                   item: item,
-                  onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
+                  onChatPressed:
+                      _isCreatingChat ? null : () => _abrirOuCriarChat(item),
                   formatarData: Utils.formatarDataPorExtenso,
                 ),
               );
             },
-            loading: () => const SliverToBoxAdapter(child: Center(child: Padding(
+            loading: () => const SliverToBoxAdapter(
+                child: Center(
+                    child: Padding(
               padding: EdgeInsets.all(32.0),
               child: CircularProgressIndicator(),
             ))),
-            error: (error, stack) => SliverToBoxAdapter(child: Center(child: Padding(
+            error: (error, stack) => SliverToBoxAdapter(
+                child: Center(
+                    child: Padding(
               padding: const EdgeInsets.all(32.0),
               child: Text('Erro ao carregar detalhes do item: $error'),
             ))),
@@ -120,8 +135,12 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
             ? DetalhesItemBottomBarWidget(
                 item: item,
                 isCreatingChat: _isCreatingChat,
-                onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
-                onAlugarPressed: () => context.push(AppRoutes.solicitarAluguel, extra: item),
+                onChatPressed:
+                    _isCreatingChat ? null : () => _abrirOuCriarChat(item),
+                onAlugarPressed: () =>
+                    context.push(AppRoutes.solicitarAluguel, extra: item),
+                onComprarPressed: () =>
+                    context.push(AppRoutes.comprarItem, extra: item),
               )
             : null,
         orElse: () => const SizedBox.shrink(),
@@ -140,7 +159,8 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
       final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
 
       if (usuarioAtual == null) {
-        SnackBarUtils.mostrarErro(context, "Você precisa estar logado para iniciar uma conversa.");
+        SnackBarUtils.mostrarErro(
+            context, "Você precisa estar logado para iniciar uma conversa.");
         return;
       }
 
@@ -148,15 +168,21 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
       final proprietarioId = item.proprietarioId;
 
       if (currentUserId == proprietarioId) {
-        SnackBarUtils.mostrarInfo(context, "Você não pode iniciar um chat consigo mesmo.");
+        SnackBarUtils.mostrarInfo(
+            context, "Você não pode iniciar um chat consigo mesmo.");
         return;
       }
 
-      final chatId = await ref.read(chatControllerProvider.notifier).abrirOuCriarChat(usuarioAtual: usuarioAtual, item: item);
+      final chatId = await ref
+          .read(chatControllerProvider.notifier)
+          .abrirOuCriarChat(usuarioAtual: usuarioAtual, item: item);
 
-      if (mounted) context.push('${AppRoutes.chat}/$chatId', extra: proprietarioId);
+      if (mounted)
+        context.push('${AppRoutes.chat}/$chatId', extra: proprietarioId);
     } catch (e) {
-      if (mounted) SnackBarUtils.mostrarErro(context, 'Falha ao iniciar chat: ${e.toString()}');
+      if (mounted)
+        SnackBarUtils.mostrarErro(
+            context, 'Falha ao iniciar chat: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() {
@@ -165,5 +191,4 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
       }
     }
   }
-
 }

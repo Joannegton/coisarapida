@@ -6,6 +6,7 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
   final bool isCreatingChat;
   final VoidCallback? onChatPressed;
   final VoidCallback onAlugarPressed;
+  final VoidCallback? onComprarPressed;
 
   const DetalhesItemBottomBarWidget({
     super.key,
@@ -13,11 +14,28 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
     required this.item,
     this.onChatPressed,
     required this.onAlugarPressed,
+    this.onComprarPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isAluguel = item.tipo == TipoItem.aluguel;
+    final bool isVenda = item.tipo == TipoItem.venda;
+    final bool isAmbos = item.tipo == TipoItem.ambos;
+
+    // Define a cor primária para o botão principal
+    final Color primaryButtonColor =
+        isVenda || isAmbos ? Colors.green.shade700 : theme.colorScheme.primary;
+
+    // Define o texto do botão principal
+    String primaryButtonText = 'Alugar Agora';
+    if (isVenda) primaryButtonText = 'Comprar Agora';
+    if (isAmbos) primaryButtonText = 'Comprar';
+
+    IconData primaryButtonIcon = Icons.calendar_today;
+    if (isVenda || isAmbos) primaryButtonIcon = Icons.shopping_cart;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -33,29 +51,45 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
       child: SafeArea(
         child: Row(
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onChatPressed,
-                icon: const Icon(Icons.chat),
-                label: isCreatingChat
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ) 
-                  : const Text('Conversar'),
+            // Botão secundário (Alugar em modo 'Ambos', ou Chat)
+            if (isAmbos)
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: item.disponivel ? onAlugarPressed : null,
+                  icon: const Icon(Icons.calendar_today),
+                  label: const Text('Alugar'),
+                ),
+              )
+            else
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onChatPressed,
+                  icon: const Icon(Icons.chat),
+                  label: isCreatingChat
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Conversar'),
+                ),
               ),
-            ),
+
             const SizedBox(width: 12),
+
+            // Botão principal (Comprar ou Alugar)
             Expanded(
               flex: 2,
               child: ElevatedButton.icon(
-                onPressed: item.disponivel ? onAlugarPressed : null,
-                icon: const Icon(Icons.calendar_today),
-                label: Text(item.disponivel ? 'Alugar Agora' : 'Indisponível'),
+                onPressed: item.disponivel
+                    ? (isAluguel ? onAlugarPressed : onComprarPressed)
+                    : null,
+                icon: Icon(primaryButtonIcon),
+                label:
+                    Text(item.disponivel ? primaryButtonText : 'Indisponível'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: theme.colorScheme.primary,
+                  backgroundColor: primaryButtonColor,
                   foregroundColor: theme.colorScheme.onPrimary,
                 ),
               ),

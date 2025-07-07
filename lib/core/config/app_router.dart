@@ -1,4 +1,3 @@
-import 'package:coisarapida/features/alugueis/presentation/pages/caucao_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitacoes_aluguel_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitar_aluguel_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/status_aluguel_page.dart';
@@ -6,6 +5,7 @@ import 'package:coisarapida/features/avaliacoes/presentation/pages/avaliacao_pag
 import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:coisarapida/features/menu/presentation/pages/menu_mais_page.dart';
+import 'package:coisarapida/features/vendas/presentation/pages/comprar_item_page.dart';
 import 'package:coisarapida/shared/widgets/botton_navigation_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -78,7 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'lista-chats',
             builder: (context, state) => const ListaChatsPage(),
           ),
-           GoRoute(
+          GoRoute(
             path: AppRoutes.solicitacoesAluguel,
             name: 'solicitacoes-aluguel',
             builder: (context, state) => const SolicitacoesAluguelPage(),
@@ -120,8 +120,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const MenuPage(),
       ),
 
-
-
       // Chat
       // A rota principal de lista de chats agora está dentro do ShellRoute.
       // Se você precisar de uma rota de lista de chats fora do Shell, pode mantê-la aqui.
@@ -131,13 +129,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       //   builder: (context, state) => const ListaChatsPage(),
       // ),
       GoRoute(
-        path: '${AppRoutes.chat}/:chatId', // Ex: /chat/chat_OTHERUSERID ou /chat/CHATDOCUMENTID_OTHERUSERID
+        path:
+            '${AppRoutes.chat}/:chatId', // Ex: /chat/chat_OTHERUSERID ou /chat/CHATDOCUMENTID_OTHERUSERID
         name: 'chat',
         builder: (context, state) {
           String chatId = state.pathParameters['chatId']!;
-          
-          final otherUserId = state.extra as String; 
-          
+
+          final otherUserId = state.extra as String;
+
           return ChatPage(chatId: chatId, otherUserId: otherUserId);
         },
       ),
@@ -156,12 +155,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final item = state.extra as Item?;
           if (item == null) {
-            return const Scaffold(body: Center(child: Text("Item não fornecido para solicitação.")));
+            return const Scaffold(
+                body: Center(
+                    child: Text("Item não fornecido para solicitação.")));
           }
           return SolicitarAluguelPage(item: item);
         },
       ),
-      
+
       GoRoute(
         path: '${AppRoutes.statusAluguel}/:aluguelId',
         name: 'status-aluguel',
@@ -180,10 +181,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'favoritos',
         builder: (context, state) => const FavoritosPage(),
       ),
-      
+
+      // vendas
+      GoRoute(
+        path: AppRoutes.comprarItem,
+        name: 'comprar-item',
+        builder: (context, state) {
+          final item = state.extra as Item?;
+          if (item == null) {
+            return const Scaffold(
+                body: Center(child: Text("Item não fornecido para compra.")));
+          }
+          return ComprarItemPage(item: item);
+        },
+      ),
       // Avaliação
       GoRoute(
-        path: AppRoutes.avaliacao, // Usará query parameters: /avaliacao?avaliadoId=xxx&aluguelId=yyy
+        path: AppRoutes
+            .avaliacao, // Usará query parameters: /avaliacao?avaliadoId=xxx&aluguelId=yyy
         name: AppRoutes.avaliacao,
         builder: (context, state) {
           final avaliadoId = state.uri.queryParameters['avaliadoId'];
@@ -191,7 +206,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final itemId = state.uri.queryParameters['itemId']; // Lendo itemId
           if (avaliadoId == null || aluguelId == null) {
             // Idealmente, redirecionar para uma página de erro ou home
-            return const Scaffold(body: Center(child: Text("IDs inválidos para avaliação")));
+            return const Scaffold(
+                body: Center(child: Text("IDs inválidos para avaliação")));
           }
           return AvaliacaoPage(
             avaliadoId: avaliadoId,
