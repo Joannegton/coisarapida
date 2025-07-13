@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/features/alugueis/domain/entities/caucao_aluguel.dart';
 import '../../domain/entities/aluguel.dart';
+import 'caucao_aluguel_model.dart';
 
 class AluguelModel extends Aluguel {
   AluguelModel({
@@ -17,10 +19,10 @@ class AluguelModel extends Aluguel {
     required super.status,
     required super.criadoEm,
     required super.caucao,
+    required super.contratoId,
     super.atualizadoEm,
     super.observacoesLocatario,
     super.motivoRecusaLocador,
-    super.contratoId,
   });
 
   factory AluguelModel.fromEntity(Aluguel entity) {
@@ -46,10 +48,12 @@ class AluguelModel extends Aluguel {
     );
   }
 
-  factory AluguelModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory AluguelModel.fromFirestore(
+      DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     if (data == null) {
-      throw FormatException("Dados nulos para o documento Aluguel com ID: ${doc.id}");
+      throw FormatException(
+          "Dados nulos para o documento Aluguel com ID: ${doc.id}");
     }
 
     return AluguelModel(
@@ -69,11 +73,15 @@ class AluguelModel extends Aluguel {
         orElse: () => StatusAluguel.solicitado,
       ),
       criadoEm: (data['criadoEm'] as Timestamp).toDate(),
-      atualizadoEm: data['atualizadoEm'] != null ? (data['atualizadoEm'] as Timestamp).toDate() : null,
+      atualizadoEm: data['atualizadoEm'] != null
+          ? (data['atualizadoEm'] as Timestamp).toDate()
+          : null,
       observacoesLocatario: data['observacoesLocatario'],
       motivoRecusaLocador: data['motivoRecusaLocador'],
       contratoId: data['contratoId'],
-      caucao: AluguelCaucao.fromMap(data['caucao'] as Map<String, dynamic>),
+      caucao: data['caucao'] != null
+          ? CaucaoAluguelModel.fromMap(data['caucao'] as Map<String, dynamic>)
+          : CaucaoAluguel(valor: 0.0, status: StatusCaucaoAluguel.naoAplicavel),
     );
   }
 
@@ -90,12 +98,14 @@ class AluguelModel extends Aluguel {
       'dataFim': Timestamp.fromDate(dataFim),
       'precoTotal': precoTotal,
       'status': status.name,
-      'criadoEm': criadoEm.isUtc ? Timestamp.fromDate(criadoEm) : FieldValue.serverTimestamp(), // Usa o valor se já existir, senão usa o do servidor
+      'criadoEm': criadoEm.isUtc
+          ? Timestamp.fromDate(criadoEm)
+          : FieldValue.serverTimestamp(),
       'atualizadoEm': FieldValue.serverTimestamp(),
       'observacoesLocatario': observacoesLocatario,
       'motivoRecusaLocador': motivoRecusaLocador,
       'contratoId': contratoId,
-      'caucao': caucao.toMap(), // Salva o objeto caucao como um mapa aninhado
+      'caucao': CaucaoAluguelModel.fromEntity(caucao).toMap(),
       'participantes': [locadorId, locatarioId],
     };
   }

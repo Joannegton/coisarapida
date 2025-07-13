@@ -1,108 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/features/alugueis/domain/entities/caucao_aluguel.dart';
 
 enum StatusAluguel {
-  solicitado,       
-  aprovado,         
-  recusado,       
+  solicitado,
+  aprovado,
+  recusado,
   pagamentoPendente,
-  confirmado,     
-  emAndamento,   
+  confirmado,
+  emAndamento,
   devolucaoPendente,
-  concluido,        
-  cancelado,        
-  disputa,          
-}
-
-enum StatusAluguelCaucao {
-  pendentePagamento, // Aguardando pagamento/bloqueio da caução
-  bloqueada,         // Valor bloqueado com sucesso
-  liberada,          // Caução liberada após devolução
-  utilizadaParcialmente, // Parte da caução utilizada
-  utilizadaTotalmente,   // Toda a caução utilizada
-  naoAplicavel,      // Se o item não exigir caução
-}
-
-class AluguelCaucao {
-  final double valor;
-  final StatusAluguelCaucao status;
-  final String? metodoPagamento;
-  final String? transacaoId;
-  final DateTime? dataBloqueio;
-  final DateTime? dataLiberacao;
-  final String? motivoRetencao;
-  final double? valorRetido;
-
-  AluguelCaucao({
-    required this.valor,
-    required this.status,
-    this.metodoPagamento,
-    this.transacaoId,
-    this.dataBloqueio,
-    this.dataLiberacao,
-    this.motivoRetencao,
-    this.valorRetido,
-  });
-
-  AluguelCaucao copyWith({
-    double? valor,
-    StatusAluguelCaucao? status,
-    String? metodoPagamento,
-    String? transacaoId,
-    DateTime? dataBloqueio,
-    DateTime? dataLiberacao,
-    String? motivoRetencao,
-    double? valorRetido,
-  }) {
-    return AluguelCaucao(
-      valor: valor ?? this.valor,
-      status: status ?? this.status,
-      metodoPagamento: metodoPagamento ?? this.metodoPagamento,
-      transacaoId: transacaoId ?? this.transacaoId,
-      dataBloqueio: dataBloqueio ?? this.dataBloqueio,
-      dataLiberacao: dataLiberacao ?? this.dataLiberacao,
-      motivoRetencao: motivoRetencao ?? this.motivoRetencao,
-      valorRetido: valorRetido ?? this.valorRetido,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'valor': valor,
-      'status': status.name,
-      'metodoPagamento': metodoPagamento,
-      'transacaoId': transacaoId,
-      'dataBloqueio': dataBloqueio != null ? Timestamp.fromDate(dataBloqueio!) : null,
-      'dataLiberacao': dataLiberacao != null ? Timestamp.fromDate(dataLiberacao!) : null,
-      'motivoRetencao': motivoRetencao,
-      'valorRetido': valorRetido,
-    };
-  }
-
-  factory AluguelCaucao.fromMap(Map<String, dynamic> map) {
-    DateTime? toDateTime(dynamic value) {
-      if (value is Timestamp) {
-        return value.toDate();
-      }
-      if (value is String) {
-        return DateTime.tryParse(value);
-      }
-      return null;
-    }
-
-    return AluguelCaucao(
-      valor: (map['valor'] as num?)?.toDouble() ?? 0.0,
-      status: StatusAluguelCaucao.values.firstWhere(
-        (e) => e.name == map['status'],
-        orElse: () => StatusAluguelCaucao.naoAplicavel,
-      ),
-      metodoPagamento: map['metodoPagamento'],
-      transacaoId: map['transacaoId'],
-      dataBloqueio: toDateTime(map['dataBloqueio']),
-      dataLiberacao: toDateTime(map['dataLiberacao']),
-      motivoRetencao: map['motivoRetencao'],
-      valorRetido: (map['valorRetido'] as num?)?.toDouble(),
-    );
-  }
+  concluido,
+  cancelado,
+  disputa,
 }
 
 class Aluguel {
@@ -110,9 +18,9 @@ class Aluguel {
   final String itemId;
   final String itemNome;
   final String itemFotoUrl;
-  final String locadorId; // Dono do item
+  final String locadorId; // dono do item
   final String locadorNome;
-  final String locatarioId; // Quem está alugando
+  final String locatarioId; // quem ta alugando
   final String locatarioNome;
   final DateTime dataInicio;
   final DateTime dataFim;
@@ -123,7 +31,7 @@ class Aluguel {
   final String? observacoesLocatario;
   final String? motivoRecusaLocador;
   final String? contratoId;
-  final AluguelCaucao caucao;
+  final CaucaoAluguel caucao;
 
   Aluguel({
     required this.id,
@@ -164,7 +72,7 @@ class Aluguel {
     String? observacoesLocatario,
     String? motivoRecusaLocador,
     String? contratoId,
-    AluguelCaucao? caucao,
+    CaucaoAluguel? caucao,
   }) {
     return Aluguel(
       id: id ?? this.id,
