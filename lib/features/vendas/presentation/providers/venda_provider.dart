@@ -1,5 +1,6 @@
 import 'package:coisarapida/features/vendas/domain/entities/venda.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 // TODO: Implementar o repositório de Vendas
 // final vendaRepositoryProvider = Provider<VendaRepository>((ref) {

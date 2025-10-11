@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../../data/repositories/aluguel_repository_impl.dart';
 import '../../domain/entities/aluguel.dart';
 import '../../domain/repositories/aluguel_repository.dart';
@@ -17,7 +18,7 @@ final aluguelControllerProvider = StateNotifierProvider<AluguelController, Async
 final StreamProvider<List<Aluguel>> meusAlugueisProvider = StreamProvider<List<Aluguel>>((ref) {
   // Correção: Usar authStateProvider para obter o usuário
   final usuarioAsyncValue = ref.watch(usuarioAtualStreamProvider);
-  final userId = usuarioAsyncValue.whenData((usuario) => usuario?.id).valueOrNull;
+  final userId = usuarioAsyncValue.whenData((usuario) => usuario?.id).asData?.value;
 
   if (userId == null) return Stream.value([]);
   return ref.watch(aluguelRepositoryProvider).getAlugueisPorUsuario(userId, comoLocador: true, comoLocatario: true);
@@ -26,7 +27,7 @@ final StreamProvider<List<Aluguel>> meusAlugueisProvider = StreamProvider<List<A
 final solicitacoesRecebidasProvider = StreamProvider<List<Aluguel>>((ref) {
   try {
     final usuarioAsyncValue = ref.watch(usuarioAtualStreamProvider);
-    final locadorId = usuarioAsyncValue.whenData((usuario) => usuario?.id).valueOrNull;
+    final locadorId = usuarioAsyncValue.whenData((usuario) => usuario?.id).asData?.value;
 
     if (locadorId == null) {
       return Stream.value([]);

@@ -7,7 +7,8 @@ import 'package:coisarapida/features/favoritos/domain/usecases/get_favoritos_ids
 import 'package:coisarapida/features/favoritos/domain/usecases/remover_favorito_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
-import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart'; 
+import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
+import 'package:flutter_riverpod/legacy.dart'; 
 
 final favoritoRepositoryProvider = Provider<FavoritoRepository>((ref) {
   return FavoritoRepositoryImpl(firestore: FirebaseFirestore.instance);
@@ -36,7 +37,8 @@ final itensFavoritosProvider = FutureProvider<List<Map<String, dynamic>>>((ref) 
   final firestore = FirebaseFirestore.instance;
   final favoritoIds = ref.watch(favoritosProvider);
   final authState = ref.watch(usuarioAtualStreamProvider);
-  final userId = authState.valueOrNull?.id;
+  final userId = authState.asData?.value?.id;
+  if (userId == null) return [];
 
   if (userId == null) {
     // Usuário não logado ou estado de autenticação carregando/erro
@@ -99,7 +101,7 @@ class FavoritosNotifier extends StateNotifier<List<String>> {
     _authSubscription = _ref.listen<AsyncValue<Usuario?>>(
       usuarioAtualStreamProvider,
       (_, next) {
-        final user = next.valueOrNull;
+        final user = next.asData?.value;
         _updateUserAndSubscribeToFavorites(user?.id);
       },
       fireImmediately: true,

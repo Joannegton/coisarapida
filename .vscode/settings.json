@@ -1,4 +1,5 @@
 {
   "java.configuration.updateBuildConfiguration": "automatic",
-  "cmake.sourceDirectory": "D:/Users/wtg13/cursos_geral/flutter/coisarapida/windows/flutter"
+  "cmake.sourceDirectory": "D:/Users/wtg13/cursos_geral/flutter/coisarapida/windows/flutter",
+  "dart.flutterSdkPath": "D:\\Users\\Bolacha\\frameworks\\flutter"
 }

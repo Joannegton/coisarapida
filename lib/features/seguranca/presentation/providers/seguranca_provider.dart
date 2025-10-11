@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'dart:io';
 
 import '../../data/repositories/seguranca_repository.dart';
@@ -103,7 +104,8 @@ class CaucaoNotifier extends StateNotifier<AsyncValue<Caucao?>> {
 } */
 
 /// Provider para contratos digitais
-final contratoProvider = StateNotifierProvider.family<ContratoNotifier, AsyncValue<ContratoDigital?>, String>(
+final contratoProvider = StateNotifierProvider.family<ContratoNotifier,
+    AsyncValue<ContratoDigital?>, String>(
   (ref, aluguelId) {
     final repository = ref.watch(segurancaRepositoryProvider);
     return ContratoNotifier(repository, aluguelId);
@@ -114,7 +116,8 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
   final SegurancaRepository _repository;
   final String _aluguelId;
 
-  ContratoNotifier(this._repository, this._aluguelId) : super(const AsyncValue.data(null));
+  ContratoNotifier(this._repository, this._aluguelId)
+      : super(const AsyncValue.data(null));
 
   /// Gera contrato digital
   Future<void> gerarContrato({
@@ -124,7 +127,7 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
     required Map<String, dynamic> dadosAluguel,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final contrato = await _repository.gerarContrato(
         aluguelId: _aluguelId,
@@ -133,7 +136,7 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
         itemId: itemId,
         dadosAluguel: dadosAluguel,
       );
-      
+
       state = AsyncValue.data(contrato);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -144,29 +147,32 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
   Future<void> aceitarContrato(String contratoId) async {
     try {
       await _repository.aceitarContrato(contratoId);
-      
-      // Atualizar estado local
-      if (state.valueOrNull != null) {
+
+      // TODO Atualizar estado local
+      final contrato = state.asData?.value;
+      if (contrato != null) {
         final aceite = AceiteContrato(
           dataHora: DateTime.now(),
           enderecoIp: '192.168.1.1',
           userAgent: 'Flutter App',
           assinaturaDigital: 'assinatura_digital',
         );
-        
-        final contratoAtualizado = state.value!.copyWith(aceite: aceite);
+
+        final contratoAtualizado = contrato.copyWith(aceite: aceite);
         state = AsyncValue.data(contratoAtualizado);
       }
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
-      debugPrint('[ContratoNotifier] Erro ao aceitar contrato: $e'); // Log opcional
+      debugPrint(
+          '[ContratoNotifier] Erro ao aceitar contrato: $e'); // Log opcional
       rethrow;
     }
   }
 }
 
 /// Provider para denúncias
-final denunciaProvider = StateNotifierProvider<DenunciaNotifier, AsyncValue<List<Denuncia>>>(
+final denunciaProvider =
+    StateNotifierProvider<DenunciaNotifier, AsyncValue<List<Denuncia>>>(
   (ref) {
     final repository = ref.watch(segurancaRepositoryProvider);
     return DenunciaNotifier(repository);
@@ -196,7 +202,7 @@ class DenunciaNotifier extends StateNotifier<AsyncValue<List<Denuncia>>> {
         descricao: descricao,
         evidencias: evidencias,
       );
-      
+
       // Adicionar à lista local
       final denunciasAtuais = state.value ?? [];
       state = AsyncValue.data([...denunciasAtuais, denuncia]);
@@ -207,18 +213,21 @@ class DenunciaNotifier extends StateNotifier<AsyncValue<List<Denuncia>>> {
 }
 
 /// Provider para verificação de fotos
-final verificacaoFotosProvider = StateNotifierProvider.family<VerificacaoFotosNotifier, AsyncValue<VerificacaoFotos?>, String>(
+final verificacaoFotosProvider = StateNotifierProvider.family<
+    VerificacaoFotosNotifier, AsyncValue<VerificacaoFotos?>, String>(
   (ref, aluguelId) {
     final repository = ref.watch(segurancaRepositoryProvider);
     return VerificacaoFotosNotifier(repository, aluguelId);
   },
 );
 
-class VerificacaoFotosNotifier extends StateNotifier<AsyncValue<VerificacaoFotos?>> {
+class VerificacaoFotosNotifier
+    extends StateNotifier<AsyncValue<VerificacaoFotos?>> {
   final SegurancaRepository _repository;
   final String _aluguelId;
 
-  VerificacaoFotosNotifier(this._repository, this._aluguelId) : super(const AsyncValue.data(null));
+  VerificacaoFotosNotifier(this._repository, this._aluguelId)
+      : super(const AsyncValue.data(null));
 
   /// Salva fotos de verificação
   Future<void> salvarFotos({
@@ -229,7 +238,7 @@ class VerificacaoFotosNotifier extends StateNotifier<AsyncValue<VerificacaoFotos
     String? observacoesDepois,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final verificacao = await _repository.salvarFotosVerificacao(
         aluguelId: _aluguelId,
@@ -239,7 +248,7 @@ class VerificacaoFotosNotifier extends StateNotifier<AsyncValue<VerificacaoFotos
         observacoesAntes: observacoesAntes,
         observacoesDepois: observacoesDepois,
       );
-      
+
       state = AsyncValue.data(verificacao);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);

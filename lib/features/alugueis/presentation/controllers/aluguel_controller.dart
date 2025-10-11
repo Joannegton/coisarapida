@@ -6,6 +6,7 @@ import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_pro
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart'; // Para pegar dados do item
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final aluguelControllerProvider =
     StateNotifierProvider<AluguelController, AsyncValue<void>>((ref) {
@@ -33,7 +34,7 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
     try {
       // Correção: Usar authStateProvider para obter o usuário
       final usuarioAsyncValue = _ref.read(usuarioAtualStreamProvider);
-      final locatario = usuarioAsyncValue.valueOrNull;
+      final locatario = usuarioAsyncValue.value;
 
       if (locatario == null) {
         throw Exception('Usuário não autenticado para solicitar aluguel.');

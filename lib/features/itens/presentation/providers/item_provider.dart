@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../domain/entities/item.dart';
 import '../../domain/repositories/item_repository.dart';

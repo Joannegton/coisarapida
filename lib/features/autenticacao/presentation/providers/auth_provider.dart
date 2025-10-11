@@ -1,5 +1,6 @@
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../domain/entities/usuario.dart';
 import '../../domain/repositories/auth_repository.dart';

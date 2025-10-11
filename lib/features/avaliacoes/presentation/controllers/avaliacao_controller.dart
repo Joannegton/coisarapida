@@ -3,6 +3,7 @@ import 'package:coisarapida/features/avaliacoes/domain/entities/avaliacao.dart';
 import 'package:coisarapida/features/avaliacoes/presentation/providers/avaliacao_providers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final avaliacaoControllerProvider = StateNotifierProvider<AvaliacaoController, AsyncValue<void>>((ref) {
   return AvaliacaoController(ref);

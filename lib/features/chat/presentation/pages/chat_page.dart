@@ -118,7 +118,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => _mostrarOpcoes(context, chatDetalhesState.valueOrNull, usuarioId, widget.otherUserId),
+            onPressed: () => _mostrarOpcoes(context, chatDetalhesState.asData?.value, usuarioId, widget.otherUserId),
           ),
         ],
       ),

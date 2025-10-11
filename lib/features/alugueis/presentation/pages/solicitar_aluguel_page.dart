@@ -106,7 +106,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     final theme = Theme.of(context);
 
     final usuarioAsyncValue = ref.read(usuarioAtualStreamProvider);
-    final locatario = usuarioAsyncValue.valueOrNull;
+    final locatario = usuarioAsyncValue.asData?.value;
     final AsyncValue<ContratoDigital?> contratoState = _isAluguelIniciado
         ? ref.watch(contratoProvider(_alugueId))
         : const AsyncValue.data(null);
@@ -303,7 +303,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
 
     _dadosAluguel = _criarDadosAluguel(locatario, precoTotal);
 
-    // Atualiza o estado para indicar que os dados foram criados e aciona a reconstrução do widget
     setState(() {
       _isAluguelIniciado = true;
     });
@@ -367,10 +366,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
 
       SnackBarUtils.mostrarSucesso(context, 'Contrato aceito com sucesso! ✅');
 
-      // Navegar para a próxima tela (CaucaoPage)
       if (mounted) _proximaPagina();
     } catch (e) {
-      debugPrint('[SolicitarAluguelPage] Erro ao aceitar contrato: $e');
       if (mounted && !loadingDialogClosed)
         Navigator.of(context, rootNavigator: true).pop();
       SnackBarUtils.mostrarErro(context, 'Erro ao aceitar contrato: $e');
@@ -559,9 +556,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
 
   ({String text, VoidCallback? onPressed, Widget? child})
       _getCaucaoBotaoConfig() {
-    final valorCaucao =
-        (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
-
+    final valorCaucao = (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
+    //TODO implementar o processamento de caução
     if (_isProcessing) {
       return (
         text: '',
