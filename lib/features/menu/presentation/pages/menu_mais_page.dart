@@ -49,18 +49,6 @@ class MenuMaisPage extends ConsumerWidget {
               ),
               const Divider(height: 1),
               MenuListTile(
-                icone: Icons.privacy_tip_outlined,
-                texto: 'Privacidade',
-                onTap: () {},
-              ),
-              const Divider(height: 1),
-              MenuListTile(
-                icone: Icons.help_outline,
-                texto: 'Suporte',
-                onTap: () {},
-              ),
-              const Divider(height: 1),
-              MenuListTile(
                 icone: Icons.account_balance_wallet_outlined,
                 texto: 'Saldo em conta',
                 onTap: () {},

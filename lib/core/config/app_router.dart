@@ -1,6 +1,8 @@
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitacoes_aluguel_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/solicitar_aluguel_page.dart';
 import 'package:coisarapida/features/alugueis/presentation/pages/status_aluguel_page.dart';
+import 'package:coisarapida/features/alugueis/presentation/pages/detalhes_solicitacao_page.dart';
+import 'package:coisarapida/features/alugueis/domain/entities/aluguel.dart';
 import 'package:coisarapida/features/avaliacoes/presentation/pages/avaliacao_page.dart';
 import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
@@ -173,6 +175,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             aluguelId: aluguelId,
             dadosAluguel: dadosAluguel,
           );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoutes.detalhesSolicitacao,
+        name: 'detalhes-solicitacao',
+        builder: (context, state) {
+          final aluguel = state.extra as Aluguel?;
+          if (aluguel == null) {
+            return const Scaffold(
+                body: Center(
+                    child: Text("Solicitação não fornecida.")));
+          }
+          return DetalhesSolicitacaoPage(aluguel: aluguel);
         },
       ),
 

@@ -28,6 +28,7 @@ class AppRoutes {
   static const String meusAlugueis = '/meus-alugueis';
   static const String detalhesAluguel = '/aluguel';
   static const String solicitacoesAluguel = '/solicitacoes-aluguel';
+  static const String detalhesSolicitacao = '/detalhes-solicitacao';
 
   // Chat e Comunicação
   static const String chat = '/chat';
