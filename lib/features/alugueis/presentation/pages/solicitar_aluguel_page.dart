@@ -17,6 +17,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../domain/entities/aluguel.dart';
 import '../providers/aluguel_providers.dart';
+import '../providers/mercado_pago_provider.dart';
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
+import 'package:app_links/app_links.dart';
+import 'dart:async';
 
 class SolicitarAluguelPage extends ConsumerStatefulWidget {
   final Item item;
@@ -44,6 +48,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   bool _isProcessing = false;
 
   bool _isAluguelIniciado = false;
+  StreamSubscription? _deepLinkSubscription;
+  late AppLinks _appLinks;
 
   final _paginaController = PageController();
 
@@ -59,7 +65,16 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   @override
   void initState() {
     super.initState();
+    _appLinks = AppLinks();
     _inicializarDatas();
+    _initDeepLinks();
+  }
+
+  @override
+  void dispose() {
+    _deepLinkSubscription?.cancel();
+    _paginaController.dispose();
+    super.dispose();
   }
 
   void _inicializarDatas() {
@@ -68,6 +83,103 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     }
     _dataInicio = _agoraNormalizado;
     _dataFim = _dataInicio.add(_duracaoMinimaDia);
+  }
+
+  void _initDeepLinks() {
+    // Ouvir link inicial (quando o app é aberto via deep link)
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) _handleDeepLink(uri);
+    }).catchError((err) {
+      debugPrint('Erro ao obter URI inicial: $err');
+    });
+
+    // Ouvir links enquanto o app está aberto
+    _deepLinkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    }, onError: (err) {
+      debugPrint('Erro no stream de deep links: $err');
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (!mounted) return;
+
+    // Formato esperado: coisarapida://payment/success, failure, ou pending
+    // Pode incluir query params como ?payment_id=123&status=approved
+    
+    debugPrint('Deep link recebido: $uri');
+
+    if (uri.scheme != 'coisarapida') return;
+
+    final path = uri.pathSegments;
+    if (path.isEmpty || path.first != 'payment') return;
+
+    if (path.length < 2) return;
+
+    final status = path[1]; // success, failure, ou pending
+    final paymentId = uri.queryParameters['payment_id'];
+    final collectionStatus = uri.queryParameters['collection_status'];
+
+    switch (status) {
+      case 'success':
+        if (collectionStatus == 'approved') {
+          _processarPagamentoAprovado(paymentId);
+        } else {
+          SnackBarUtils.mostrarErro(
+            context,
+            'Pagamento pendente de aprovação.',
+          );
+        }
+        break;
+      case 'failure':
+        SnackBarUtils.mostrarErro(
+          context,
+          'Pagamento falhou. Tente novamente.',
+        );
+        setState(() => _isProcessing = false);
+        break;
+      case 'pending':
+        SnackBarUtils.mostrarErro(
+          context,
+          'Pagamento pendente. Aguarde a confirmação.',
+        );
+        setState(() => _isProcessing = false);
+        break;
+      default:
+        debugPrint('❓ Status desconhecido: $status');
+    }
+  }
+
+  Future<void> _processarPagamentoAprovado(String? paymentId) async {
+    if (!mounted) return;
+
+    try {
+      final valorCaucao =
+          (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
+
+      final caucaoDoAluguel = _criarCaucaoAluguel(
+        valorCaucao,
+        paymentId ?? 'MP_${DateTime.now().millisecondsSinceEpoch}',
+      );
+
+      final aluguelParaSalvar = _criarAluguelParaSalvar(caucaoDoAluguel);
+
+      await ref
+          .read(aluguelControllerProvider.notifier)
+          .submeterAluguelCompleto(aluguelParaSalvar);
+
+      if (mounted) {
+        _mostrarSucessoENavegar(aluguelParaSalvar, valorCaucao);
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(
+          context,
+          'Erro ao processar pagamento: $e',
+        );
+        setState(() => _isProcessing = false);
+      }
+    }
   }
 
   bool _validarDatas() {
@@ -388,12 +500,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     );
   }
 
-  Future<void> _processarPagamentoCaucao(double valorCaucao) async {
-    if (valorCaucao > 0) {
-      await Future.delayed(const Duration(seconds: 3)); // Simular processamento
-    }
-  }
-
   CaucaoAluguel _criarCaucaoAluguel(double valorCaucao, String? transacaoId) {
     return CaucaoAluguel(
       valor: valorCaucao,
@@ -454,25 +560,108 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
 
     final valorCaucao =
         (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
-    final transacaoIdSimulada =
-        'TXN_SIM_${DateTime.now().millisecondsSinceEpoch}';
+
+    // Se não há caução, pular direto para salvar
+    if (valorCaucao <= 0) {
+      _salvarAluguelSemCaucao();
+      return;
+    }
 
     try {
-      await _processarPagamentoCaucao(valorCaucao);
+      // Obter dados do usuário
+      final usuarioAsyncValue = ref.read(usuarioAtualStreamProvider);
+      final usuario = usuarioAsyncValue.asData?.value;
 
-      final caucaoDoAluguel = _criarCaucaoAluguel(
-        valorCaucao,
-        valorCaucao > 0 ? transacaoIdSimulada : null,
+      if (usuario == null) {
+        throw Exception('Usuário não autenticado');
+      }
+
+      // Criar preferência de pagamento no Mercado Pago
+      final mercadoPagoService = ref.read(mercadoPagoServiceProvider);
+      final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
+        aluguelId: _alugueId,
+        valor: valorCaucao,
+        itemNome: 'Caução - ${_dadosAluguel['nomeItem']}',
+        itemDescricao: 'Caução para aluguel de ${_dadosAluguel['nomeItem']}',
+        locatarioId: usuario.id,
+        locatarioEmail: usuario.email,
       );
+      
+      // URL do checkout (usar sandbox_init_point para testes)
+      final checkoutUrl = preferenceResponse['sandbox_init_point'] as String? ?? preferenceResponse['init_point'] as String;
 
-      final aluguelParaSalvar = _criarAluguelParaSalvar(caucaoDoAluguel);
+      if (!mounted) return;
 
+      // Abrir Custom Tabs com o checkout do Mercado Pago
+      await _abrirCheckoutMercadoPago(checkoutUrl);
+
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(
+          context,
+          'Erro ao iniciar pagamento: $e',
+        );
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  Future<void> _abrirCheckoutMercadoPago(String url) async {
+    final theme = Theme.of(context);
+    
+    try {
+      await launchUrl(
+        Uri.parse(url),
+        customTabsOptions: CustomTabsOptions(
+          colorSchemes: CustomTabsColorSchemes.defaults(
+            toolbarColor: theme.colorScheme.primary,
+            navigationBarColor: theme.colorScheme.surface,
+          ),
+          shareState: CustomTabsShareState.off,
+          urlBarHidingEnabled: true,
+          showTitle: true,
+          closeButton: CustomTabsCloseButton(
+            icon: CustomTabsCloseButtonIcons.back,
+          ),
+          animations: const CustomTabsAnimations(
+            startEnter: 'slide_up',
+            startExit: 'android:anim/fade_out',
+            endEnter: 'android:anim/fade_in',
+            endExit: 'slide_down',
+          ),
+        ),
+        safariVCOptions: SafariViewControllerOptions(
+          preferredBarTintColor: theme.colorScheme.primary,
+          preferredControlTintColor: theme.colorScheme.onPrimary,
+          barCollapsingEnabled: true,
+          dismissButtonStyle: SafariViewControllerDismissButtonStyle.close,
+        ),
+      );
+      
+      // Nota: O retorno será tratado pelo deep link em _handleDeepLink
+      
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(
+          context,
+          'Erro ao abrir checkout: $e. Verifique se há um navegador instalado.',
+        );
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  void _salvarAluguelSemCaucao() async {
+    try {
+      final caucao = _criarCaucaoAluguel(0.0, null);
+      final aluguel = _criarAluguelParaSalvar(caucao);
+      
       await ref
           .read(aluguelControllerProvider.notifier)
-          .submeterAluguelCompleto(aluguelParaSalvar);
-
+          .submeterAluguelCompleto(aluguel);
+      
       if (mounted) {
-        _mostrarSucessoENavegar(aluguelParaSalvar, valorCaucao);
+        _mostrarSucessoENavegar(aluguel, 0.0);
       }
     } catch (e) {
       if (mounted) {
