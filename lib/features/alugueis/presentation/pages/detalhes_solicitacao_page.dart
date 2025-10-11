@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../../domain/entities/aluguel.dart';
 import '../helpers/solicitacao_helpers.dart';
 import '../widgets/detalhes_solicitacao/header_section.dart';
@@ -61,39 +63,103 @@ class _DetalhesSolicitacaoPageState
     }
   }
 
-  Widget _buildChatButton() {
-    final theme = Theme.of(context);
+  Widget _buildStatusButton(ThemeData theme, bool isLocador, bool isLocatario) {
+    final dadosParaStatus = {
+      'itemId': widget.aluguel.itemId,
+      'nomeItem': widget.aluguel.itemNome,
+      'valorAluguel': widget.aluguel.precoTotal.toString(),
+      'valorCaucao': widget.aluguel.caucao.valor.toString(),
+      'dataLimiteDevolucao': widget.aluguel.dataFim.toIso8601String(),
+      'locadorId': widget.aluguel.locadorId,
+      'nomeLocador': widget.aluguel.locadorNome,
+      'valorDiaria': (widget.aluguel.precoTotal / widget.aluguel.dataFim.difference(widget.aluguel.dataInicio).inDays).toString(),
+    };
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
       child: SafeArea(
-        child: ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Implementar navegação para chat
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chat será implementado em breve!'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Botão para ver status do aluguel
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.secondary,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            );
-          },
-          icon: const Icon(Icons.chat),
-          label: const Text('Iniciar Chat'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            minimumSize: const Size(double.infinity, 0),
-          ),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  context.push('/status-aluguel/${widget.aluguel.id}', extra: dadosParaStatus);
+                },
+                icon: const Icon(Icons.timeline, size: 24),
+                label: Text(
+                  isLocador ? 'Gerenciar Aluguel' : 'Ver Status do Aluguel',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Botão de chat (se for locatário)
+            if (isLocatario)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // TODO: Implementar navegação para chat
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Chat será implementado em breve!'),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.chat),
+                  label: const Text('Conversar com Locador'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: theme.colorScheme.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -102,6 +168,10 @@ class _DetalhesSolicitacaoPageState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final usuarioAsync = ref.watch(usuarioAtualStreamProvider);
+    final usuario = usuarioAsync.value;
+    final isLocador = usuario?.id == widget.aluguel.locadorId;
+    final isLocatario = usuario?.id == widget.aluguel.locatarioId;
 
     return Scaffold(
       appBar: AppBar(
@@ -169,7 +239,7 @@ class _DetalhesSolicitacaoPageState
               bottom: 0,
               left: 0,
               right: 0,
-              child: _buildChatButton(),
+              child: _buildStatusButton(theme, isLocador, isLocatario),
             ),
         ],
       ),

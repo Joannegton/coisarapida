@@ -234,19 +234,48 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
             statusBarIconBrightness: theme.brightness == Brightness.light
                 ? Brightness.dark
                 : Brightness.light),
-        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
-        title: Text(
-          'Solicitar Aluguel de ${widget.item.nome}',
-          style: TextStyle(
-              color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
+        elevation: 0,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Solicitar Aluguel',
+              style: TextStyle(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            Text(
+              'Passo ${_paginaAtual + 1} de 3',
+              style: TextStyle(
+                color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
         bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(4.0),
-            child: LinearProgressIndicator(
-              value: (_paginaAtual + 1) / 3,
-              backgroundColor: theme.colorScheme.surfaceContainer,
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+            preferredSize: const Size.fromHeight(6.0),
+            child: Container(
+              height: 6,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.secondary,
+                    theme.colorScheme.primary,
+                  ],
+                ),
+              ),
+              child: LinearProgressIndicator(
+                value: (_paginaAtual + 1) / 3,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  theme.colorScheme.onPrimary.withOpacity(0.3),
+                ),
+              ),
             )),
       ),
       body: Padding(
@@ -311,33 +340,86 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     final config = _getBotaoConfig(locatario, contratoState);
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          if (_paginaAtual > 0) ...[
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _voltarPagina,
-                child: const Text('Voltar'),
-              ),
-            ),
-            const SizedBox(width: 16),
-          ],
-          Expanded(
-            child: ElevatedButton(
-              onPressed: config.onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                disabledBackgroundColor:
-                    theme.colorScheme.primary.withAlpha(153),
-                foregroundColor: theme.colorScheme.onPrimary,
-                disabledForegroundColor:
-                    theme.colorScheme.onPrimary.withAlpha(153),
-              ),
-              child: config.child ?? Text(config.text),
-            ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
           ),
         ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: SafeArea(
+        child: Row(
+          children: [
+            if (_paginaAtual > 0) ...[
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _voltarPagina,
+                  icon: const Icon(Icons.arrow_back, size: 20),
+                  label: const Text('Voltar'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: theme.colorScheme.primary, width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
+            Expanded(
+              flex: 2,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: config.onPressed == null
+                        ? [
+                            theme.colorScheme.primary.withAlpha(153),
+                            theme.colorScheme.primary.withAlpha(153),
+                          ]
+                        : [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.secondary,
+                          ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: config.onPressed != null
+                      ? [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: ElevatedButton(
+                  onPressed: config.onPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: config.child ?? Text(
+                    config.text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

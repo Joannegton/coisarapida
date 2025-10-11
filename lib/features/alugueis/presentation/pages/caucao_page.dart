@@ -159,12 +159,17 @@ class CaucaoConteudoWidget extends StatelessWidget {
               fontWeight: destaque ? FontWeight.bold : null,
             ),
           ),
-          Text(
-            valor,
-            style: textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: destaque ? theme.colorScheme.primary : null,
-              fontSize: destaque ? 16 : 14,
+          Flexible(
+            child: Text(
+              valor,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: destaque ? theme.colorScheme.primary : null,
+                fontSize: destaque ? 16 : 14,
+              ),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],

@@ -8,6 +8,7 @@ import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_
 import '../../../seguranca/presentation/widgets/contador_tempo.dart';
 import '../../../seguranca/presentation/widgets/upload_fotos_verificacao.dart';
 import '../../../seguranca/domain/entities/denuncia.dart';
+import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela de status do aluguel com funcionalidades de segurança
@@ -69,10 +70,13 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     final dataLimite = DateTime.parse(widget.dadosAluguel['dataLimiteDevolucao']);
     final agora = DateTime.now();
     final emAtraso = agora.isAfter(dataLimite);
+    final usuario = ref.watch(usuarioAtualStreamProvider).value;
+    final isLocador = usuario?.id == widget.dadosAluguel['locadorId'];
+    final isLocatario = usuario?.id == widget.dadosAluguel['compradorId'] || usuario?.id != widget.dadosAluguel['locadorId'];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Status do Aluguel'),
+        title: Text(isLocador ? 'Gerenciar Aluguel' : 'Status do Aluguel'),
         backgroundColor: emAtraso ? Colors.red[100] : theme.colorScheme.surface,
       ),
       body: SingleChildScrollView(
@@ -81,40 +85,42 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status do item
-            _buildStatusCard(theme, emAtraso),
+            _buildStatusCard(theme, emAtraso, isLocador),
             
             const SizedBox(height: 16),
             
-            // Contador de tempo
-            ContadorTempo(
-              dataLimite: dataLimite,
-              onAtraso: () => _verificarAtraso(),
-            ),
-            
-            const SizedBox(height: 16),
+            // Contador de tempo (só para locatário)
+            if (isLocatario) ...[
+              ContadorTempo(
+                dataLimite: dataLimite,
+                onAtraso: () => _verificarAtraso(),
+              ),
+              const SizedBox(height: 16),
+            ],
             
             // Informações do aluguel
-            _buildInformacoesAluguel(theme),
+            _buildInformacoesAluguel(theme, isLocador),
             
             const SizedBox(height: 16),
             
-            // Upload de fotos de verificação
-            UploadFotosVerificacao(
-              aluguelId: widget.aluguelId,
-              itemId: widget.dadosAluguel['itemId'],
-            ),
-            
-            const SizedBox(height: 16),
+            // Upload de fotos de verificação (só para locatário)
+            if (isLocatario) ...[
+              UploadFotosVerificacao(
+                aluguelId: widget.aluguelId,
+                itemId: widget.dadosAluguel['itemId'],
+              ),
+              const SizedBox(height: 16),
+            ],
             
             // Botões de ação
-            _buildBotoesAcao(theme, emAtraso),
+            _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusCard(ThemeData theme, bool emAtraso) {
+  Widget _buildStatusCard(ThemeData theme, bool emAtraso, bool isLocador) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -143,8 +149,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           const SizedBox(height: 4),
           Text(
             emAtraso 
-                ? 'Devolva o item o quanto antes para evitar multas'
-                : 'Lembre-se de devolver no prazo combinado',
+                ? (isLocador ? 'O locatário está em atraso. Considere aplicar multa.' : 'Você está em atraso! Devolva o item o quanto antes.')
+                : (isLocador ? 'Aluguel em andamento. Monitore a devolução.' : 'Lembre-se de devolver no prazo combinado.'),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: emAtraso ? Colors.red[600] : Colors.green[600],
             ),
@@ -155,7 +161,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     );
   }
 
-  Widget _buildInformacoesAluguel(ThemeData theme) {
+  Widget _buildInformacoesAluguel(ThemeData theme, bool isLocador) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -178,6 +184,20 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               'Data Limite:', 
               _formatarData(DateTime.parse(widget.dadosAluguel['dataLimiteDevolucao'])),
             ),
+            if (isLocador) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Informações do Locatário',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildInfoRow('Nome:', widget.dadosAluguel['nomeLocatario'] ?? 'João Silva'),
+              _buildInfoRow('Telefone:', widget.dadosAluguel['telefoneLocatario'] ?? '(11) 99999-9999'),
+              _buildInfoRow('Endereço:', widget.dadosAluguel['enderecoLocatario'] ?? 'Rua das Flores, 123'),
+            ],
           ],
         ),
       ),
@@ -203,60 +223,109 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     );
   }
 
-  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso) {
+  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario) {
     return Column(
       children: [
-        // Botão de confirmar devolução
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _confirmarDevolucao,
-            icon: const Icon(Icons.check_circle),
-            label: const Text('Confirmar Devolução'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green[600],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+        if (isLocatario) ...[
+          // Botões para locatário
+          // Botão de confirmar devolução
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _confirmarDevolucao,
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Confirmar Devolução'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[600],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
             ),
           ),
-        ),
-        
-        const SizedBox(height: 12),
-        
-        // Botão de denunciar problema
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _abrirDenuncia,
-            icon: const Icon(Icons.report_problem),
-            label: const Text('Reportar Problema'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.orange[600],
-              side: BorderSide(color: Colors.orange[600]!),
-              padding: const EdgeInsets.symmetric(vertical: 16),
+          
+          const SizedBox(height: 12),
+          
+          // Botão de denunciar problema
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _abrirDenuncia,
+              icon: const Icon(Icons.report_problem),
+              label: const Text('Reportar Problema'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange[600],
+                side: BorderSide(color: Colors.orange[600]!),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
             ),
           ),
-        ),
-        
-        const SizedBox(height: 12),
-        
-        // Botão de chat com locador
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _abrirChat,
-            icon: const Icon(Icons.chat),
-            label: const Text('Conversar com Locador'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+          
+          const SizedBox(height: 12),
+          
+          // Botão de chat com locador
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _abrirChat,
+              icon: const Icon(Icons.chat),
+              label: const Text('Conversar com Locador'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
             ),
           ),
-        ),
+        ] else if (isLocador) ...[
+          // Botões para locador
+          // Botão de aprovar devolução
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _aprovarDevolucao,
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Aprovar Devolução'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[600],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Botão de rejeitar devolução
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _rejeitarDevolucao,
+              icon: const Icon(Icons.cancel),
+              label: const Text('Rejeitar Devolução'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red[600],
+                side: BorderSide(color: Colors.red[600]!),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Botão de chat com locatário
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _abrirChat,
+              icon: const Icon(Icons.chat),
+              label: const Text('Conversar com Locatário'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+        ],
       ],
     );
-  }
-
-  void _confirmarDevolucao() {
+  }  void _confirmarDevolucao() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -313,6 +382,129 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       if (mounted) {
         Navigator.of(context).pop();
         SnackBarUtils.mostrarErro(context, 'Erro ao processar devolução: $e');
+      }
+    }
+  }
+
+  void _aprovarDevolucao() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Aprovar Devolução'),
+        content: const Text(
+          'Você confirma que o item foi devolvido em perfeitas condições? '
+          'Esta ação liberará a caução para o locatário.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _processarAprovacao();
+            },
+            child: const Text('Aprovar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _rejeitarDevolucao() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rejeitar Devolução'),
+        content: const Text(
+          'Por qual motivo você está rejeitando a devolução? '
+          'O locatário será notificado e poderá contestar.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _processarRejeicao();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+            ),
+            child: const Text('Rejeitar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _processarAprovacao() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Processando aprovação...'),
+            ],
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Devolução aprovada! Caução liberada para o locatário. ✅',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarErro(context, 'Erro ao aprovar devolução: $e');
+      }
+    }
+  }
+
+  void _processarRejeicao() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Processando rejeição...'),
+            ],
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Devolução rejeitada. Locatário será notificado. ⚠️',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarErro(context, 'Erro ao rejeitar devolução: $e');
       }
     }
   }
