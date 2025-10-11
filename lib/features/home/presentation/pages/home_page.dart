@@ -22,17 +22,28 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    setState(() {
+      _scrollOffset = _scrollController.offset;
+    });
   }
 
   @override
@@ -55,126 +66,139 @@ class _HomePageState extends ConsumerState<HomePage>
           borderRadius: BorderRadius.circular(16.0),
         ),
       ),
-      body: CustomScrollView(
-        slivers: [
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollUpdateNotification) {
+            setState(() {
+              _scrollOffset = notification.metrics.pixels;
+            });
+          }
+          return false;
+        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
           SliverAppBar(
-            expandedHeight: 140,
+            expandedHeight: 170,
             floating: true,
             pinned: true,
             backgroundColor: theme.colorScheme.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withOpacity(0.8),
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Saudação
-                        authState.when(
-                          data: (usuario) => Text(
-                            'Olá, ${usuario?.nome.split(' ').first ?? 'Usuário'}! 👋',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: theme.colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          loading: () => Text(
-                            'Olá! 👋',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          error: (_, __) => Text(
-                            'Olá! 👋',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Alugue ou compre itens incríveis perto de você',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
-                      ],
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                // Calcular a opacidade baseada no quanto o AppBar está expandido
+                final expandRatio = (constraints.maxHeight - kToolbarHeight) / 
+                    (170 - kToolbarHeight);
+                final opacity = expandRatio.clamp(0.0, 1.0);
+                
+                return FlexibleSpaceBar(
+                  background: Container(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
                     ),
-                  ),
-                ),
-              ),
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(60),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () => context.push(AppRoutes.buscar),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.search, color: Colors.grey),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Buscar furadeira, bike, cadeira...',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                          ],
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+                        child: Opacity(
+                          opacity: opacity,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Saudação
+                              authState.when(
+                                data: (usuario) => Text(
+                                  'Olá, ${usuario?.nome.split(' ').first ?? 'Usuário'}!',
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    color: theme.colorScheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                loading: () => Text(
+                                  'Olá!',
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    color: theme.colorScheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                error: (_, __) => Text(
+                                  'Olá!',
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    color: theme.colorScheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Alugue ou compre itens incríveis perto de você',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    // Tabs para filtrar
-                    TabBar(
-                      controller: _tabController,
-                      indicatorColor: Colors.white,
-                      labelColor: Colors.white,
-                      onTap: (index) {
-                        // Atualiza o estado do provider ao clicar na tab
-                        final notifier =
-                            ref.read(homeTabFilterProvider.notifier);
-                        switch (index) {
-                          case 0:
-                            notifier.state = null; // Todos
-                            break;
-                          case 1:
-                            notifier.state = TipoItem.aluguel;
-                            break;
-                          case 2:
-                            notifier.state = TipoItem.venda;
-                            break;
-                        }
-                      },
-                      unselectedLabelColor: Colors.white.withOpacity(0.7),
-                      tabs: const [
-                        Tab(text: 'Todos'),
-                        Tab(text: 'Aluguel'),
-                        Tab(text: 'Venda'),
+                  ),
+                );
+              },
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(120),
+              child: Builder(
+                builder: (context) {
+                  // Calcular o espaçamento baseado no scroll offset
+                  final maxScroll = 170 - kToolbarHeight; // expandedHeight - toolbarHeight
+                  final scrollProgress = (_scrollOffset / maxScroll).clamp(0.0, 1.0);
+                  final spacing = scrollProgress < 0.5 ? 2.0 : 0.0; // 2 quando expandido, 0 quando colapsado
+
+                  return Container(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: () => context.push('${AppRoutes.buscar}?fromHome=true'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.search, color: Colors.grey),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Buscar furadeira, bike, cadeira...',
+                                  style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: spacing),
+                        // Tabs para filtrar
+                        TabBar(
+                          controller: _tabController,
+                          indicatorColor: theme.colorScheme.onPrimary,
+                          labelColor: theme.colorScheme.onPrimary,
+                          unselectedLabelColor: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
+                          labelPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                          tabs: const [
+                            Tab(text: 'Todos'),
+                            Tab(text: 'Aluguel'),
+                            Tab(text: 'Venda'),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ),
@@ -300,7 +324,8 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   String _getTituloSecao(TipoItem? filtro) {

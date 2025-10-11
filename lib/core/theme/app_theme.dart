@@ -22,8 +22,9 @@ class AppTheme {
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 1,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
+        surfaceTintColor: Colors.transparent,
       ),
 
       // Botões
@@ -152,14 +153,14 @@ class AppTheme {
       // Campos de texto
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.grey.shade900,
+        fillColor: const Color(0xFF1E1E1E),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade700),
+          borderSide: BorderSide(color: Colors.grey.shade600),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -177,12 +178,13 @@ class AppTheme {
 
       // Cards
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 2,
+        shadowColor: Colors.black26,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey.shade800),
         ),
         margin: const EdgeInsets.all(8),
+        color: const Color(0xFF2A2A2A),
       ),
 
       // Bottom Navigation
@@ -192,7 +194,7 @@ class AppTheme {
         selectedItemColor: _primaryColor,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        backgroundColor: Colors.black,
+        backgroundColor: Color(0xFF1A1A1A),
       ),
     );
   }

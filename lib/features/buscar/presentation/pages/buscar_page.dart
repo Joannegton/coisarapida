@@ -17,6 +17,7 @@ class BuscarPage extends ConsumerStatefulWidget {
 
 class _BuscarPageState extends ConsumerState<BuscarPage> {
   final _buscaController = TextEditingController();
+  final _focusNode = FocusNode();
   String _categoriaSelecionada = 'todos';
   double _distanciaMaxima = 10.0;
   RangeValues _faixaPreco = const RangeValues(0, 100);
@@ -25,8 +26,22 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
   String _ordenarPor = 'distancia';
 
   @override
+  void initState() {
+    super.initState();
+    // Verificar se veio do botão de busca do home
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = GoRouterState.of(context).uri;
+      final fromHome = uri.queryParameters['fromHome'] == 'true';
+      if (fromHome) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _buscaController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -64,6 +79,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                 // Campo de busca
                 TextField(
                   controller: _buscaController,
+                  focusNode: _focusNode,
                   decoration: InputDecoration(
                     hintText: 'Buscar por nome ou descrição...',
                     prefixIcon: const Icon(Icons.search),
