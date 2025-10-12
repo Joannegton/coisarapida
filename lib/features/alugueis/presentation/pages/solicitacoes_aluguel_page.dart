@@ -2,8 +2,11 @@ import 'package:coisarapida/features/alugueis/domain/entities/aluguel.dart';
 import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_providers.dart';
 import 'package:coisarapida/features/alugueis/presentation/widgets/card_solicitacoes_widget.dart';
 import 'package:coisarapida/features/alugueis/presentation/helpers/solicitacao_helpers.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+export 'solicitacoes_aluguel_page.dart' show TipoVisualizacao;
 
 enum FiltroSolicitacao {
   todas('Todas'),
@@ -13,6 +16,14 @@ enum FiltroSolicitacao {
 
   final String label;
   const FiltroSolicitacao(this.label);
+}
+
+enum TipoVisualizacao {
+  recebidas('Recebidas'),
+  enviadas('Enviadas');
+
+  final String label;
+  const TipoVisualizacao(this.label);
 }
 
 class SolicitacoesAluguelPage extends ConsumerStatefulWidget {
@@ -26,6 +37,7 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   FiltroSolicitacao _filtroAtual = FiltroSolicitacao.todas;
+  TipoVisualizacao _tipoVisualizacao = TipoVisualizacao.recebidas;
 
   @override
   void initState() {
@@ -50,6 +62,8 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
   }
 
   List<Aluguel> _filtrarSolicitacoes(List<Aluguel> solicitacoes) {
+    // Os providers já trazem os dados corretos (recebidas ou enviadas)
+    // Aqui só filtramos por status
     switch (_filtroAtual) {
       case FiltroSolicitacao.todas:
         return solicitacoes;
@@ -64,7 +78,10 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
 
   @override
   Widget build(BuildContext context) {
-    final solicitacoesAsync = ref.watch(solicitacoesRecebidasProvider);
+    final solicitacoesAsync = _tipoVisualizacao == TipoVisualizacao.recebidas
+        ? ref.watch(solicitacoesRecebidasProvider)
+        : ref.watch(solicitacoesEnviadasProvider);
+    final usuarioAsync = ref.watch(usuarioAtualStreamProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -72,10 +89,34 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
         elevation: 0,
-        title: const Text(
-          'Solicitações Recebidas',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          _tipoVisualizacao == TipoVisualizacao.recebidas
+              ? 'Solicitações Recebidas'
+              : 'Minhas Solicitações',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          // Botão para alternar entre recebidas e enviadas
+          IconButton(
+            icon: Icon(
+              _tipoVisualizacao == TipoVisualizacao.recebidas
+                  ? Icons.swap_horiz
+                  : Icons.swap_horiz,
+            ),
+            tooltip: _tipoVisualizacao == TipoVisualizacao.recebidas
+                ? 'Ver minhas solicitações'
+                : 'Ver solicitações recebidas',
+            onPressed: () {
+              setState(() {
+                _tipoVisualizacao = _tipoVisualizacao == TipoVisualizacao.recebidas
+                    ? TipoVisualizacao.enviadas
+                    : TipoVisualizacao.recebidas;
+                _tabController.index = 0;
+                _filtroAtual = FiltroSolicitacao.todas;
+              });
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: theme.colorScheme.onPrimary,
@@ -110,10 +151,16 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
       ),
       body: solicitacoesAsync.when(
         data: (todasSolicitacoes) {
+          final usuario = usuarioAsync.value;
           final solicitacoesFiltradas = _filtrarSolicitacoes(todasSolicitacoes);
 
-          if (todasSolicitacoes.isEmpty) {
-            return _buildEmptyState(theme, 'Nenhuma solicitação recebida ainda');
+          if (solicitacoesFiltradas.isEmpty && _filtroAtual == FiltroSolicitacao.todas) {
+            return _buildEmptyState(
+              theme,
+              _tipoVisualizacao == TipoVisualizacao.recebidas
+                  ? 'Nenhuma solicitação recebida ainda'
+                  : 'Você ainda não fez nenhuma solicitação',
+            );
           }
 
           if (solicitacoesFiltradas.isEmpty) {
@@ -126,7 +173,7 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header com contador
+              // Header com contador e tipo de visualização
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                 child: Row(
@@ -166,9 +213,14 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
                   itemCount: solicitacoesFiltradas.length,
                   itemBuilder: (context, index) {
                     final aluguel = solicitacoesFiltradas[index];
+                    final isLocador = usuario?.id == aluguel.locadorId;
+                    final isLocatario = usuario?.id == aluguel.locatarioId;
                     
                     return CardSolicitacoesWidget(
                       aluguel: aluguel,
+                      isLocador: isLocador,
+                      isLocatario: isLocatario,
+                      tipoVisualizacao: _tipoVisualizacao,
                       onRecusarSolicitacao: () => SolicitacaoHelpers.recusarSolicitacao(
                         context,
                         ref,
@@ -299,15 +351,28 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
   }
 
   String _getEmptyMessageForFiltro(FiltroSolicitacao filtro) {
-    switch (filtro) {
-      case FiltroSolicitacao.todas:
-        return 'Quando alguém solicitar um dos seus itens\nvocê verá as solicitações aqui';
-      case FiltroSolicitacao.pendentes:
-        return 'Não há solicitações aguardando sua resposta';
-      case FiltroSolicitacao.aprovadas:
-        return 'Você ainda não aprovou nenhuma solicitação';
-      case FiltroSolicitacao.recusadas:
-        return 'Você ainda não recusou nenhuma solicitação';
+    if (_tipoVisualizacao == TipoVisualizacao.recebidas) {
+      switch (filtro) {
+        case FiltroSolicitacao.todas:
+          return 'Quando alguém solicitar um dos seus itens\nvocê verá as solicitações aqui';
+        case FiltroSolicitacao.pendentes:
+          return 'Não há solicitações aguardando sua resposta';
+        case FiltroSolicitacao.aprovadas:
+          return 'Você ainda não aprovou nenhuma solicitação';
+        case FiltroSolicitacao.recusadas:
+          return 'Você ainda não recusou nenhuma solicitação';
+      }
+    } else {
+      switch (filtro) {
+        case FiltroSolicitacao.todas:
+          return 'Quando você solicitar alugar algum item\nsuas solicitações aparecerão aqui';
+        case FiltroSolicitacao.pendentes:
+          return 'Você não tem solicitações aguardando aprovação';
+        case FiltroSolicitacao.aprovadas:
+          return 'Nenhuma das suas solicitações foi aprovada ainda';
+        case FiltroSolicitacao.recusadas:
+          return 'Nenhuma das suas solicitações foi recusada';
+      }
     }
   }
 }

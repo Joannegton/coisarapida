@@ -4,15 +4,22 @@ import 'package:coisarapida/shared/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../pages/solicitacoes_aluguel_page.dart';
 
 class CardSolicitacoesWidget extends StatefulWidget {
   final Aluguel aluguel;
   final VoidCallback onRecusarSolicitacao;
+  final bool isLocador;
+  final bool isLocatario;
+  final TipoVisualizacao tipoVisualizacao;
 
   const CardSolicitacoesWidget({
     super.key,
     required this.aluguel,
-    required this.onRecusarSolicitacao, 
+    required this.onRecusarSolicitacao,
+    required this.isLocador,
+    required this.isLocatario,
+    required this.tipoVisualizacao,
   });
 
   @override
@@ -66,42 +73,68 @@ class _CardSolicitacoesWidgetState extends State<CardSolicitacoesWidget>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header com imagem e título
+                // Header com papel do usuário
                 Row(
                   children: [
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CachedNetworkImage(
-                            imageUrl: widget.aluguel.itemFotoUrl,
-                          width: 70,
-                          height: 70,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            width: 70,
-                            height: 70,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getCorPapel(theme).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _getCorPapel(theme).withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getIconePapel(),
+                            size: 16,
+                            color: _getCorPapel(theme),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getPapelUsuario(),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: _getCorPapel(theme),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          errorWidget: (context, url, error) => Container(
-                            width: 70,
-                            height: 70,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Icon(Icons.image_not_supported, size: 30),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    _buildStatusBadge(theme),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+              // Imagem e título do item
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: widget.aluguel.itemFotoUrl,
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          width: 70,
+                          height: 70,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
+                        errorWidget: (context, url, error) => Container(
+                          width: 70,
+                          height: 70,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: const Icon(Icons.image_not_supported, size: 30),
+                        ),
                       ),
-                      // Badge de status
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: _buildStatusBadge(theme),
-                      ),
-                    ],
-                  ),
+                    ),
                   const SizedBox(width: 12),
                   // Informações principais
                   Expanded(
@@ -162,9 +195,9 @@ class _CardSolicitacoesWidgetState extends State<CardSolicitacoesWidget>
                   children: [
                     _buildInfoRow(
                       theme,
-                      icon: Icons.person_outline,
-                      label: 'Solicitante',
-                      value: widget.aluguel.locatarioNome,
+                      icon: widget.isLocador ? Icons.person_outline : Icons.store,
+                      label: widget.isLocador ? 'Solicitante' : 'Proprietário',
+                      value: widget.isLocador ? widget.aluguel.locatarioNome : widget.aluguel.locadorNome,
                     ),
                     const SizedBox(height: 10),
                     _buildInfoRow(
@@ -189,8 +222,9 @@ class _CardSolicitacoesWidgetState extends State<CardSolicitacoesWidget>
               // Botões de ação
               Row(
                 children: [
-                  // Botão recusar só aparece para solicitações pendentes
-                  if (widget.aluguel.status == StatusAluguel.solicitado) ...[
+                  // Botão recusar só aparece para solicitações pendentes E quando é locador
+                  if (widget.aluguel.status == StatusAluguel.solicitado && 
+                      widget.isLocador) ...[
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: widget.onRecusarSolicitacao,
@@ -209,7 +243,7 @@ class _CardSolicitacoesWidgetState extends State<CardSolicitacoesWidget>
                     const SizedBox(width: 12),
                   ],
                   Expanded(
-                    flex: widget.aluguel.status == StatusAluguel.solicitado ? 2 : 1,
+                    flex: (widget.aluguel.status == StatusAluguel.solicitado && widget.isLocador) ? 2 : 1,
                     child: ElevatedButton.icon(
                       onPressed: () {
                         context.push(AppRoutes.detalhesSolicitacao, extra: widget.aluguel);
@@ -295,8 +329,8 @@ class _CardSolicitacoesWidgetState extends State<CardSolicitacoesWidget>
       case StatusAluguel.solicitado:
         badgeColor = theme.colorScheme.error;
         textColor = theme.colorScheme.onError;
-        label = 'NOVO';
-        icon = Icons.new_releases;
+        label = widget.isLocador ? 'NOVO' : 'PENDENTE';
+        icon = widget.isLocador ? Icons.new_releases : Icons.pending;
         break;
       case StatusAluguel.aprovado:
         badgeColor = Colors.green;
@@ -343,5 +377,32 @@ class _CardSolicitacoesWidgetState extends State<CardSolicitacoesWidget>
         ],
       ),
     );
+  }
+
+  String _getPapelUsuario() {
+    if (widget.isLocador) {
+      return 'Locador';
+    } else if (widget.isLocatario) {
+      return 'Locatário';
+    }
+    return 'Observador';
+  }
+
+  IconData _getIconePapel() {
+    if (widget.isLocador) {
+      return Icons.store;
+    } else if (widget.isLocatario) {
+      return Icons.person;
+    }
+    return Icons.visibility;
+  }
+
+  Color _getCorPapel(ThemeData theme) {
+    if (widget.isLocador) {
+      return theme.colorScheme.primary;
+    } else if (widget.isLocatario) {
+      return theme.colorScheme.secondary;
+    }
+    return theme.colorScheme.tertiary;
   }
 }

@@ -1,10 +1,11 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
 import 'package:coisarapida/features/chat/presentation/providers/chat_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class BottonNavigation extends ConsumerWidget {
+class BottonNavigation extends ConsumerStatefulWidget {
   const BottonNavigation({
     required this.child,
     super.key,
@@ -13,52 +14,87 @@ class BottonNavigation extends ConsumerWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BottonNavigation> createState() => _BottonNavigationState();
+}
+
+class _BottonNavigationState extends ConsumerState<BottonNavigation> {
+  DateTime? _lastPressedAt;
+
+  @override
+  Widget build(BuildContext context) {
     final chatsNaoLidos = ref.watch(numeroChatsNaoLidosProvider);
-    
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _calculateSelectedIndex(context),
-        onTap: (index) => _onItemTapped(index, context),
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Início',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined),
-            activeIcon: Icon(Icons.search),
-            label: 'Buscar',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_outlined),
-            activeIcon: Icon(Icons.assignment),
-            label: 'Solicitações',
-          ),
-          BottomNavigationBarItem(
-            label: 'Conversas',
-            icon: Badge(
-              label: Text('$chatsNaoLidos'),
-              isLabelVisible: chatsNaoLidos > 0,
-              child: const Icon(Icons.chat_bubble_outline),
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _onPopInvokedWithResult,
+      child: Scaffold(
+        body: widget.child,
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _calculateSelectedIndex(context),
+          onTap: (index) => _onItemTapped(index, context),
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Início',
             ),
-            activeIcon: Badge(
-              label: Text('$chatsNaoLidos'),
-              isLabelVisible: chatsNaoLidos > 0,
-              child: const Icon(Icons.chat_bubble),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.search_outlined),
+              activeIcon: Icon(Icons.search),
+              label: 'Buscar',
             ),
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.menu_outlined),
-            activeIcon: Icon(Icons.menu),
-            label: 'Mais',
-          ),
-        ],
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.assignment_outlined),
+              activeIcon: Icon(Icons.assignment),
+              label: 'Solicitações',
+            ),
+            BottomNavigationBarItem(
+              label: 'Conversas',
+              icon: Badge(
+                label: Text('$chatsNaoLidos'),
+                isLabelVisible: chatsNaoLidos > 0,
+                child: const Icon(Icons.chat_bubble_outline),
+              ),
+              activeIcon: Badge(
+                label: Text('$chatsNaoLidos'),
+                isLabelVisible: chatsNaoLidos > 0,
+                child: const Icon(Icons.chat_bubble),
+              ),
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.menu_outlined),
+              activeIcon: Icon(Icons.menu),
+              label: 'Mais',
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  void _onPopInvokedWithResult(bool didPop, Object? result) {
+    if (didPop) return; // Já foi feito pop, não fazer nada
+
+    final now = DateTime.now();
+    const maxDuration = Duration(seconds: 2);
+
+    if (_lastPressedAt == null ||
+        now.difference(_lastPressedAt!) > maxDuration) {
+      _lastPressedAt = now;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pressione voltar novamente para sair'),
+          duration: maxDuration,
+        ),
+      );
+
+      return; // Não permite sair
+    }
+
+    // Sai do app
+    SystemNavigator.pop();
   }
 
   static int _calculateSelectedIndex(BuildContext context) {

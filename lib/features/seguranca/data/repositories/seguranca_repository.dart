@@ -286,6 +286,7 @@ class SegurancaRepository {
   /// Calcula e aplica multa por atraso
   Future<double> calcularMultaAtraso({
     required String aluguelId,
+    required String locadorId,
     required DateTime dataLimiteDevolucao,
     required double valorDiaria,
   }) async {
@@ -303,6 +304,7 @@ class SegurancaRepository {
       // Registrar multa no Firestore
       await _firestore.collection('multas').add({
         'aluguelId': aluguelId,
+        'locadorId': locadorId,
         'diasAtraso': diasAtraso,
         'valorDiaria': valorDiaria,
         'multiplicador': multiplicador,

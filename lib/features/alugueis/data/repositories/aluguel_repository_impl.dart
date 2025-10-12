@@ -67,16 +67,12 @@ class AluguelRepositoryImpl implements AluguelRepository {
       {bool comoLocador = false, bool comoLocatario = false}) {
     Query query = _firestore.collection('alugueis');
 
-    if (comoLocador && comoLocatario) {
-      query = query.where('participantes', arrayContains: usuarioId);
-    } else if (comoLocador) {
+    if (comoLocador) {
       query = query.where('locadorId', isEqualTo: usuarioId);
     } else if (comoLocatario) {
       query = query.where('locatarioId', isEqualTo: usuarioId);
     } else {
-      // TODO Se nenhum for especificado, pode retornar vazio ou lançar erro,
-      // ou buscar por 'participantes' como padrão.
-      query = query.where('participantes', arrayContains: usuarioId);
+      return Stream.value([]);
     }
 
     return query
@@ -92,32 +88,6 @@ class AluguelRepositoryImpl implements AluguelRepository {
           'Erro ao buscar aluguéis do usuário: ${error.toString()}');
     });
   }
-
-  @override
-  Stream<List<Aluguel>> getSolicitacoesPendentesParaLocador(String locadorId) {
-    return _firestore
-        .collection('alugueis')
-        .where('locadorId', isEqualTo: locadorId)
-        .where('status', isEqualTo: StatusAluguel.solicitado.name)
-        .orderBy('criadoEm', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      try {
-        final alugueis = snapshot.docs.map((doc) {
-          return AluguelModel.fromFirestore(doc);
-        }).toList();
-        return alugueis;
-      } catch (e) {
-        throw ServerException(
-            'Erro ao mapear solicitações pendentes: ${e.toString()}'); // Re-throw para ser pego pelo handleError
-      }
-    }).handleError((error) {
-      // O StreamProvider deve converter isso para um AsyncError
-      throw ServerException(
-          'Erro no stream de solicitações pendentes: ${error.toString()}');
-    });
-  }
-
   @override
   Future<void> processarPagamentoCaucaoAluguel({
     required String aluguelId,

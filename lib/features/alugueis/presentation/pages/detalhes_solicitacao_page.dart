@@ -217,7 +217,8 @@ class _DetalhesSolicitacaoPageState
                     observacoes: widget.aluguel.observacoesLocatario!,
                   ),
 
-                const SizedBox(height: 100), // Espaço para os botões fixos
+                // Espaço para os botões fixos - maior quando aprovado para evitar sobreposição
+                SizedBox(height: widget.aluguel.status == StatusAluguel.aprovado ? 180 : 100),
               ],
             ),
           ),

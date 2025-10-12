@@ -12,8 +12,6 @@ abstract class AluguelRepository {
   Stream<List<Aluguel>> getAlugueisPorUsuario(String usuarioId,
       {bool comoLocador = false, bool comoLocatario = false});
 
-  Stream<List<Aluguel>> getSolicitacoesPendentesParaLocador(String locadorId);
-
   Future<void> processarPagamentoCaucaoAluguel({
     required String aluguelId,
     required String metodoPagamento,

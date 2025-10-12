@@ -32,12 +32,29 @@ final solicitacoesRecebidasProvider = StreamProvider<List<Aluguel>>((ref) {
     if (locadorId == null) {
       return Stream.value([]);
     }
+
+    // Busca apenas onde o usuário é locador
     final repository = ref.watch(aluguelRepositoryProvider);
-    final streamResult = repository.getSolicitacoesPendentesParaLocador(locadorId);
-    return streamResult;
+    return repository.getAlugueisPorUsuario(locadorId, comoLocador: true);
   } catch (e, stackTrace) {
-    // Em um ambiente de produção, você pode querer logar isso em um serviço de monitoramento de erros.
-    // Por exemplo: FirebaseCrashlytics.instance.recordError(e, stackTrace);
-    return Stream.error(e, stackTrace); // Propaga o erro para o AsyncValue
+    return Stream.error(e, stackTrace);
+  }
+});
+
+// Provider para solicitações ENVIADAS pelo usuário (onde ele é locatário)
+final solicitacoesEnviadasProvider = StreamProvider<List<Aluguel>>((ref) {
+  try {
+    final usuarioAsyncValue = ref.watch(usuarioAtualStreamProvider);
+    final locatarioId = usuarioAsyncValue.whenData((usuario) => usuario?.id).asData?.value;
+
+    if (locatarioId == null) {
+      return Stream.value([]);
+    }
+    
+    // Busca apenas onde o usuário é locatário
+    final repository = ref.watch(aluguelRepositoryProvider);
+    return repository.getAlugueisPorUsuario(locatarioId, comoLocatario: true);
+  } catch (e, stackTrace) {
+    return Stream.error(e, stackTrace);
   }
 });

@@ -28,6 +28,7 @@ class StatusAluguelPage extends ConsumerStatefulWidget {
 
 class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   Timer? _timer;
+  double? _valorMulta;
   
   @override
   void initState() {
@@ -51,15 +52,15 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       final repository = ref.read(segurancaRepositoryProvider);
       final multa = await repository.calcularMultaAtraso(
         aluguelId: widget.aluguelId,
+        locadorId: widget.dadosAluguel['locadorId'],
         dataLimiteDevolucao: dataLimite,
         valorDiaria: double.parse(widget.dadosAluguel['valorDiaria'].toString()),
       );
       
       if (multa > 0 && mounted) {
-        SnackBarUtils.mostrarAviso(
-          context,
-          'Multa por atraso: R\$ ${multa.toStringAsFixed(2)} ⚠️',
-        );
+        setState(() {
+          _valorMulta = multa;
+        });
       }
     }
   }
@@ -76,46 +77,258 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isLocador ? 'Gerenciar Aluguel' : 'Status do Aluguel'),
-        backgroundColor: emAtraso ? Colors.red[100] : theme.colorScheme.surface,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status do item
-            _buildStatusCard(theme, emAtraso, isLocador),
-            
-            const SizedBox(height: 16),
-            
-            // Contador de tempo (só para locatário)
-            if (isLocatario) ...[
-              ContadorTempo(
-                dataLimite: dataLimite,
-                onAtraso: () => _verificarAtraso(),
+            Text(
+              isLocador ? 'Gerenciar Aluguel' : 'Status do Aluguel',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
               ),
-              const SizedBox(height: 16),
-            ],
-            
-            // Informações do aluguel
-            _buildInformacoesAluguel(theme, isLocador),
-            
-            const SizedBox(height: 16),
-            
-            // Upload de fotos de verificação (só para locatário)
-            if (isLocatario) ...[
-              UploadFotosVerificacao(
-                aluguelId: widget.aluguelId,
-                itemId: widget.dadosAluguel['itemId'],
+            ),
+            Text(
+              widget.dadosAluguel['nomeItem'],
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: 16),
-            ],
-            
-            // Botões de ação
-            _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario),
+            ),
           ],
         ),
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        elevation: 0,
+        scrolledUnderElevation: 4,
+        shadowColor: theme.shadowColor,
+        actions: [
+          // Badge de status
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: emAtraso ? Colors.red[100] : Colors.green[100],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: emAtraso ? Colors.red[200]! : Colors.green[200]!,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  emAtraso ? Icons.warning_rounded : Icons.check_circle_rounded,
+                  size: 16,
+                  color: emAtraso ? Colors.red[700] : Colors.green[700],
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  emAtraso ? 'Em Atraso' : 'Em Dia',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: emAtraso ? Colors.red[700] : Colors.green[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.surface,
+              theme.colorScheme.surface.withOpacity(0.8),
+              theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea( // Adicionado SafeArea para garantir que o conteúdo não seja cortado
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Indicador de progresso do aluguel
+                _buildProgressIndicator(theme, dataLimite),
+
+                const SizedBox(height: 20),
+
+                // Status do item
+                _buildStatusCard(theme, emAtraso, isLocador),
+
+                const SizedBox(height: 20),
+
+                // Informações do aluguel
+                _buildInformacoesAluguel(theme, isLocador),
+
+                const SizedBox(height: 20),
+
+                // Contador de tempo (só para locatário)
+                if (isLocatario) ...[
+                  ContadorTempo(
+                    dataLimite: dataLimite,
+                    onAtraso: () => _verificarAtraso(),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Upload de fotos de verificação (só para locatário)
+                if (isLocatario) ...[
+                  UploadFotosVerificacao(
+                    aluguelId: widget.aluguelId,
+                    itemId: widget.dadosAluguel['itemId'],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Botões de ação
+                _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario),
+
+                // Espaço extra para garantir que o último card não seja cortado
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator(ThemeData theme, DateTime dataLimite) {
+    final agora = DateTime.now();
+    final dataInicio = DateTime.parse(widget.dadosAluguel['dataInicio'] ?? agora.subtract(const Duration(days: 1)).toIso8601String());
+    final totalDias = dataLimite.difference(dataInicio).inDays;
+    final diasPassados = agora.difference(dataInicio).inDays;
+    final progresso = (diasPassados / totalDias).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.timeline_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Progresso do Aluguel',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Barra de progresso
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: progresso,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: agora.isAfter(dataLimite)
+                        ? [Colors.red[400]!, Colors.red[600]!]
+                        : [Colors.blue[400]!, Colors.blue[600]!],
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Informações do progresso
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Dia ${diasPassados > 0 ? diasPassados : 0} de $totalDias',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '${(progresso * 100).round()}%',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: agora.isAfter(dataLimite) ? Colors.red[600] : Colors.blue[600],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // Status do progresso
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: agora.isAfter(dataLimite)
+                  ? Colors.red[50]
+                  : progresso > 0.8
+                      ? Colors.orange[50]
+                      : Colors.green[50],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: agora.isAfter(dataLimite)
+                    ? Colors.red[200]!
+                    : progresso > 0.8
+                        ? Colors.orange[200]!
+                        : Colors.green[200]!,
+              ),
+            ),
+            child: Text(
+              agora.isAfter(dataLimite)
+                  ? 'Período expirado'
+                  : progresso > 0.8
+                      ? 'Próximo do fim'
+                      : 'Em andamento',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: agora.isAfter(dataLimite)
+                    ? Colors.red[700]
+                    : progresso > 0.8
+                        ? Colors.orange[700]
+                        : Colors.green[700],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -123,38 +336,117 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   Widget _buildStatusCard(ThemeData theme, bool emAtraso, bool isLocador) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: emAtraso ? Colors.red[50] : Colors.green[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: emAtraso ? Colors.red[300]! : Colors.green[300]!,
+        gradient: LinearGradient(
+          colors: emAtraso
+              ? [Colors.red[100]!, Colors.red[50]!, Colors.white]
+              : [Colors.green[100]!, Colors.green[50]!, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: emAtraso ? Colors.red[200]! : Colors.green[200]!,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (emAtraso ? Colors.red : Colors.green).withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Icon(
-            emAtraso ? Icons.warning : Icons.check_circle,
-            size: 48,
-            color: emAtraso ? Colors.red[600] : Colors.green[600],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            emAtraso ? 'ALUGUEL EM ATRASO' : 'ALUGUEL ATIVO',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+          // Ícone com fundo circular
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: emAtraso ? Colors.red[100] : Colors.green[100],
+              border: Border.all(
+                color: emAtraso ? Colors.red[300]! : Colors.green[300]!,
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              emAtraso ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
+              size: 32,
               color: emAtraso ? Colors.red[700] : Colors.green[700],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
+
+          // Título do status
           Text(
-            emAtraso 
-                ? (isLocador ? 'O locatário está em atraso. Considere aplicar multa.' : 'Você está em atraso! Devolva o item o quanto antes.')
-                : (isLocador ? 'Aluguel em andamento. Monitore a devolução.' : 'Lembre-se de devolver no prazo combinado.'),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: emAtraso ? Colors.red[600] : Colors.green[600],
+            emAtraso ? 'ALUGUEL EM ATRASO' : 'ALUGUEL ATIVO',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: emAtraso ? Colors.red[800] : Colors.green[800],
+              letterSpacing: 0.5,
             ),
-            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+
+          // Badge de multa (se houver)
+          if (emAtraso && _valorMulta != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red[500],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.attach_money_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Multa: R\$ ${_valorMulta!.toStringAsFixed(2)}',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Descrição do status
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: (emAtraso ? Colors.red : Colors.green).withOpacity(0.3),
+              ),
+            ),
+            child: Text(
+              emAtraso
+                  ? (isLocador ? 'O locatário está em atraso. Considere aplicar multa e notificar.' : 'Você está em atraso! Devolva o item o quanto antes para evitar multas adicionais.')
+                  : (isLocador ? 'Aluguel em andamento. Monitore a devolução e mantenha contato.' : 'Lembre-se de devolver no prazo combinado para manter sua reputação.'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: emAtraso ? Colors.red[700] : Colors.green[700],
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -162,168 +454,504 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   Widget _buildInformacoesAluguel(ThemeData theme, bool isLocador) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Informações do Aluguel',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            _buildInfoRow('Item:', widget.dadosAluguel['nomeItem']),
-            _buildInfoRow('Locador:', widget.dadosAluguel['nomeLocador']),
-            _buildInfoRow('Valor:', 'R\$ ${widget.dadosAluguel['valorAluguel']}'),
-            _buildInfoRow('Caução:', 'R\$ ${widget.dadosAluguel['valorCaucao']}'),
-            _buildInfoRow(
-              'Data Limite:', 
-              _formatarData(DateTime.parse(widget.dadosAluguel['dataLimiteDevolucao'])),
-            ),
-            if (isLocador) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Informações do Locatário',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header com ícone
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.info_outline_rounded,
                   color: theme.colorScheme.primary,
+                  size: 20,
                 ),
               ),
-              const SizedBox(height: 8),
-              _buildInfoRow('Nome:', widget.dadosAluguel['nomeLocatario'] ?? 'João Silva'),
-              _buildInfoRow('Telefone:', widget.dadosAluguel['telefoneLocatario'] ?? '(11) 99999-9999'),
-              _buildInfoRow('Endereço:', widget.dadosAluguel['enderecoLocatario'] ?? 'Rua das Flores, 123'),
+              const SizedBox(width: 12),
+              Text(
+                'Informações do Aluguel',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 20),
+
+          // Grid de informações principais
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoCard(
+                  theme,
+                  'Item Alugado',
+                  widget.dadosAluguel['nomeItem'],
+                  Icons.inventory_2_rounded,
+                  theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildInfoCard(
+                  theme,
+                  'Valor Total',
+                  'R\$ ${widget.dadosAluguel['valorAluguel']}',
+                  Icons.attach_money_rounded,
+                  Colors.green[600]!,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoCard(
+                  theme,
+                  'Caução',
+                  'R\$ ${widget.dadosAluguel['valorCaucao']}',
+                  Icons.security_rounded,
+                  Colors.orange[600]!,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildInfoCard(
+                  theme,
+                  'Data Limite',
+                  _formatarData(DateTime.parse(widget.dadosAluguel['dataLimiteDevolucao'])),
+                  Icons.calendar_today_rounded,
+                  Colors.blue[600]!,
+                ),
+              ),
+            ],
+          ),
+
+          // Informações do locador (sempre visível)
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.person_rounded,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Locador',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.dadosAluguel['nomeLocador'],
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Informações do locatário (só para locador)
+          if (isLocador) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.people_rounded,
+                        size: 18,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Locatário',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildContatoRow(theme, Icons.person, widget.dadosAluguel['nomeLocatario'] ?? 'João Silva'),
+                  const SizedBox(height: 8),
+                  _buildContatoRow(theme, Icons.phone, widget.dadosAluguel['telefoneLocatario'] ?? '(11) 99999-9999'),
+                  const SizedBox(height: 8),
+                  _buildContatoRow(theme, Icons.location_on, widget.dadosAluguel['enderecoLocatario'] ?? 'Rua das Flores, 123'),
+                ],
+              ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String valor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+  Widget _buildInfoCard(ThemeData theme, String titulo, String valor, IconData icone, Color cor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cor.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
+          Row(
+            children: [
+              Icon(icone, size: 16, color: cor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  titulo,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: cor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          Expanded(child: Text(valor)),
+          const SizedBox(height: 6),
+          Text(
+            valor,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildContatoRow(ThemeData theme, IconData icone, String texto) {
+    return Row(
+      children: [
+        Icon(
+          icone,
+          size: 16,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            texto,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario) {
-    return Column(
-      children: [
-        if (isLocatario) ...[
-          // Botões para locatário
-          // Botão de confirmar devolução
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _confirmarDevolucao,
-              icon: const Icon(Icons.check_circle),
-              label: const Text('Confirmar Devolução'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[600],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Botão de denunciar problema
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _abrirDenuncia,
-              icon: const Icon(Icons.report_problem),
-              label: const Text('Reportar Problema'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange[600],
-                side: BorderSide(color: Colors.orange[600]!),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Botão de chat com locador
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _abrirChat,
-              icon: const Icon(Icons.chat),
-              label: const Text('Conversar com Locador'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-        ] else if (isLocador) ...[
-          // Botões para locador
-          // Botão de aprovar devolução
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _aprovarDevolucao,
-              icon: const Icon(Icons.check_circle),
-              label: const Text('Aprovar Devolução'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[600],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Botão de rejeitar devolução
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _rejeitarDevolucao,
-              icon: const Icon(Icons.cancel),
-              label: const Text('Rejeitar Devolução'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red[600],
-                side: BorderSide(color: Colors.red[600]!),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Botão de chat com locatário
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _abrirChat,
-              icon: const Icon(Icons.chat),
-              label: const Text('Conversar com Locatário'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16), // Margem inferior para evitar corte
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
-      ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.touch_app_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Ações Disponíveis',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          if (isLocatario) ...[
+            // Seção para locatário
+            Text(
+              'Como Locatário',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Botão principal - Confirmar Devolução
+            _buildActionButton(
+              theme,
+              'Confirmar Devolução',
+              'Confirme que devolveu o item',
+              Icons.check_circle_rounded,
+              Colors.green[600]!,
+              _confirmarDevolucao,
+              isPrimary: true,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Botões secundários em linha
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    theme,
+                    'Reportar Problema',
+                    'Denunciar danos ou irregularidades',
+                    Icons.report_problem_rounded,
+                    Colors.orange[600]!,
+                    _abrirDenuncia,
+                    isCompact: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionButton(
+                    theme,
+                    'Conversar',
+                    'Falar com o locador',
+                    Icons.chat_rounded,
+                    theme.colorScheme.primary,
+                    _abrirChat,
+                    isCompact: true,
+                  ),
+                ),
+              ],
+            ),
+          ] else if (isLocador) ...[
+            // Seção para locador
+            Text(
+              'Como Locador',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Botão principal - Aprovar Devolução
+            _buildActionButton(
+              theme,
+              'Aprovar Devolução',
+              'Confirmar recebimento do item',
+              Icons.check_circle_rounded,
+              Colors.green[600]!,
+              _aprovarDevolucao,
+              isPrimary: true,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Botões secundários em linha
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    theme,
+                    'Rejeitar',
+                    'Reportar problemas na devolução',
+                    Icons.cancel_rounded,
+                    Colors.red[600]!,
+                    _rejeitarDevolucao,
+                    isCompact: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionButton(
+                    theme,
+                    'Conversar',
+                    'Falar com o locatário',
+                    Icons.chat_rounded,
+                    theme.colorScheme.primary,
+                    _abrirChat,
+                    isCompact: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+    ThemeData theme,
+    String titulo,
+    String subtitulo,
+    IconData icone,
+    Color cor,
+    VoidCallback onPressed, {
+    bool isPrimary = false,
+    bool isCompact = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: isCompact ? 80 : 100,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isPrimary ? cor : Colors.transparent,
+          foregroundColor: isPrimary ? Colors.white : cor,
+          elevation: isPrimary ? 4 : 0,
+          shadowColor: isPrimary ? cor.withOpacity(0.3) : Colors.transparent,
+          padding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: isPrimary
+                ? BorderSide.none
+                : BorderSide(color: cor.withOpacity(0.3), width: 1.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isPrimary
+                    ? Colors.white.withOpacity(0.2)
+                    : cor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icone,
+                size: isCompact ? 20 : 24,
+                color: isPrimary ? Colors.white : cor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    titulo,
+                    style: (isCompact
+                            ? theme.textTheme.bodyLarge
+                            : theme.textTheme.titleMedium)
+                        ?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isPrimary ? Colors.white : theme.colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (!isCompact) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitulo,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isPrimary
+                            ? Colors.white.withOpacity(0.9)
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (!isCompact)
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: isPrimary ? Colors.white : cor,
+              ),
+          ],
+        ),
+      ),
     );
   }  void _confirmarDevolucao() {
     showDialog(
