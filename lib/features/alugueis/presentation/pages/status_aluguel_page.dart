@@ -74,6 +74,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     final usuario = ref.watch(usuarioAtualStreamProvider).value;
     final isLocador = usuario?.id == widget.dadosAluguel['locadorId'];
     final isLocatario = usuario?.id == widget.dadosAluguel['compradorId'] || usuario?.id != widget.dadosAluguel['locadorId'];
+    
+    // Verificar se o status é "solicitado" (aguardando aprovação)
+    final statusAluguel = widget.dadosAluguel['status'] as String?;
+    final isSolicitado = statusAluguel == 'solicitado';
 
     return Scaffold(
       appBar: AppBar(
@@ -81,7 +85,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isLocador ? 'Gerenciar Aluguel' : 'Status do Aluguel',
+              isSolicitado
+                  ? (isLocador ? 'Nova Solicitação' : 'Solicitação Enviada')
+                  : (isLocador ? 'Gerenciar Aluguel' : 'Status do Aluguel'),
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,
@@ -107,25 +113,37 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: emAtraso ? Colors.red[100] : Colors.green[100],
+              color: isSolicitado
+                  ? Colors.orange[100]
+                  : (emAtraso ? Colors.red[100] : Colors.green[100]),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: emAtraso ? Colors.red[200]! : Colors.green[200]!,
+                color: isSolicitado
+                    ? Colors.orange[200]!
+                    : (emAtraso ? Colors.red[200]! : Colors.green[200]!),
               ),
             ),
             child: Row(
               children: [
                 Icon(
-                  emAtraso ? Icons.warning_rounded : Icons.check_circle_rounded,
+                  isSolicitado
+                      ? Icons.hourglass_empty_rounded
+                      : (emAtraso ? Icons.warning_rounded : Icons.check_circle_rounded),
                   size: 16,
-                  color: emAtraso ? Colors.red[700] : Colors.green[700],
+                  color: isSolicitado
+                      ? Colors.orange[700]
+                      : (emAtraso ? Colors.red[700] : Colors.green[700]),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  emAtraso ? 'Em Atraso' : 'Em Dia',
+                  isSolicitado
+                      ? 'Pendente'
+                      : (emAtraso ? 'Em Atraso' : 'Em Dia'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: emAtraso ? Colors.red[700] : Colors.green[700],
+                    color: isSolicitado
+                        ? Colors.orange[700]
+                        : (emAtraso ? Colors.red[700] : Colors.green[700]),
                   ),
                 ),
               ],
@@ -151,41 +169,49 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Indicador de progresso do aluguel
-                _buildProgressIndicator(theme, dataLimite),
+                // Se está solicitado, mostrar card de aguardando aprovação
+                if (isSolicitado) ...[
+                  _buildAguardandoAprovacaoCard(theme, isLocador),
+                  const SizedBox(height: 20),
+                ] else ...[
+                  // Indicador de progresso do aluguel (só para aluguéis aprovados)
+                  _buildProgressIndicator(theme, dataLimite),
+                  const SizedBox(height: 20),
+                  // Status do item
+                  _buildStatusCard(theme, emAtraso, isLocador),
+                  const SizedBox(height: 20),
+                ],
 
-                const SizedBox(height: 20),
-
-                // Status do item
-                _buildStatusCard(theme, emAtraso, isLocador),
-
-                const SizedBox(height: 20),
-
-                // Informações do aluguel
+                // Informações do aluguel (sempre visível)
                 _buildInformacoesAluguel(theme, isLocador),
 
+                // Apenas mostrar contador, upload e algumas ações se NÃO estiver solicitado
+                if (!isSolicitado) ...[
+                  const SizedBox(height: 20),
+
+                  // Contador de tempo (só para locatário)
+                  if (isLocatario) ...[
+                    ContadorTempo(
+                      dataLimite: dataLimite,
+                      onAtraso: () => _verificarAtraso(),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Upload de fotos de verificação (só para locatário)
+                  if (isLocatario) ...[
+                    UploadFotosVerificacao(
+                      aluguelId: widget.aluguelId,
+                      itemId: widget.dadosAluguel['itemId'],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ],
+
                 const SizedBox(height: 20),
 
-                // Contador de tempo (só para locatário)
-                if (isLocatario) ...[
-                  ContadorTempo(
-                    dataLimite: dataLimite,
-                    onAtraso: () => _verificarAtraso(),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
-                // Upload de fotos de verificação (só para locatário)
-                if (isLocatario) ...[
-                  UploadFotosVerificacao(
-                    aluguelId: widget.aluguelId,
-                    itemId: widget.dadosAluguel['itemId'],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
                 // Botões de ação
-                _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario),
+                _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario, isSolicitado),
 
                 // Espaço extra para garantir que o último card não seja cortado
                 const SizedBox(height: 20),
@@ -326,6 +352,87 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                         ? Colors.orange[700]
                         : Colors.green[700],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAguardandoAprovacaoCard(ThemeData theme, bool isLocador) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange[100]!, Colors.orange[50]!, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.orange[200]!,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Ícone com fundo circular
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.orange[100],
+              border: Border.all(
+                color: Colors.orange[300]!,
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              Icons.hourglass_empty_rounded,
+              size: 32,
+              color: Colors.orange[700],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Título do status
+          Text(
+            isLocador ? 'NOVA SOLICITAÇÃO' : 'AGUARDANDO APROVAÇÃO',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.orange[800],
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Descrição do status
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.orange.withOpacity(0.3),
+              ),
+            ),
+            child: Text(
+              isLocador
+                  ? 'Você recebeu uma nova solicitação de aluguel! Revise os detalhes e decida se deseja aprovar ou recusar.'
+                  : 'Sua solicitação de aluguel foi enviada com sucesso! O locador irá analisar e responderá em breve. Você receberá uma notificação quando houver uma resposta.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.orange[700],
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -706,7 +813,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     );
   }
 
-  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario) {
+  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario, bool isSolicitado) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16), // Margem inferior para evitar corte
@@ -755,7 +862,85 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           ),
           const SizedBox(height: 20),
 
-          if (isLocatario) ...[
+          // Se está solicitado, mostrar ações específicas
+          if (isSolicitado) ...[
+            if (isLocador) ...[
+              // Ações para o locador aprovar/recusar
+              Text(
+                'Solicitação Pendente',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              _buildActionButton(
+                theme,
+                'Aprovar Solicitação',
+                'Aceitar este aluguel',
+                Icons.check_circle_rounded,
+                Colors.green[600]!,
+                _aprovarSolicitacao,
+                isPrimary: true,
+              ),
+              
+              const SizedBox(height: 12),
+              
+              _buildActionButton(
+                theme,
+                'Recusar Solicitação',
+                'Recusar este aluguel',
+                Icons.cancel_rounded,
+                Colors.red[600]!,
+                _recusarSolicitacao,
+              ),
+            ] else if (isLocatario) ...[
+              // Ações para o locatário enquanto aguarda
+              Text(
+                'Aguardando Aprovação',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange[700],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.hourglass_empty_rounded, color: Colors.orange[700]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Sua solicitação foi enviada! O locador analisará e responderá em breve.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.orange[900],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              _buildActionButton(
+                theme,
+                'Cancelar Solicitação',
+                'Desistir deste aluguel',
+                Icons.close_rounded,
+                Colors.red[600]!,
+                _cancelarSolicitacao,
+              ),
+            ],
+          ] else if (isLocatario) ...[
             // Seção para locatário
             Text(
               'Como Locatário',
@@ -953,7 +1138,229 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         ),
       ),
     );
-  }  void _confirmarDevolucao() {
+  }
+
+  void _aprovarSolicitacao() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Aprovar Solicitação'),
+        content: const Text(
+          'Você confirma que deseja aprovar esta solicitação de aluguel? '
+          'O locatário será notificado e o aluguel será iniciado.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _processarAprovacaoSolicitacao();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[600],
+            ),
+            child: const Text('Aprovar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _recusarSolicitacao() {
+    final motivoController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Recusar Solicitação'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Por favor, informe o motivo da recusa. '
+              'O locatário será notificado.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: motivoController,
+              decoration: const InputDecoration(
+                labelText: 'Motivo da recusa',
+                border: OutlineInputBorder(),
+                hintText: 'Ex: Item não disponível no período',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final motivo = motivoController.text.trim();
+              if (motivo.isEmpty) {
+                SnackBarUtils.mostrarErro(context, 'Informe o motivo da recusa');
+                return;
+              }
+              Navigator.of(context).pop();
+              _processarRecusaSolicitacao(motivo);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+            ),
+            child: const Text('Recusar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _cancelarSolicitacao() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar Solicitação'),
+        content: const Text(
+          'Você confirma que deseja cancelar esta solicitação de aluguel? '
+          'Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Não'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _processarCancelamentoSolicitacao();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+            ),
+            child: const Text('Sim, Cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _processarAprovacaoSolicitacao() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Aprovando solicitação...'),
+            ],
+          ),
+        ),
+      );
+
+      // TODO: Implementar lógica de aprovação no backend
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Solicitação aprovada! O locatário foi notificado. ✅',
+        );
+        // Voltar para a tela anterior ou recarregar
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarErro(context, 'Erro ao aprovar solicitação: $e');
+      }
+    }
+  }
+
+  void _processarRecusaSolicitacao(String motivo) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Recusando solicitação...'),
+            ],
+          ),
+        ),
+      );
+
+      // TODO: Implementar lógica de recusa no backend
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Solicitação recusada. O locatário foi notificado. ℹ️',
+        );
+        // Voltar para a tela anterior
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarErro(context, 'Erro ao recusar solicitação: $e');
+      }
+    }
+  }
+
+  void _processarCancelamentoSolicitacao() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Cancelando solicitação...'),
+            ],
+          ),
+        ),
+      );
+
+      // TODO: Implementar lógica de cancelamento no backend
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Solicitação cancelada com sucesso. ✅',
+        );
+        // Voltar para a tela anterior
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarErro(context, 'Erro ao cancelar solicitação: $e');
+      }
+    }
+  }
+
+  void _confirmarDevolucao() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

@@ -1,4 +1,7 @@
+import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_providers.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
+import 'package:coisarapida/features/chat/presentation/providers/chat_provider.dart';
+import 'package:coisarapida/features/home/presentation/providers/itens_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -38,14 +41,15 @@ final usuarioProvider = FutureProvider<Usuario>((ref) async {
 
 // Controller para ações de autenticação (login, cadastro, logout, etc.).
 final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
-  return AuthController(ref.watch(authRepositoryProvider));
+  return AuthController(ref.watch(authRepositoryProvider), ref);
 });
 
 /// Gerencia o estado e as ações de autenticação.
 class AuthController extends StateNotifier<AsyncValue<void>> {
   final AuthRepository _authRepository;
+  final Ref _ref;
 
-  AuthController(this._authRepository) : super(const AsyncValue.data(null));
+  AuthController(this._authRepository, this._ref) : super(const AsyncValue.data(null));
 
   Future<void> loginComEmail({
     required String email,
@@ -109,6 +113,14 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     
     try {
+      // Invalidar todos os providers relacionados ao usuário antes do logout
+      // para evitar erros de permissão do Firestore
+      _ref.invalidate(chatsProvider);
+      _ref.invalidate(numeroChatsNaoLidosProvider);
+      _ref.invalidate(meusAlugueisProvider);
+      _ref.invalidate(itensProximosProvider);
+      _ref.invalidate(usuarioProvider);
+      
       await _authRepository.logout();
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {

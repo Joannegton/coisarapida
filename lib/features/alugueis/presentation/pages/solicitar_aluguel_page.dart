@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../domain/entities/aluguel.dart';
+import '../../data/models/aluguel_model.dart';
 import '../providers/aluguel_providers.dart';
 import '../providers/mercado_pago_provider.dart';
 import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
@@ -190,6 +191,52 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       return false;
     }
     return true;
+  }
+
+  Future<bool> _validarDisponibilidadeItem() async {
+    try {
+      // Buscar aluguéis ativos (aprovados) para este item
+      final alugueisAtivos = await FirebaseFirestore.instance
+          .collection('alugueis')
+          .where('itemId', isEqualTo: widget.item.id)
+          .where('status', isEqualTo: 'aprovado')
+          .get();
+
+      // Verificar se há conflito de datas com algum aluguel ativo
+      for (final doc in alugueisAtivos.docs) {
+        final aluguel = AluguelModel.fromFirestore(doc);
+        
+        // Verificar se há sobreposição de datas
+        final temConflito = _datasSeSobrepoem(
+          _dataInicio, 
+          _dataFim, 
+          aluguel.dataInicio, 
+          aluguel.dataFim
+        );
+        
+        if (temConflito) {
+          SnackBarUtils.mostrarErro(
+            context, 
+            'Este item já está alugado no período selecionado. '
+            'Por favor, escolha outras datas.'
+          );
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (e) {
+      SnackBarUtils.mostrarErro(
+        context, 
+        'Erro ao verificar disponibilidade do item: $e'
+      );
+      return false;
+    }
+  }
+
+  bool _datasSeSobrepoem(DateTime inicio1, DateTime fim1, DateTime inicio2, DateTime fim2) {
+    // Verifica se dois intervalos de datas se sobrepõem
+    return inicio1.isBefore(fim2) && fim1.isAfter(inicio2);
   }
 
   Map<String, dynamic> _criarDadosAluguel(
@@ -490,6 +537,11 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       return;
     }
 
+    // Validar disponibilidade do item
+    if (!await _validarDisponibilidadeItem()) {
+      return;
+    }
+
     final detalhesAluguel = _calcularDetalhesAluguel();
     final precoTotal = detalhesAluguel.precoTotal;
 
@@ -634,6 +686,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       'nomeLocador': aluguel.locadorNome,
       'valorDiaria': (_dadosAluguel['valorDiaria'] as num?)?.toDouble() ??
           (aluguel.precoTotal / diasAluguel),
+      'status': aluguel.status.name, // Adiciona o status como string
     };
   }
 

@@ -37,11 +37,62 @@ class AluguelRepositoryImpl implements AluguelRepository {
       if (novoStatus == StatusAluguel.recusado && motivo != null) {
         dataToUpdate['motivoRecusaLocador'] = motivo;
       }
-      // adc outras logicas de campos baseadas no status, se necessário
+      
+      // Atualizar status do aluguel
       await _firestore
           .collection('alugueis')
           .doc(aluguelId)
           .update(dataToUpdate);
+
+      // Se o aluguel foi aprovado, marcar o item como indisponível
+      if (novoStatus == StatusAluguel.aprovado) {
+        // Buscar o aluguel para obter o itemId
+        final aluguelDoc = await _firestore
+            .collection('alugueis')
+            .doc(aluguelId)
+            .get();
+        
+        if (aluguelDoc.exists) {
+          final aluguelData = aluguelDoc.data();
+          final itemId = aluguelData?['itemId'] as String?;
+          
+          if (itemId != null) {
+            // Atualizar o status de disponibilidade do item
+            await _firestore
+                .collection('itens')
+                .doc(itemId)
+                .update({
+                  'disponivel': false,
+                  'atualizadoEm': FieldValue.serverTimestamp(),
+                });
+          }
+        }
+      }
+      
+      // Se o aluguel foi concluído ou cancelado, marcar o item como disponível novamente
+      if (novoStatus == StatusAluguel.concluido || novoStatus == StatusAluguel.cancelado) {
+        // Buscar o aluguel para obter o itemId
+        final aluguelDoc = await _firestore
+            .collection('alugueis')
+            .doc(aluguelId)
+            .get();
+        
+        if (aluguelDoc.exists) {
+          final aluguelData = aluguelDoc.data();
+          final itemId = aluguelData?['itemId'] as String?;
+          
+          if (itemId != null) {
+            // Atualizar o status de disponibilidade do item
+            await _firestore
+                .collection('itens')
+                .doc(itemId)
+                .update({
+                  'disponivel': true,
+                  'atualizadoEm': FieldValue.serverTimestamp(),
+                });
+          }
+        }
+      }
     } catch (e) {
       throw ServerException(
           'Erro ao atualizar status do aluguel: ${e.toString()}');
