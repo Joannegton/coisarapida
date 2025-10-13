@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_routes.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
+import '../../../chat/presentation/controllers/chat_controller.dart';
+import '../../../itens/presentation/providers/item_provider.dart';
 import '../../domain/entities/aluguel.dart';
 import '../helpers/solicitacao_helpers.dart';
 import '../widgets/detalhes_solicitacao/header_section.dart';
@@ -30,6 +34,7 @@ class DetalhesSolicitacaoPage extends ConsumerStatefulWidget {
 class _DetalhesSolicitacaoPageState
     extends ConsumerState<DetalhesSolicitacaoPage> {
   bool _isLoading = false;
+  bool _isCreatingChat = false;
 
   Future<void> _handleAprovarSolicitacao() async {
     setState(() => _isLoading = true);
@@ -140,16 +145,15 @@ class _DetalhesSolicitacaoPageState
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: Implementar navegação para chat
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Chat será implementado em breve!'),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.chat),
-                  label: const Text('Conversar com Locador'),
+                  onPressed: _isCreatingChat ? null : _abrirOuCriarChat,
+                  icon: _isCreatingChat 
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chat),
+                  label: Text(_isCreatingChat ? 'Abrindo chat...' : 'Conversar com Locador'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(color: theme.colorScheme.primary),
@@ -245,6 +249,63 @@ class _DetalhesSolicitacaoPageState
         ],
       ),
     );
+  }
+
+  Future<void> _abrirOuCriarChat() async {
+    if (_isCreatingChat || !mounted) return;
+
+    setState(() {
+      _isCreatingChat = true;
+    });
+
+    try {
+      // 1. Capturar TODAS as referências síncronas ANTES de qualquer await
+      final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
+      
+      // Validações síncronas
+      if (usuarioAtual == null) {
+        if (mounted) {
+          SnackBarUtils.mostrarErro(
+              context, "Você precisa estar logado para iniciar uma conversa.");
+        }
+        return;
+      }
+
+      // 2. Capturar o FUTURE do provider e controller antes do await
+      final itemFuture = ref.read(detalhesItemProvider(widget.aluguel.itemId).future);
+      final chatController = ref.read(chatControllerProvider.notifier);
+      
+      // 3. AGORA fazer as operações assíncronas usando as referências capturadas
+      final item = await itemFuture;
+      
+      if (!mounted) return;
+      
+      if (item == null) {
+        SnackBarUtils.mostrarErro(context, "Item não encontrado.");
+        return;
+      }
+      
+      // 4. Usar o controller capturado anteriormente
+      final chatId = await chatController.abrirOuCriarChat(
+        usuarioAtual: usuarioAtual, 
+        item: item,
+      );
+
+      if (!mounted) return;
+
+      context.push('${AppRoutes.chat}/$chatId', extra: widget.aluguel.locadorId);
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(
+            context, 'Falha ao iniciar chat: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingChat = false;
+        });
+      }
+    }
   }
 }
 

@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/legacy.dart';
 
 final _auth = FirebaseAuth.instance;
 
-final chatControllerProvider = StateNotifierProvider.autoDispose<ChatController, AsyncValue<void>>((ref) {
+final chatControllerProvider = StateNotifierProvider<ChatController, AsyncValue<void>>((ref) {
   return ChatController(ref); 
 });
 
@@ -23,7 +23,6 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
     required Usuario usuarioAtual,
     required Item item,
   }) async {
-
     final currentUserId = usuarioAtual.id;
     final proprietarioId = item.proprietarioId;
     final repository = _ref.read(chatRepositoryProvider);
@@ -35,6 +34,8 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
     }
 
     final proprietarioUser = await _ref.read(authControllerProvider.notifier).buscarUsuario(item.proprietarioId);
+
+    if (!_ref.mounted) return '';
 
     final chatId = Chat.generateChatId(userId1: currentUserId, userId2: proprietarioId, itemId: item.id);
 
@@ -54,6 +55,8 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
     
     await _criarChat(chat);
     
+    if (!_ref.mounted) return '';
+    
     return chatId;
   }
 
@@ -62,7 +65,7 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
     final usuario = _auth.currentUser;
 
     if (usuarioId == null || usuario == null) {
-      if (!mounted) return;
+      if (!_ref.mounted) return;
       state = AsyncValue.error('Usuário não autenticado', StackTrace.current);
       return;
     }
@@ -70,10 +73,10 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
     try {
       final repository = _ref.read(chatRepositoryProvider);
       await repository.criarChat(chat: chat);
-      if (!mounted) return;
+      if (!_ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
-      if (!mounted) return;
+      if (!_ref.mounted) return;
       state = AsyncValue.error(e, stackTrace);
     }
   }
@@ -84,7 +87,7 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
     final user = _auth.currentUser;
 
     if (userId == null || user == null) {
-      if (!mounted) return;
+      if (!_ref.mounted) return;
       state = AsyncValue.error('Usuário não autenticado', StackTrace.current);
       return;
     }
@@ -98,10 +101,10 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
         userDisplayName: user.displayName ?? 'Usuário Anônimo',
         conteudo: conteudo,
       );
-      if (!mounted) return;
+      if (!_ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
-      if (!mounted) return;
+      if (!_ref.mounted) return;
       state = AsyncValue.error(e, stackTrace);
     }
   }
@@ -117,6 +120,7 @@ class ChatController extends StateNotifier<AsyncValue<void>> {
         userId: userId,
         outroUserId: outroUsuarioId
       );
+      if (!_ref.mounted) return;
     } catch (e) {
       debugPrint('Erro ao marcar mensagens como lidas: $e');
     }

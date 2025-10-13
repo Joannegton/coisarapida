@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'dart:io';
 
-// import '../../../seguranca/presentation/providers/seguranca_provider.dart'; // SegurancaRepository ainda é usado para multa e denúncia
-import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart'; // Para denunciaProvider e segurancaRepositoryProvider
+import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart';
 import '../../../seguranca/presentation/widgets/contador_tempo.dart';
 import '../../../seguranca/presentation/widgets/upload_fotos_verificacao.dart';
 import '../../../seguranca/domain/entities/denuncia.dart';
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
+import '../../../chat/presentation/controllers/chat_controller.dart';
+import '../../../itens/presentation/providers/item_provider.dart';
+import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Tela de status do aluguel com funcionalidades de segurança
@@ -29,6 +32,7 @@ class StatusAluguelPage extends ConsumerStatefulWidget {
 class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   Timer? _timer;
   double? _valorMulta;
+  bool _isCreatingChat = false;
   
   @override
   void initState() {
@@ -1555,10 +1559,70 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     );
   }
 
-  void _abrirChat() {
-    // Navegar para chat com o locador
-    // context.push('/chat/${widget.dadosAluguel['locadorId']}');
-    SnackBarUtils.mostrarInfo(context, 'Abrindo chat com locador...');
+  Future<void> _abrirChat() async {
+    if (_isCreatingChat || !mounted) return;
+
+    setState(() {
+      _isCreatingChat = true;
+    });
+
+    try {
+      // 1. Capturar TODAS as referências síncronas ANTES de qualquer await
+      final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
+      final itemId = widget.dadosAluguel['itemId'] as String?;
+      
+      // Validações síncronas
+      if (usuarioAtual == null) {
+        if (mounted) {
+          SnackBarUtils.mostrarErro(
+              context, "Você precisa estar logado para iniciar uma conversa.");
+        }
+        return;
+      }
+
+      if (itemId == null) {
+        if (mounted) {
+          SnackBarUtils.mostrarErro(context, "ID do item não encontrado.");
+        }
+        return;
+      }
+
+      // 2. Capturar o FUTURE do provider antes do await
+      final itemFuture = ref.read(detalhesItemProvider(itemId).future);
+      final chatController = ref.read(chatControllerProvider.notifier);
+      
+      // 3. AGORA fazer as operações assíncronas usando as referências capturadas
+      final item = await itemFuture;
+      
+      if (!mounted) return;
+      
+      if (item == null) {
+        SnackBarUtils.mostrarErro(context, "Item não encontrado.");
+        return;
+      }
+      
+      // 4. Usar o controller capturado anteriormente
+      final chatId = await chatController.abrirOuCriarChat(
+        usuarioAtual: usuarioAtual, 
+        item: item,
+      );
+
+      if (!mounted) return;
+
+      final locadorId = widget.dadosAluguel['locadorId'] as String?;
+      context.push('${AppRoutes.chat}/$chatId', extra: locadorId);
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(
+            context, 'Falha ao iniciar chat: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreatingChat = false;
+        });
+      }
+    }
   }
 
   String _formatarData(DateTime data) {

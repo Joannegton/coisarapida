@@ -60,23 +60,19 @@ class DetalhesItemContentWidget extends StatelessWidget {
               if ((item.tipo == TipoItem.venda ||
                       item.tipo == TipoItem.ambos) &&
                   item.precoVenda != null)
-                Flexible(
-                  child: PrecoCardWidget(
-                    titulo: 'Preço de Venda',
-                    preco: 'R\$ ${item.precoVenda!.toStringAsFixed(2)}',
-                    cor: Colors.green.shade700,
-                    isPrincipal: true,
-                  ),
+                PrecoCardWidget(
+                  titulo: 'Preço de Venda',
+                  preco: 'R\$ ${item.precoVenda!.toStringAsFixed(2)}',
+                  cor: Colors.green.shade700,
+                  isPrincipal: true,
                 ),
 
               // Preço de Aluguel por Dia (se aplicável)
               if (item.tipo == TipoItem.aluguel || item.tipo == TipoItem.ambos)
-                Flexible(
-                  child: PrecoCardWidget(
-                    titulo: 'Aluguel por Dia',
-                    preco: 'R\$ ${item.precoPorDia.toStringAsFixed(2)}',
-                    cor: theme.colorScheme.primary,
-                  ),
+                PrecoCardWidget(
+                  titulo: 'Aluguel por Dia',
+                  preco: 'R\$ ${item.precoPorDia.toStringAsFixed(2)}',
+                  cor: theme.colorScheme.primary,
                 ),
 
               // Preço de Aluguel por Hora (se aplicável)
@@ -84,12 +80,10 @@ class DetalhesItemContentWidget extends StatelessWidget {
                       item.tipo == TipoItem.ambos) &&
                   item.precoPorHora != null &&
                   item.precoPorHora! > 0)
-                Flexible(
-                  child: PrecoCardWidget(
-                    titulo: 'Aluguel por Hora',
-                    preco: 'R\$ ${item.precoPorHora!.toStringAsFixed(2)}',
-                    cor: theme.colorScheme.secondary,
-                  ),
+                PrecoCardWidget(
+                  titulo: 'Aluguel por Hora',
+                  preco: 'R\$ ${item.precoPorHora!.toStringAsFixed(2)}',
+                  cor: theme.colorScheme.secondary,
                 ),
             ],
           ),
