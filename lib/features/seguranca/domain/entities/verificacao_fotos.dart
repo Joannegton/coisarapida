@@ -3,6 +3,8 @@ class VerificacaoFotos {
   final String id;
   final String aluguelId;
   final String itemId;
+  final String locatarioId;
+  final String locadorId;
   final List<String> fotosAntes;
   final List<String> fotosDepois;
   final DateTime? dataFotosAntes;
@@ -15,6 +17,8 @@ class VerificacaoFotos {
     required this.id,
     required this.aluguelId,
     required this.itemId,
+    required this.locatarioId,
+    required this.locadorId,
     required this.fotosAntes,
     required this.fotosDepois,
     this.dataFotosAntes,
@@ -32,6 +36,8 @@ class VerificacaoFotos {
       'id': id,
       'aluguelId': aluguelId,
       'itemId': itemId,
+      'locatarioId': locatarioId,
+      'locadorId': locadorId,
       'fotosAntes': fotosAntes,
       'fotosDepois': fotosDepois,
       'dataFotosAntes': dataFotosAntes?.millisecondsSinceEpoch,
@@ -47,6 +53,8 @@ class VerificacaoFotos {
       id: map['id'] ?? '',
       aluguelId: map['aluguelId'] ?? '',
       itemId: map['itemId'] ?? '',
+      locatarioId: map['locatarioId'] ?? '',
+      locadorId: map['locadorId'] ?? '',
       fotosAntes: List<String>.from(map['fotosAntes'] ?? []),
       fotosDepois: List<String>.from(map['fotosDepois'] ?? []),
       dataFotosAntes: map['dataFotosAntes'] != null 

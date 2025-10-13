@@ -227,7 +227,19 @@ class VerificacaoFotosNotifier
   final String _aluguelId;
 
   VerificacaoFotosNotifier(this._repository, this._aluguelId)
-      : super(const AsyncValue.data(null));
+      : super(const AsyncValue.loading()) {
+    _carregarVerificacao();
+  }
+
+  /// Carrega verificação existente
+  Future<void> _carregarVerificacao() async {
+    try {
+      final verificacao = await _repository.buscarVerificacaoFotos(_aluguelId);
+      state = AsyncValue.data(verificacao);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
 
   /// Salva fotos de verificação
   Future<void> salvarFotos({
@@ -252,6 +264,12 @@ class VerificacaoFotosNotifier
       state = AsyncValue.data(verificacao);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      rethrow;
     }
+  }
+
+  /// Recarrega a verificação
+  Future<void> recarregar() async {
+    await _carregarVerificacao();
   }
 }

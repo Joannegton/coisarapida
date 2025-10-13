@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 
 import '../providers/seguranca_provider.dart';
+import '../../domain/entities/verificacao_fotos.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Widget para upload de fotos de verificação do item
@@ -25,13 +28,39 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
   final List<File> _fotosDepois = [];
   final _observacoesAntesController = TextEditingController();
   final _observacoesDepoisController = TextEditingController();
-  bool _fotosAntesSalvas = false;
-  bool _fotosDepoisSalvas = false;
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoadingFotos = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final verificacaoState = ref.watch(verificacaoFotosProvider(widget.aluguelId));
+
+    // Atualizar estado local quando os dados do provider mudarem
+    verificacaoState.whenData((verificacao) async {
+      if (verificacao != null && mounted) {
+        // Limpar cache das imagens quando os dados são carregados
+        if (verificacao.fotosAntes.isNotEmpty || verificacao.fotosDepois.isNotEmpty) {
+          await _limparCacheImagens([...verificacao.fotosAntes, ...verificacao.fotosDepois]);
+        }
+        
+        // Preencher observações se estiverem vazias
+        if (_observacoesAntesController.text.isEmpty && verificacao.observacoesAntes != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _observacoesAntesController.text = verificacao.observacoesAntes!;
+            }
+          });
+        }
+        if (_observacoesDepoisController.text.isEmpty && verificacao.observacoesDepois != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _observacoesDepoisController.text = verificacao.observacoesDepois!;
+            }
+          });
+        }
+      }
+    });
 
     return Card(
       child: Padding(
@@ -68,12 +97,14 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
               titulo: 'Fotos ANTES do uso',
               descricao: 'Documente o estado inicial do item',
               fotos: _fotosAntes,
+              fotosSalvasUrls: verificacaoState.value?.fotosAntes ?? [],
               observacoesController: _observacoesAntesController,
               onAdicionarFoto: () => _adicionarFoto(true),
               onRemoverFoto: (index) => _removerFoto(true, index),
-              onSalvar: _fotosAntesSalvas ? null : () => _salvarFotos(true),
-              salvo: _fotosAntesSalvas,
+              onSalvar: () => _salvarFotos(true),
               cor: Colors.blue,
+              isAntes: true,
+              verificacaoState: verificacaoState,
             ),
             
             const SizedBox(height: 16),
@@ -83,12 +114,14 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
               titulo: 'Fotos DEPOIS do uso',
               descricao: 'Documente o estado final do item',
               fotos: _fotosDepois,
+              fotosSalvasUrls: verificacaoState.value?.fotosDepois ?? [],
               observacoesController: _observacoesDepoisController,
               onAdicionarFoto: () => _adicionarFoto(false),
               onRemoverFoto: (index) => _removerFoto(false, index),
-              onSalvar: _fotosDepoisSalvas ? null : () => _salvarFotos(false),
-              salvo: _fotosDepoisSalvas,
+              onSalvar: () => _salvarFotos(false),
               cor: Colors.green,
+              isAntes: false,
+              verificacaoState: verificacaoState,
             ),
             
             if (verificacaoState.isLoading) ...[
@@ -105,12 +138,14 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
     required String titulo,
     required String descricao,
     required List<File> fotos,
+    required List<String> fotosSalvasUrls,
     required TextEditingController observacoesController,
     required VoidCallback onAdicionarFoto,
     required Function(int) onRemoverFoto,
     required VoidCallback? onSalvar,
-    required bool salvo,
     required Color cor,
+    required bool isAntes,
+    required AsyncValue<VerificacaoFotos?> verificacaoState,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -134,8 +169,25 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
                 ),
               ),
               const Spacer(),
-              if (salvo)
-                Icon(Icons.check_circle, color: cor, size: 20),
+              // Botão para limpar cache e recarregar
+              IconButton(
+                icon: Icon(Icons.refresh, color: cor, size: 20),
+                onPressed: () async {
+                  // Limpar cache das imagens atuais
+                  final fotosSalvas = isAntes 
+                      ? verificacaoState.value?.fotosAntes ?? []
+                      : verificacaoState.value?.fotosDepois ?? [];
+                  if (fotosSalvas.isNotEmpty) {
+                    await _limparCacheImagens(fotosSalvas);
+                    SnackBarUtils.mostrarInfo(context, 'Cache das imagens limpo');
+                  }
+                  // Recarregar dados
+                  ref.invalidate(verificacaoFotosProvider(widget.aluguelId));
+                },
+                tooltip: 'Atualizar imagens',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ],
           ),
           
@@ -151,52 +203,90 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
           
           const SizedBox(height: 12),
           
-          // Grid de fotos
-          if (fotos.isNotEmpty) ...[
-            SizedBox(
-              height: 80,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: fotos.length + (fotos.length < 3 ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index < fotos.length) {
-                    // Foto existente
-                    return Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      width: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: FileImage(fotos[index]),
-                          fit: BoxFit.cover,
+          // Grid de fotos - mostrar fotos salvas E fotos locais não salvas
+          Builder(
+            builder: (context) {
+              final totalFotos = fotosSalvasUrls.length + fotos.length;
+              
+              return SizedBox(
+                height: 80,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: totalFotos + (totalFotos < 3 ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    // Fotos salvas primeiro
+                    if (index < fotosSalvasUrls.length) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: cor.withOpacity(0.3)),
                         ),
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => onRemoverFoto(index),
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 12,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: fotosSalvasUrls[index],
+                            fit: BoxFit.cover,
+                            memCacheWidth: 200, // Limitar cache de memória
+                            memCacheHeight: 200,
+                            maxWidthDiskCache: 400, // Limitar cache de disco
+                            maxHeightDiskCache: 400,
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: cor,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Icon(
+                              Icons.error,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    // Fotos locais (não salvas)
+                    final fotoLocalIndex = index - fotosSalvasUrls.length;
+                    if (fotoLocalIndex < fotos.length) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(
+                            image: FileImage(fotos[fotoLocalIndex]),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () => onRemoverFoto(fotoLocalIndex),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 12,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  } else {
-                    // Botão adicionar
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    // Botão adicionar (sempre mostrar se não atingiu o limite)
                     return GestureDetector(
                       onTap: onAdicionarFoto,
                       child: Container(
@@ -221,38 +311,11 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
                         ),
                       ),
                     );
-                  }
-                },
-              ),
-            ),
-          ] else ...[
-            // Placeholder quando não há fotos
-            GestureDetector(
-              onTap: onAdicionarFoto,
-              child: Container(
-                height: 80,
-                decoration: BoxDecoration(
-                  border: Border.all(color: cor.withOpacity(0.5)),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
+                  },
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate, color: cor),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Adicionar fotos (máx. 3)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+              );
+            },
+          ),
           
           const SizedBox(height: 12),
           
@@ -267,10 +330,10 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
               hintStyle: TextStyle(fontSize: 12, color: Colors.grey[500]),
             ),
             style: const TextStyle(fontSize: 12),
-            enabled: !salvo,
+            enabled: fotos.isNotEmpty, // Habilitar sempre que houver fotos locais
           ),
           
-          if (!salvo && fotos.isNotEmpty) ...[
+          if (fotos.isNotEmpty) ...[
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -293,20 +356,81 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
     );
   }
 
-  void _adicionarFoto(bool isAntes) {
-    // Simular seleção de foto
-    setState(() {
-      if (isAntes && _fotosAntes.length < 3) {
-        // Simular arquivo de foto
-        _fotosAntes.add(File('/path/to/simulated/photo_${_fotosAntes.length}.jpg'));
-      } else if (!isAntes && _fotosDepois.length < 3) {
-        _fotosDepois.add(File('/path/to/simulated/photo_${_fotosDepois.length}.jpg'));
-      }
-    });
+  Future<void> _adicionarFoto(bool isAntes) async {
+    if (_isLoadingFotos) return;
+
+    final listaFotos = isAntes ? _fotosAntes : _fotosDepois;
+    final fotosSalvasUrls = isAntes 
+        ? ref.read(verificacaoFotosProvider(widget.aluguelId)).value?.fotosAntes ?? []
+        : ref.read(verificacaoFotosProvider(widget.aluguelId)).value?.fotosDepois ?? [];
     
-    SnackBarUtils.mostrarInfo(
-      context, 
-      'Foto ${isAntes ? 'antes' : 'depois'} adicionada! (simulação)',
+    // Verificar limite total (fotos locais + fotos salvas)
+    if (listaFotos.length + fotosSalvasUrls.length >= 3) {
+      SnackBarUtils.mostrarInfo(context, 'Máximo de 3 fotos atingido');
+      return;
+    }
+
+    setState(() => _isLoadingFotos = true);
+
+    try {
+      // Mostrar opções de câmera ou galeria
+      final source = await _mostrarOpcoesImagem();
+      if (source == null) {
+        setState(() => _isLoadingFotos = false);
+        return;
+      }
+
+      final XFile? imagem = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (imagem != null && mounted) {
+        setState(() {
+          if (isAntes) {
+            _fotosAntes.add(File(imagem.path));
+          } else {
+            _fotosDepois.add(File(imagem.path));
+          }
+        });
+        
+        SnackBarUtils.mostrarSucesso(
+          context, 
+          'Foto adicionada com sucesso!',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(context, 'Erro ao adicionar foto: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingFotos = false);
+      }
+    }
+  }
+
+  Future<ImageSource?> _mostrarOpcoesImagem() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Câmera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galeria'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -320,8 +444,36 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
     });
   }
 
-  void _salvarFotos(bool isAntes) async {
+  Future<void> _salvarFotos(bool isAntes) async {
+    final fotos = isAntes ? _fotosAntes : _fotosDepois;
+    
+    if (fotos.isEmpty) {
+      SnackBarUtils.mostrarInfo(context, 'Adicione pelo menos uma foto');
+      return;
+    }
+
     try {
+      // Mostrar diálogo de progresso
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Salvando fotos...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
       await ref.read(verificacaoFotosProvider(widget.aluguelId).notifier).salvarFotos(
         itemId: widget.itemId,
         fotosAntes: isAntes ? _fotosAntes : null,
@@ -330,11 +482,33 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
         observacoesDepois: !isAntes ? _observacoesDepoisController.text.trim() : null,
       );
 
+
+      if (!mounted) return;
+      
+      // Fechar diálogo de progresso
+      Navigator.of(context).pop();
+
+      // Limpar as fotos locais após salvar
       setState(() {
         if (isAntes) {
-          _fotosAntesSalvas = true;
+          _fotosAntes.clear();
         } else {
-          _fotosDepoisSalvas = true;
+          _fotosDepois.clear();
+        }
+      });
+
+      // Invalidar o provider para recarregar os dados
+      ref.invalidate(verificacaoFotosProvider(widget.aluguelId));
+
+      // Aguardar um pouco para o provider recarregar e limpar cache das imagens
+      await Future.delayed(const Duration(milliseconds: 500));
+      final novoEstado = ref.read(verificacaoFotosProvider(widget.aluguelId));
+      novoEstado.whenData((verificacao) async {
+        if (verificacao != null) {
+          final todasUrls = [...verificacao.fotosAntes, ...verificacao.fotosDepois];
+          if (todasUrls.isNotEmpty) {
+            await _limparCacheImagens(todasUrls);
+          }
         }
       });
 
@@ -343,7 +517,11 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
         'Fotos ${isAntes ? 'antes' : 'depois'} salvas com sucesso! ✅',
       );
     } catch (e) {
-      SnackBarUtils.mostrarErro(context, 'Erro ao salvar fotos: $e');
+      if (mounted) {
+        // Fechar diálogo de progresso se ainda estiver aberto
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarErro(context, 'Erro ao salvar fotos: $e');
+      }
     }
   }
 
@@ -352,5 +530,16 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
     _observacoesAntesController.dispose();
     _observacoesDepoisController.dispose();
     super.dispose();
+  }
+
+  /// Limpa o cache das imagens especificadas
+  Future<void> _limparCacheImagens(List<String> urls) async {
+    try {
+      for (final url in urls) {
+        await CachedNetworkImage.evictFromCache(url);
+      }
+    } catch (e) {
+      print('DEBUG: Erro ao limpar cache: $e');
+    }
   }
 }

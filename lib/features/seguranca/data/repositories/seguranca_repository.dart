@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coisarapida/core/errors/exceptions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 import 'dart:convert';
 
@@ -246,38 +247,111 @@ class SegurancaRepository {
     String? observacoesDepois,
   }) async {
     try {
-      final verificacaoId = _firestore.collection('verificacoes_fotos').doc().id;
+      // Buscar o aluguel para obter locatarioId e locadorId
+      final aluguelDoc = await _firestore.collection('alugueis').doc(aluguelId).get();
+      if (!aluguelDoc.exists) {
+        throw ServerException('Aluguel não encontrado');
+      }
+      final aluguelData = aluguelDoc.data()!;
+      final locatarioId = aluguelData['locatarioId'] as String;
+      final locadorId = aluguelData['locadorId'] as String;
 
+      // Verificar se já existe uma verificação para este aluguel
+      final querySnapshot = await _firestore
+          .collection('verificacoes_fotos')
+          .where('aluguelId', isEqualTo: aluguelId)
+          .limit(1)
+          .get();
+
+      String verificacaoId;
       List<String> urlsFotosAntes = [];
-      if (fotosAntes != null && fotosAntes.isNotEmpty) {
-        urlsFotosAntes = await _uploadFilesToStorage(fotosAntes, 'verificacoes_fotos/$aluguelId/antes');
-      }
       List<String> urlsFotosDepois = [];
-      if (fotosDepois != null && fotosDepois.isNotEmpty) {
-        urlsFotosDepois = await _uploadFilesToStorage(fotosDepois, 'verificacoes_fotos/$aluguelId/depois');
+      DateTime? dataFotosAntesExistente;
+      DateTime? dataFotosDepoisExistente;
+      String? observacoesAntesExistente;
+      String? observacoesDepoisExistente;
+
+      // Se já existe, carregar dados existentes
+      if (querySnapshot.docs.isNotEmpty) {
+        verificacaoId = querySnapshot.docs.first.id;
+        final dadosExistentes = querySnapshot.docs.first.data();
+        urlsFotosAntes = List<String>.from(dadosExistentes['fotosAntes'] ?? []);
+        urlsFotosDepois = List<String>.from(dadosExistentes['fotosDepois'] ?? []);
+        dataFotosAntesExistente = dadosExistentes['dataFotosAntes'] != null 
+            ? DateTime.fromMillisecondsSinceEpoch(dadosExistentes['dataFotosAntes'])
+            : null;
+        dataFotosDepoisExistente = dadosExistentes['dataFotosDepois'] != null 
+            ? DateTime.fromMillisecondsSinceEpoch(dadosExistentes['dataFotosDepois'])
+            : null;
+        observacoesAntesExistente = dadosExistentes['observacoesAntes'];
+        observacoesDepoisExistente = dadosExistentes['observacoesDepois'];
+      } else {
+        verificacaoId = _firestore.collection('verificacoes_fotos').doc().id;
       }
+
+      // Upload de novas fotos ANTES
+      if (fotosAntes != null && fotosAntes.isNotEmpty) {
+        urlsFotosAntes = await _uploadFilesToStorage(
+          fotosAntes,
+          'verificacoes_fotos/$locatarioId/$aluguelId/antes',
+        );
+        dataFotosAntesExistente = DateTime.now();
+        observacoesAntesExistente = observacoesAntes;
+      }
+
+      // Upload de novas fotos DEPOIS
+      if (fotosDepois != null && fotosDepois.isNotEmpty) {
+        urlsFotosDepois = await _uploadFilesToStorage(
+          fotosDepois,
+          'verificacoes_fotos/$locadorId/$aluguelId/depois',
+        );
+        dataFotosDepoisExistente = DateTime.now();
+        observacoesDepoisExistente = observacoesDepois;
+      }
+
+      // Verificar se a verificação está completa (tem fotos antes E depois)
+      final verificacaoCompleta = urlsFotosAntes.isNotEmpty && urlsFotosDepois.isNotEmpty;
 
       final verificacao = VerificacaoFotos(
         id: verificacaoId,
         aluguelId: aluguelId,
         itemId: itemId,
+        locatarioId: locatarioId,
+        locadorId: locadorId,
         fotosAntes: urlsFotosAntes,
         fotosDepois: urlsFotosDepois,
-        dataFotosAntes: fotosAntes != null ? DateTime.now() : null,
-        dataFotosDepois: fotosDepois != null ? DateTime.now() : null,
-        observacoesAntes: observacoesAntes,
-        observacoesDepois: observacoesDepois,
-        verificacaoCompleta: false,
+        dataFotosAntes: dataFotosAntesExistente,
+        dataFotosDepois: dataFotosDepoisExistente,
+        observacoesAntes: observacoesAntesExistente,
+        observacoesDepois: observacoesDepoisExistente,
+        verificacaoCompleta: verificacaoCompleta,
       );
 
       await _firestore
           .collection('verificacoes_fotos')
           .doc(verificacaoId)
-          .set(verificacao.toMap());
+          .set(verificacao.toMap(), SetOptions(merge: true));
 
       return verificacao;
     } catch (e) {
       throw ServerException('Erro ao salvar fotos de verificação: $e');
+    }
+  }  /// Busca verificação de fotos por aluguel ID
+  Future<VerificacaoFotos?> buscarVerificacaoFotos(String aluguelId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('verificacoes_fotos')
+          .where('aluguelId', isEqualTo: aluguelId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        return null;
+      }
+
+      return VerificacaoFotos.fromMap(querySnapshot.docs.first.data());
+    } catch (e) {
+      throw ServerException('Erro ao buscar verificação de fotos: $e');
     }
   }
 
@@ -300,6 +374,9 @@ class SegurancaRepository {
       final diasAtraso = agora.difference(dataLimiteDevolucao).inDays;
       const multiplicador = 1.5; // 50% de multa sobre o valor da diária
       final multa = diasAtraso * valorDiaria * multiplicador;
+      
+      // Debug: Verificar se o usuário autenticado é o locador
+      final currentUser = FirebaseAuth.instance.currentUser;
       
       // Registrar multa no Firestore
       await _firestore.collection('multas').add({
