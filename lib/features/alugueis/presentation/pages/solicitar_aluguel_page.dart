@@ -51,6 +51,9 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   bool _isAluguelIniciado = false;
   StreamSubscription? _deepLinkSubscription;
   late AppLinks _appLinks;
+  
+  // Flag para controlar qual tipo de pagamento está sendo processado
+  bool _isPagandoCaucao = false;
 
   final _paginaController = PageController();
 
@@ -107,7 +110,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
 
     // Formato esperado: coisarapida://payment/success, failure, ou pending
     // Pode incluir query params como ?payment_id=123&status=approved
-    
+
+    //TODO se não paga e volta, fica carregando eternamente o botão    
     debugPrint('Deep link recebido: $uri');
 
     if (uri.scheme != 'coisarapida') return;
@@ -157,20 +161,36 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     try {
       final valorCaucao =
           (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
+      
+      // Se estamos pagando a caução
+      if (_isPagandoCaucao && valorCaucao > 0) {
+        final caucaoDoAluguel = _criarCaucaoAluguel(
+          valorCaucao,
+          paymentId ?? 'MP_${DateTime.now().millisecondsSinceEpoch}',
+        );
 
-      final caucaoDoAluguel = _criarCaucaoAluguel(
-        valorCaucao,
-        paymentId ?? 'MP_${DateTime.now().millisecondsSinceEpoch}',
-      );
+        final aluguelParaSalvar = _criarAluguelParaSalvar(caucaoDoAluguel);
 
-      final aluguelParaSalvar = _criarAluguelParaSalvar(caucaoDoAluguel);
+        await ref
+            .read(aluguelControllerProvider.notifier)
+            .submeterAluguelCompleto(aluguelParaSalvar);
 
-      await ref
-          .read(aluguelControllerProvider.notifier)
-          .submeterAluguelCompleto(aluguelParaSalvar);
+        if (mounted) {
+          _mostrarSucessoENavegar(aluguelParaSalvar, valorCaucao, tipoPagamento: 'caução');
+        }
+      } 
+      // Se estamos pagando o valor do aluguel (sem caução)
+      else {
+        final caucaoDoAluguel = _criarCaucaoAluguel(0.0, null);
+        final aluguelParaSalvar = _criarAluguelParaSalvar(caucaoDoAluguel);
 
-      if (mounted) {
-        _mostrarSucessoENavegar(aluguelParaSalvar, valorCaucao);
+        await ref
+            .read(aluguelControllerProvider.notifier)
+            .submeterAluguelCompleto(aluguelParaSalvar);
+
+        if (mounted) {
+          _mostrarSucessoENavegar(aluguelParaSalvar, 0.0, tipoPagamento: 'aluguel');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -690,17 +710,13 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     };
   }
 
-  void _handleProcessarCaucao() async {
+  void _handleIniciarPagamento() async {
     setState(() => _isProcessing = true);
 
     final valorCaucao =
         (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
-
-    // Se não há caução, pular direto para salvar
-    if (valorCaucao <= 0) {
-      _salvarAluguelSemCaucao();
-      return;
-    }
+    final valorAluguel =
+        (_dadosAluguel['valorAluguel'] as num?)?.toDouble() ?? 0.0;
 
     try {
       // Obter dados do usuário
@@ -711,24 +727,50 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
         throw Exception('Usuário não autenticado');
       }
 
-      // Criar preferência de pagamento no Mercado Pago
       final mercadoPagoService = ref.read(mercadoPagoServiceProvider);
-      final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
-        aluguelId: _alugueId,
-        valor: valorCaucao,
-        itemNome: 'Caução - ${_dadosAluguel['nomeItem']}',
-        itemDescricao: 'Caução para aluguel de ${_dadosAluguel['nomeItem']}',
-        locatarioId: usuario.id,
-        locatarioEmail: usuario.email,
-      );
       
-      // URL do checkout (usar sandbox_init_point para testes)
-      final checkoutUrl = preferenceResponse['sandbox_init_point'] as String? ?? preferenceResponse['init_point'] as String;
+      // Se há caução, processar pagamento da caução
+      if (valorCaucao > 0) {
+        setState(() => _isPagandoCaucao = true);
+        
+        final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
+          aluguelId: _alugueId,
+          valor: valorCaucao,
+          itemNome: 'Caução - ${_dadosAluguel['nomeItem']}',
+          itemDescricao: 'Caução para aluguel de ${_dadosAluguel['nomeItem']}',
+          locatarioId: usuario.id,
+          locatarioEmail: usuario.email,
+        );
+        
+        final checkoutUrl = preferenceResponse['sandbox_init_point'] as String;
 
-      if (!mounted) return;
+        if (!mounted) return;
+        //SIMULAÇÃO: Em vez de abrir checkout, chama sucesso diretamente
+        await _processarPagamentoAprovado('SIMULADO_${DateTime.now().millisecondsSinceEpoch}');
+        // TODO voltar ao Mercado Pago, descomente a linha abaixo e comente a acima:
+        // await _abrirCheckoutMercadoPago(checkoutUrl);
+      } 
+      // Se não há caução, processar pagamento do valor do aluguel
+      else {
+        setState(() => _isPagandoCaucao = false);
+        
+        final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
+          aluguelId: _alugueId,
+          valor: valorAluguel,
+          itemNome: 'Aluguel - ${_dadosAluguel['nomeItem']}',
+          itemDescricao: 'Pagamento do aluguel de ${_dadosAluguel['nomeItem']}',
+          locatarioId: usuario.id,
+          locatarioEmail: usuario.email,
+        );
+        
+        final checkoutUrl = preferenceResponse['sandbox_init_point'] as String;
 
-      // Abrir Custom Tabs com o checkout do Mercado Pago
-      await _abrirCheckoutMercadoPago(checkoutUrl);
+        if (!mounted) return;
+         //SIMULAÇÃO: Em vez de abrir checkout, chama sucesso diretamente
+        await _processarPagamentoAprovado('SIMULADO_${DateTime.now().millisecondsSinceEpoch}');
+        // TODO voltar ao Mercado Pago, descomente a linha abaixo e comente a acima:
+        // await _abrirCheckoutMercadoPago(checkoutUrl);
+      }
 
     } catch (e) {
       if (mounted) {
@@ -786,36 +828,20 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     }
   }
 
-  void _salvarAluguelSemCaucao() async {
-    try {
-      final caucao = _criarCaucaoAluguel(0.0, null);
-      final aluguel = _criarAluguelParaSalvar(caucao);
-      
-      await ref
-          .read(aluguelControllerProvider.notifier)
-          .submeterAluguelCompleto(aluguel);
-      
-      if (mounted) {
-        _mostrarSucessoENavegar(aluguel, 0.0);
-      }
-    } catch (e) {
-      if (mounted) {
-        SnackBarUtils.mostrarErro(context, 'Erro ao processar caução: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
-    }
-  }
-
-  void _mostrarSucessoENavegar(Aluguel aluguel, double valorCaucao) {
-    SnackBarUtils.mostrarSucesso(
-      context,
-      valorCaucao > 0
+  void _mostrarSucessoENavegar(Aluguel aluguel, double valorCaucao, {String tipoPagamento = ''}) {
+    String mensagem;
+    
+    if (tipoPagamento == 'caução') {
+      mensagem = 'Caução processada e solicitação de aluguel enviada! 🎉';
+    } else if (tipoPagamento == 'aluguel') {
+      mensagem = 'Pagamento realizado e solicitação de aluguel enviada! 🎉';
+    } else {
+      mensagem = valorCaucao > 0
           ? 'Caução processada e solicitação de aluguel enviada! 🎉'
-          : 'Solicitação de aluguel enviada! 🎉',
-    );
+          : 'Solicitação de aluguel enviada! 🎉';
+    }
+    
+    SnackBarUtils.mostrarSucesso(context, mensagem);
 
     final dadosParaStatus = _criarDadosParaStatus(aluguel);
     context.pushReplacement(
@@ -881,7 +907,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   ({String text, VoidCallback? onPressed, Widget? child})
       _getCaucaoBotaoConfig() {
     final valorCaucao = (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
-    //TODO implementar o processamento de caução
+    final valorAluguel = (_dadosAluguel['valorAluguel'] as num?)?.toDouble() ?? 0.0;
+    
     if (_isProcessing) {
       return (
         text: '',
@@ -889,15 +916,15 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
         child: _buildBotaoProcessando(),
       );
     } else {
+      final textoBotao = valorCaucao > 0
+          ? 'Pagar Caução - R\$ ${valorCaucao.toStringAsFixed(2)}'
+          : 'Pagar Aluguel - R\$ ${valorAluguel.toStringAsFixed(2)}';
+          
       return (
-        text: valorCaucao > 0
-            ? 'Processar Caução - R\$ ${valorCaucao.toStringAsFixed(2)}'
-            : 'Continuar (Sem Caução)',
-        onPressed: _handleProcessarCaucao,
+        text: textoBotao,
+        onPressed: _handleIniciarPagamento,
         child: Text(
-          valorCaucao > 0
-              ? 'Processar Caução - R\$ ${valorCaucao.toStringAsFixed(2)}'
-              : 'Continuar (Sem Caução)',
+          textoBotao,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       );

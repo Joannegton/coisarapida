@@ -28,6 +28,7 @@ import '../../features/buscar/presentation/pages/buscar_page.dart';
 import '../../features/itens/presentation/pages/detalhes_item_page.dart';
 import '../../features/favoritos/presentation/pages/favoritos_page.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
+import '../../features/itens/presentation/pages/editar_item_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -103,6 +104,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '${AppRoutes.detalhesItem}/:id',
         name: 'detalhes-item',
         builder: (context, state) => DetalhesItemPage(
+          itemId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '${AppRoutes.editarItem}/:id',
+        name: 'editar-item',
+        builder: (context, state) => EditarItemPage(
           itemId: state.pathParameters['id']!,
         ),
       ),

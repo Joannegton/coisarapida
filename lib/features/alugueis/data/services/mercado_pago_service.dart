@@ -11,6 +11,12 @@ class MercadoPagoService {
   /// 
   /// Este método chama uma Cloud Function do Firebase que
   /// se comunica com a API do Mercado Pago no backend
+  /// 
+  /// ⚠️ IMPORTANTE PARA TESTES:
+  /// 1. Use um Access Token de TEST no Firebase Functions Config
+  /// 2. Configure com: firebase functions:config:set mercadopago.access_token="TEST-xxxxx"
+  /// 3. Use email de usuário de teste (test_user_xxx@testuser.com)
+  /// 4. O retorno incluirá 'sandbox_init_point' para ambiente de testes
   Future<Map<String, dynamic>> criarPreferenciaPagamento({
     required String aluguelId,
     required double valor,

@@ -37,6 +37,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     final isFavorito = favoritosState.contains(widget.itemId);
     final favoritosNotifier = ref.watch(favoritosProvider.notifier);
     final itemAsyncValue = ref.watch(detalhesItemProvider(widget.itemId));
+    final usuarioAtualAsyncValue = ref.watch(usuarioAtualStreamProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -74,20 +75,33 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                   background: Center(child: Text('Erro: $error'))),
             ),
             actions: [
-              IconButton(
-                icon: Icon(
-                  isFavorito ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorito ? Colors.red : theme.colorScheme.onSurface,
+              // Só mostrar favoritos se não for o proprietário do item
+              usuarioAtualAsyncValue.when(
+                data: (usuarioAtual) => itemAsyncValue.maybeWhen(
+                  data: (item) {
+                    if (item != null && usuarioAtual?.id != item.proprietarioId) {
+                      return IconButton(
+                        icon: Icon(
+                          isFavorito ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorito ? Colors.red : theme.colorScheme.onSurface,
+                        ),
+                        onPressed: () {
+                          favoritosNotifier.toggleFavorito(widget.itemId);
+                          SnackBarUtils.mostrarSucesso(
+                            context,
+                            isFavorito
+                                ? 'Removido dos favoritos'
+                                : 'Adicionado aos favoritos',
+                          );
+                        },
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                  orElse: () => const SizedBox.shrink(),
                 ),
-                onPressed: () {
-                  favoritosNotifier.toggleFavorito(widget.itemId);
-                  SnackBarUtils.mostrarSucesso(
-                    context,
-                    isFavorito
-                        ? 'Removido dos favoritos'
-                        : 'Adicionado aos favoritos',
-                  );
-                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
               IconButton(
                 icon: Icon(Icons.share, color: theme.colorScheme.onSurface),
@@ -109,8 +123,13 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
               return SliverToBoxAdapter(
                 child: DetalhesItemContentWidget(
                   item: item,
-                  onChatPressed:
-                      _isCreatingChat ? null : () => _abrirOuCriarChat(item),
+                  onChatPressed: usuarioAtualAsyncValue.maybeWhen(
+                    data: (usuarioAtual) =>
+                        usuarioAtual?.id != item.proprietarioId && !_isCreatingChat
+                            ? () => _abrirOuCriarChat(item)
+                            : null,
+                    orElse: () => _isCreatingChat ? null : () => _abrirOuCriarChat(item),
+                  ),
                   formatarData: Utils.formatarDataPorExtenso,
                 ),
               );
@@ -132,18 +151,75 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
       ),
       bottomNavigationBar: itemAsyncValue.maybeWhen(
         data: (item) => item != null
-            ? DetalhesItemBottomBarWidget(
-                item: item,
-                isCreatingChat: _isCreatingChat,
-                onChatPressed:
-                    _isCreatingChat ? null : () => _abrirOuCriarChat(item),
-                onAlugarPressed: () =>
-                    context.push(AppRoutes.solicitarAluguel, extra: item),
-                onComprarPressed: () =>
-                    context.push(AppRoutes.comprarItem, extra: item),
+            ? usuarioAtualAsyncValue.maybeWhen(
+                data: (usuarioAtual) {
+                  final isProprietario = usuarioAtual?.id == item.proprietarioId;
+                  return isProprietario
+                      ? _buildBottomBarProprietario(item, theme)
+                      : DetalhesItemBottomBarWidget(
+                          item: item,
+                          isCreatingChat: _isCreatingChat,
+                          onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
+                          onAlugarPressed: () => context.push(AppRoutes.solicitarAluguel, extra: item),
+                          onComprarPressed: () => context.push(AppRoutes.comprarItem, extra: item),
+                        );
+                },
+                orElse: () => DetalhesItemBottomBarWidget(
+                    item: item,
+                    isCreatingChat: _isCreatingChat,
+                    onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
+                    onAlugarPressed: () => context.push(AppRoutes.solicitarAluguel, extra: item),
+                    onComprarPressed: () => context.push(AppRoutes.comprarItem, extra: item),
+                  ),
               )
             : null,
         orElse: () => const SizedBox.shrink(),
+      ),
+    );
+  }
+
+  Widget _buildBottomBarProprietario(Item item, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((255 * 0.1).round()),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Botão de Estatísticas
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => SnackBarUtils.mostrarInfo(
+                    context, 'Estatísticas em desenvolvimento'),
+                icon: const Icon(Icons.bar_chart),
+                label: const Text('Estatísticas'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Botão de Editar
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/editar-item/${item.id}'),
+                icon: const Icon(Icons.edit),
+                label: const Text('Editar Item'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

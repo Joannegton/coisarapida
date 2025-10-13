@@ -30,7 +30,9 @@ class ItemRepositoryImpl implements ItemRepository {
       final List<String> downloadUrls = [];
       for (int i = 0; i < fotos.length; i++) {
         final file = fotos[i];
-        final fileName = 'item_${itemId}_foto_$i.jpg';
+        // Usar timestamp para gerar nomes únicos e evitar sobrescrever fotos
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'item_${itemId}_foto_${timestamp}_$i.jpg';
         final ref = _storage.ref().child('itens/$itemId/$fileName');
         final uploadTask = ref.putFile(file);
         final snapshot = await uploadTask.whenComplete(() => {});
@@ -88,6 +90,27 @@ class ItemRepositoryImpl implements ItemRepository {
     } catch (e) {
       print("Erro ao buscar detalhes do item $itemId: $e");
       throw ServerException('Erro ao buscar detalhes do item: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> atualizarItem(ItemModel item) async {
+    try {
+      await _firestore.collection('itens').doc(item.id).update(item.toMapForUpdate());
+    } catch (e) {
+      throw ServerException('Erro ao atualizar item: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> deletarFoto(String fotoUrl) async {
+    try {
+      // Extrai o caminho da foto a partir da URL
+      final ref = _storage.refFromURL(fotoUrl);
+      await ref.delete();
+    } catch (e) {
+      print("Erro ao deletar foto: $e");
+      // Não lança exceção para não bloquear a atualização caso a foto já não exista
     }
   }
 }

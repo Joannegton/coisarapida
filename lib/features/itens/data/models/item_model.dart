@@ -159,4 +159,25 @@ class ItemModel extends Item {
       'visualizacoes': visualizacoes,
     };
   }
+
+  /// Método específico para atualização (não altera criadoEm e campos imutáveis)
+  Map<String, dynamic> toMapForUpdate() {
+    return {
+      'nome': nome,
+      'descricao': descricao,
+      'categoria': categoria,
+      'fotos': fotos,
+      'precoPorDia': precoPorDia,
+      'precoVenda': precoVenda,
+      'tipo': tipo.name,
+      'estado': estado.name,
+      'precoPorHora': precoPorHora,
+      'caucao': valorCaucao,
+      'regrasUso': regrasUso,
+      'disponivel': disponivel,
+      'aprovacaoAutomatica': aprovacaoAutomatica,
+      'localizacao': localizacao.toMap(),
+      'atualizadoEm': FieldValue.serverTimestamp(),
+    };
+  }
 }

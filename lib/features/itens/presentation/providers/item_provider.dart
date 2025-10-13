@@ -117,4 +117,124 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
       rethrow;
     }
   }
+
+  Future<void> atualizarItem({
+    required String itemId,
+    required String nome,
+    required String descricao,
+    required String categoria,
+    required List<String> fotosPaths, // Caminhos locais ou URLs existentes
+    required double precoPorDia,
+    double? precoVenda,
+    required TipoItem tipo,
+    required EstadoItem estado,
+    double? precoPorHora,
+    double? caucao,
+    String? regrasUso,
+    required bool aprovacaoAutomatica,
+    required Item itemOriginal,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // Processar fotos
+      List<String> fotosFinais = [];
+      List<String> fotosParaDeletar = [];
+
+      // Identifica fotos que foram removidas
+      for (final fotoOriginal in itemOriginal.fotos) {
+        if (!fotosPaths.contains(fotoOriginal)) {
+          fotosParaDeletar.add(fotoOriginal);
+        }
+      }
+
+      // Faz upload de novas fotos (que são caminhos locais)
+      List<File> novasFotos = [];
+      for (final foto in fotosPaths) {
+        if (foto.startsWith('http') || foto.startsWith('https')) {
+          // É uma foto já existente na nuvem
+          fotosFinais.add(foto);
+        } else {
+          // É uma foto nova (caminho local)
+          novasFotos.add(File(foto));
+        }
+      }
+
+      // Upload das novas fotos
+      if (novasFotos.isNotEmpty) {
+        final urlsNovasFotos = await _itemRepository.uploadFotos(novasFotos, itemId);
+        fotosFinais.addAll(urlsNovasFotos);
+      }
+
+      // Criar item atualizado
+      final itemAtualizado = ItemModel(
+        id: itemId,
+        proprietarioId: itemOriginal.proprietarioId,
+        proprietarioNome: itemOriginal.proprietarioNome,
+        proprietarioReputacao: itemOriginal.proprietarioReputacao,
+        nome: nome,
+        descricao: descricao,
+        categoria: categoria,
+        fotos: fotosFinais,
+        precoPorDia: precoPorDia,
+        precoPorHora: precoPorHora,
+        precoVenda: precoVenda,
+        valorCaucao: caucao,
+        regrasUso: regrasUso,
+        tipo: tipo,
+        estado: estado,
+        disponivel: itemOriginal.disponivel,
+        aprovacaoAutomatica: aprovacaoAutomatica,
+        criadoEm: itemOriginal.criadoEm,
+        atualizadoEm: DateTime.now(),
+        localizacao: itemOriginal.localizacao,
+        avaliacao: itemOriginal.avaliacao,
+        totalAlugueis: itemOriginal.totalAlugueis,
+        visualizacoes: itemOriginal.visualizacoes,
+      );
+
+      // Atualizar no Firebase
+      await _itemRepository.atualizarItem(itemAtualizado);
+      
+      state = const AsyncValue.data(null);
+      
+      // Deletar fotos antigas em background (não bloqueia a UI)
+      // Fazemos isso DEPOIS de atualizar o state para não atrasar a resposta ao usuário
+      if (fotosParaDeletar.isNotEmpty) {
+        // Executar em background sem await para não bloquear
+        _deletarFotosAntigasEmBackground(fotosParaDeletar);
+      }
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Deleta fotos antigas em background sem bloquear a UI
+  /// Aguarda 5 segundos para garantir que os caches foram atualizados
+  Future<void> _deletarFotosAntigasEmBackground(List<String> fotosUrls) async {
+    try {
+      // Aguarda 5 segundos para garantir propagação dos caches
+      await Future.delayed(const Duration(seconds: 5));
+      
+      print('Iniciando exclusão de ${fotosUrls.length} fotos antigas do Storage...');
+      int sucessos = 0;
+      int falhas = 0;
+      
+      for (final fotoUrl in fotosUrls) {
+        try {
+          await _itemRepository.deletarFoto(fotoUrl);
+          sucessos++;
+          print('✓ Foto deletada: ${fotoUrl.split('/').last.split('?').first}');
+        } catch (e) {
+          falhas++;
+          print('✗ Erro ao deletar foto: $e');
+        }
+      }
+      
+      print('Limpeza concluída: $sucessos sucessos, $falhas falhas');
+    } catch (e) {
+      print('Erro na limpeza de fotos antigas: $e');
+      // Não propagamos o erro pois isso é uma operação em background
+    }
+  }
 }
