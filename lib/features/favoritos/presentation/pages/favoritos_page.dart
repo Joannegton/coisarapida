@@ -20,6 +20,7 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     final favoritosState = ref.watch(itensFavoritosProvider);
     
     return Scaffold(
@@ -31,7 +32,7 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
         title: const Text('Meus Favoritos'),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
+            icon: Icon(Icons.sort, size: screenWidth * 0.06),
             onSelected: (value) {
               setState(() => _ordenacao = value);
             },
@@ -62,11 +63,11 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
       ),
       body: Column(
         children: [          Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            height: screenWidth * 0.15,
+            padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
               children: [
                 _buildFiltroChip('todos', 'Todos'),
                 _buildFiltroChip('ferramentas', 'Ferramentas'),
@@ -94,7 +95,7 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
                     await ref.read(itensFavoritosProvider.future);
                   },
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(screenWidth * 0.04),
                     itemCount: itensFiltrados.length,
                     itemBuilder: (context, index) => _buildItemCard(
                       context,
@@ -116,9 +117,10 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
   Widget _buildFiltroChip(String categoria, String label) {
     final isSelected = _filtroCategoria == categoria;
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: EdgeInsets.only(right: screenWidth * 0.02),
       child: FilterChip(
         selected: isSelected,
         onSelected: (_) {
@@ -129,28 +131,30 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
         selectedColor: theme.colorScheme.primary,
         labelStyle: TextStyle(
           color: isSelected ? Colors.white : null,
-          fontSize: 12,
+          fontSize: screenWidth * 0.03,
         ),
       ),
     );
   }
 
   Widget _buildItemCard(BuildContext context, ThemeData theme, Map<String, dynamic> item) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: screenWidth * 0.03),
       child: InkWell(
         onTap: () => context.push('${AppRoutes.detalhesItem}/${item['id']}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(screenWidth * 0.03),
           child: Row(
             children: [
               // Imagem do item
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  width: 80,
-                  height: 80,
+                  width: screenWidth * 0.2,
+                  height: screenWidth * 0.2,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     image: item['fotos'] != null && item['fotos'].isNotEmpty
@@ -163,14 +167,14 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
                   child: item['fotos'] == null || item['fotos'].isEmpty
                       ? Icon(
                           Icons.image,
-                          size: 32,
+                          size: screenWidth * 0.08,
                           color: Colors.grey.shade400,
                         )
                       : null,
                 ),
               ),
               
-              const SizedBox(width: 12),
+              SizedBox(width: screenWidth * 0.03),
               
               // Informações do item
               Expanded(
@@ -181,43 +185,47 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
                       item['nome'] ?? 'Item sem nome',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
+                        fontSize: screenWidth * 0.045,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: screenWidth * 0.01),
                     Text(
                       'Por ${item['proprietarioNome']}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.grey.shade600,
+                        fontSize: screenWidth * 0.035,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: screenWidth * 0.02),
                     Row(
                       children: [
                         Icon(
                           Icons.location_on,
-                          size: 14,
+                          size: screenWidth * 0.035,
                           color: Colors.grey.shade600,
                         ),
-                        const SizedBox(width: 2),
+                        SizedBox(width: screenWidth * 0.005),
                         Text(
                           '${item['distancia']?.toStringAsFixed(1) ?? '0.0'} km',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
+                            fontSize: screenWidth * 0.035,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        const Icon(
+                        SizedBox(width: screenWidth * 0.03),
+                        Icon(
                           Icons.star,
-                          size: 14,
+                          size: screenWidth * 0.035,
                           color: Colors.orange,
                         ),
-                        const SizedBox(width: 2),
+                        SizedBox(width: screenWidth * 0.005),
                         Text(
                           '${item['avaliacao']?.toStringAsFixed(1) ?? '0.0'}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
+                            fontSize: screenWidth * 0.035,
                           ),
                         ),
                       ],
@@ -235,48 +243,50 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
+                      fontSize: screenWidth * 0.045,
                     ),
                   ),
                   Text(
                     'por dia',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.grey.shade600,
+                      fontSize: screenWidth * 0.035,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: screenWidth * 0.02),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Status
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.015, vertical: screenWidth * 0.005),
                         decoration: BoxDecoration(
                           color: item['disponivel'] == true ? Colors.green : Colors.red,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           item['disponivel'] == true ? 'Disponível' : 'Indisponível',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: screenWidth * 0.025,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: screenWidth * 0.02),
                       // Remover dos favoritos
                       GestureDetector(
                         onTap: () => _removerFavorito(item['id']),
                         child: Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: EdgeInsets.all(screenWidth * 0.01),
                           decoration: BoxDecoration(
                             color: Colors.red.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.favorite,
                             color: Colors.red,
-                            size: 16,
+                            size: screenWidth * 0.04,
                           ),
                         ),
                       ),
@@ -293,39 +303,45 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
 
   Widget _buildEstadoVazio() {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(screenWidth * 0.08),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.favorite_border,
-              size: 80,
+              size: screenWidth * 0.2,
               color: Colors.grey.shade400,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: screenWidth * 0.06),
             Text(
               'Nenhum favorito ainda',
               style: theme.textTheme.headlineSmall?.copyWith(
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.bold,
+                fontSize: screenWidth * 0.055,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: screenWidth * 0.03),
             Text(
               'Explore itens incríveis e adicione aos seus favoritos para encontrá-los facilmente depois!',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: Colors.grey.shade500,
+                fontSize: screenWidth * 0.04,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: screenWidth * 0.08),
             ElevatedButton.icon(
               onPressed: () => context.go(AppRoutes.buscar),
-              icon: const Icon(Icons.search),
-              label: const Text('Explorar Itens'),
+              icon: Icon(Icons.search, size: screenWidth * 0.05),
+              label: Text('Explorar Itens', style: TextStyle(fontSize: screenWidth * 0.04)),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06, vertical: screenWidth * 0.03),
+              ),
             ),
           ],
         ),
@@ -334,19 +350,24 @@ class _FavoritosPageState extends ConsumerState<FavoritosPage> {
   }
 
   Widget _buildEstadoErro(String erro) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(screenWidth * 0.08),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Erro ao carregar favoritos: $erro'),
-            const SizedBox(height: 16),
+            Icon(Icons.error, size: screenWidth * 0.16, color: Colors.red),
+            SizedBox(height: screenWidth * 0.04),
+            Text('Erro ao carregar favoritos: $erro', style: TextStyle(fontSize: screenWidth * 0.04)),
+            SizedBox(height: screenWidth * 0.04),
             ElevatedButton(
               onPressed: () => ref.refresh(itensFavoritosProvider),
-              child: const Text('Tentar Novamente'),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06, vertical: screenWidth * 0.03),
+              ),
+              child: Text('Tentar Novamente', style: TextStyle(fontSize: screenWidth * 0.04)),
             ),
           ],
         ),

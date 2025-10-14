@@ -14,12 +14,13 @@ class CabecalhoPerfilWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     
     return ListTile(
-      contentPadding: const EdgeInsets.only(left: 10, bottom: 10),
+      contentPadding: EdgeInsets.only(left: screenWidth * 0.025, bottom: screenWidth * 0.025),
       tileColor: theme.colorScheme.primary,
       leading: CircleAvatar(
-        radius: 30,
+        radius: screenWidth * 0.075,
         backgroundColor: theme.colorScheme.onPrimary.withAlpha(25),
         backgroundImage: usuario.fotoUrl != null
             ? NetworkImage(usuario.fotoUrl!)
@@ -27,7 +28,7 @@ class CabecalhoPerfilWidget extends StatelessWidget {
         child: usuario.fotoUrl == null
             ? Icon(
                 Icons.person,
-                size: 30,
+                size: screenWidth * 0.075,
                 color: theme.colorScheme.onPrimary,
               )
             : null,
@@ -38,6 +39,8 @@ class CabecalhoPerfilWidget extends StatelessWidget {
           color: theme.colorScheme.onPrimary,
           fontWeight: FontWeight.bold
         ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
       subtitle: Row(
         mainAxisSize: MainAxisSize.min,
@@ -54,8 +57,8 @@ class CabecalhoPerfilWidget extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(onPressed: () => context.push('${AppRoutes.perfilPublico}/${usuario.id}'), icon: Icon(Icons.visibility_outlined, color: theme.colorScheme.onPrimary,)),
-          IconButton(onPressed: () => context.push(AppRoutes.editarPerfil), icon: Icon(Icons.edit_outlined, color: theme.colorScheme.onPrimary)),
+          IconButton(onPressed: () => context.push('${AppRoutes.perfilPublico}/${usuario.id}'), icon: Icon(Icons.visibility_outlined, color: theme.colorScheme.onPrimary, size: screenWidth * 0.06)),
+          IconButton(onPressed: () => context.push(AppRoutes.editarPerfil), icon: Icon(Icons.edit_outlined, color: theme.colorScheme.onPrimary, size: screenWidth * 0.06)),
         ],
       ),
 

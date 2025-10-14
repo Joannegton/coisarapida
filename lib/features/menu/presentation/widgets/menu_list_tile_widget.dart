@@ -57,20 +57,21 @@ class _MenuListTileState extends State<MenuListTile>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return InkWell(
       onTap: widget.onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenWidth * 0.035),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(widget.icone, color: colorScheme.onSurfaceVariant, size: 24),
-            const SizedBox(width: 20),
+            Icon(widget.icone, color: colorScheme.onSurfaceVariant, size: screenWidth * 0.06),
+            SizedBox(width: screenWidth * 0.05),
             Expanded(
               child: Text(widget.texto, style: theme.textTheme.bodyLarge),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: screenWidth * 0.02),
             if (widget.iconeAcao is Text)
               widget.iconeAcao!
             else
@@ -81,8 +82,8 @@ class _MenuListTileState extends State<MenuListTile>
                   Icon(Icons.chevron_right, color: colorScheme.outline),
                   if (widget.iconeAcao != null)
                     Positioned(
-                      top: 6,
-                      right: 4,
+                      top: screenWidth * 0.015,
+                      right: screenWidth * 0.01,
                       child: FadeTransition(
                         opacity: _animation,
                         child: widget.iconeAcao,

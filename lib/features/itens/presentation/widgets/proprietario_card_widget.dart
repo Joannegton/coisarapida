@@ -14,13 +14,17 @@ class ProprietarioCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.04; // 4% da largura da tela
+    final avatarRadius = screenWidth * 0.08; // 8% da largura para o avatar
+    
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(padding),
         child: Row(
           children: [
             CircleAvatar(
-              radius: 30,
+              radius: avatarRadius,
               // TODO: Adicionar foto do proprietário ao Item/Usuario (ex: item.proprietarioFotoUrl)
               // backgroundImage: item.proprietarioFotoUrl != null && item.proprietarioFotoUrl!.isNotEmpty
               //     ? NetworkImage(item.proprietarioFotoUrl!)
@@ -30,10 +34,10 @@ class ProprietarioCardWidget extends StatelessWidget {
                   ? null
                   : */ Text(
                       item.proprietarioNome.isNotEmpty ? item.proprietarioNome[0].toUpperCase() : 'P',
-                      style: TextStyle(fontSize: 24, color: theme.colorScheme.onSecondaryContainer),
+                      style: TextStyle(fontSize: avatarRadius * 0.8, color: theme.colorScheme.onSecondaryContainer),
                     ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: padding),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,31 +45,45 @@ class ProprietarioCardWidget extends StatelessWidget {
                   Text(
                     item.proprietarioNome,
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: padding * 0.25),
                   Row(
                     children: [
                       const Icon(Icons.star, color: Colors.orange, size: 16),
                       const SizedBox(width: 4),
-                      Text(item.proprietarioReputacao?.toStringAsFixed(1) ?? 'N/A'),
-                      const SizedBox(width: 16),
+                      Flexible(
+                        child: Text(
+                          item.proprietarioReputacao?.toStringAsFixed(1) ?? 'N/A',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       const Icon(Icons.handshake, color: Colors.grey, size: 16),
                       const SizedBox(width: 4),
                       // TODO: Adicionar total de alugueis do proprietario
-                      const Text('0 aluguéis'),
+                      Flexible(
+                        child: Text(
+                          '0 aluguéis',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
+            SizedBox(width: padding * 0.5),
             Column(
               children: [
                 IconButton(
                   onPressed: onChatPressed,
-                  icon: const Icon(Icons.chat),
+                  icon: const Icon(Icons.chat, size: 20),
                   style: IconButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
                     foregroundColor: theme.colorScheme.primary,
+                    padding: EdgeInsets.all(padding * 0.75),
                   ),
                 ),
                 const Text('Chat', style: TextStyle(fontSize: 10)),

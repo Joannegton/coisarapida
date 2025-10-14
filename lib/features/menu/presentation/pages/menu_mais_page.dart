@@ -15,6 +15,7 @@ class MenuMaisPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final usuario = ref.watch(usuarioAtualStreamProvider).value;
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     if (usuario == null) {
       context.go(AppRoutes.login);
@@ -24,12 +25,12 @@ class MenuMaisPage extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 60,
+            expandedHeight: screenWidth * 0.15,
             pinned: true,
             stretch: true,
             backgroundColor: theme.colorScheme.primary,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(30), 
+              preferredSize: Size.fromHeight(screenWidth * 0.075),
               child: CabecalhoPerfilWidget(usuario: usuario!),
             ),
           ),
@@ -61,14 +62,14 @@ class MenuMaisPage extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
-              const SizedBox(height: 16),
+              SizedBox(height: screenWidth * 0.04),
               MinhasEstatisticaWidget(usuario: usuario),
               const ConfiguracoesRapidas()
             ]),
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(screenWidth * 0.04),
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -80,13 +81,13 @@ class MenuMaisPage extends ConsumerWidget {
                   ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.red),
-                    minimumSize: const Size.fromHeight(35),
-                    padding: const EdgeInsets.symmetric(vertical: 0),
+                    minimumSize: Size.fromHeight(screenWidth * 0.09),
+                    padding: EdgeInsets.symmetric(vertical: screenWidth * 0.02),
                   ),
-                ),
                 ),
               ),
             ),
+          ),
         ]
       ),
     );

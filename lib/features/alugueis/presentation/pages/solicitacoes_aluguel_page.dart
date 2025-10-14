@@ -5,6 +5,7 @@ import 'package:coisarapida/features/alugueis/presentation/helpers/solicitacao_h
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_routes.dart';
 
 export 'solicitacoes_aluguel_page.dart' show TipoVisualizacao;
 
@@ -158,7 +159,7 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
             return _buildEmptyState(
               theme,
               _tipoVisualizacao == TipoVisualizacao.recebidas
-                  ? 'Nenhuma solicitação recebida ainda'
+                  ? 'Nenhuma solicitação recebida'
                   : 'Você ainda não fez nenhuma solicitação',
             );
           }
@@ -295,6 +296,8 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
   }
 
   Widget _buildEmptyState(ThemeData theme, String mensagem) {
+    final isMinhasSolicitacoes = _tipoVisualizacao == TipoVisualizacao.enviadas && _filtroAtual == FiltroSolicitacao.todas;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -307,18 +310,46 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
           const SizedBox(height: 16),
           Text(
             mensagem,
+            textAlign: TextAlign.center,
             style: theme.textTheme.titleLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            _getEmptyMessageForFiltro(_filtroAtual),
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+          if (!isMinhasSolicitacoes) ...[
+            Text(
+              _getEmptyMessageForFiltro(_filtroAtual),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+              ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Navegar para a página de busca de itens
+                Navigator.of(context).pushNamed(AppRoutes.buscar);
+              },
+              icon: const Icon(Icons.search),
+              label: const Text('Buscar Itens'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Explore itens disponíveis para alugar',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+              ),
+            ),
+          ],
         ],
       ),
     );

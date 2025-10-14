@@ -14,25 +14,29 @@ class CategoriaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final cardWidth = screenSize.width * 0.18; // 18% of screen width
+    final iconSize = cardWidth * 0.75; // 75% of card width for icon container
+
     return Container(
-      width: 80,
-      margin: const EdgeInsets.only(right: 12),
+      width: cardWidth,
+      margin: const EdgeInsets.only(right: 10),
       child: Column(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: iconSize,
+            height: iconSize,
             decoration: BoxDecoration(
               color: cor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icone, color: cor, size: 28),
+            child: Icon(icone, color: cor, size: iconSize * 0.45),
           ),
           const SizedBox(height: 8),
           Flexible(
             child: Text(
               nome,
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(fontSize: screenSize.width * 0.03),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

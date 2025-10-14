@@ -13,10 +13,11 @@ class MinhasEstatisticaWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(screenWidth * 0.05),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -26,7 +27,7 @@ class MinhasEstatisticaWidget extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: screenWidth * 0.04),
             
             Row(
               children: [
@@ -49,7 +50,7 @@ class MinhasEstatisticaWidget extends StatelessWidget {
               ],
             ),
             
-            const SizedBox(height: 16),
+            SizedBox(height: screenWidth * 0.04),
             
             Row(
               children: [
@@ -70,35 +71,40 @@ class MinhasEstatisticaWidget extends StatelessWidget {
   }
 
   Widget _cardEstatisticaWidget(String titulo, String valor, IconData icone, Color cor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: cor.withAlpha(25),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(icone, color: cor, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            valor,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: cor,
-            ),
+    return Builder(
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        return Container(
+          padding: EdgeInsets.all(screenWidth * 0.04),
+          margin: EdgeInsets.all(screenWidth * 0.01),
+          decoration: BoxDecoration(
+            color: cor.withAlpha(25),
+            borderRadius: BorderRadius.circular(12),
           ),
-          Text(
-            titulo,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              Icon(icone, color: cor, size: screenWidth * 0.06),
+              SizedBox(height: screenWidth * 0.02),
+              Text(
+                valor,
+                style: TextStyle(
+                  fontSize: screenWidth * 0.045,
+                  fontWeight: FontWeight.bold,
+                  color: cor,
+                ),
+              ),
+              Text(
+                titulo,
+                style: TextStyle(
+                  fontSize: screenWidth * 0.03,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      }
     );
   }
 }

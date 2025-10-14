@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../autenticacao/presentation/providers/auth_provider.dart';
-
 import '../../../../core/constants/app_routes.dart';
 import '../widgets/categoria_card.dart';
 import '../widgets/item_card.dart';
@@ -22,39 +20,79 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  final ScrollController _scrollController = ScrollController();
-  double _scrollOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _scrollController.addListener(_onScroll);
+    _tabController.addListener(_onTabChanged);
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    setState(() {
-      _scrollOffset = _scrollController.offset;
-    });
+  void _onTabChanged() {
+    final tipo = switch (_tabController.index) {
+      0 => null, // Todos
+      1 => TipoItem.aluguel,
+      2 => TipoItem.venda,
+      _ => null,
+    };
+    ref.read(homeTabFilterProvider.notifier).state = tipo;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final authState = ref.watch(usuarioAtualStreamProvider);
     final tipoFiltro = ref.watch(homeTabFilterProvider);
     final itensAsyncValue = ref.watch(itensProximosProvider);
     final itensFiltrados = ref.watch(itensFiltradosProvider(tipoFiltro));
 
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: theme.colorScheme.primary,
+        title: GestureDetector(
+          onTap: () => context.push('${AppRoutes.buscar}?fromHome=true'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.search, color: Colors.grey),
+                const SizedBox(width: 12),
+                Text(
+                  'Buscar itens...',
+                  style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: theme.colorScheme.onPrimary,
+          labelColor: theme.colorScheme.onPrimary,
+          unselectedLabelColor: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+          tabs: const [
+            Tab(text: 'Todos'),
+            Tab(text: 'Aluguel'),
+            Tab(text: 'Venda'),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.anunciarItem),
         icon: const Icon(Icons.add),
@@ -66,147 +104,13 @@ class _HomePageState extends ConsumerState<HomePage>
           borderRadius: BorderRadius.circular(16.0),
         ),
       ),
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is ScrollUpdateNotification) {
-            setState(() {
-              _scrollOffset = notification.metrics.pixels;
-            });
-          }
-          return false;
-        },
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-          SliverAppBar(
-            expandedHeight: 170,
-            floating: true,
-            pinned: true,
-            backgroundColor: theme.colorScheme.primary,
-            flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
-                // Calcular a opacidade baseada no quanto o AppBar está expandido
-                final expandRatio = (constraints.maxHeight - kToolbarHeight) / 
-                    (170 - kToolbarHeight);
-                final opacity = expandRatio.clamp(0.0, 1.0);
-                
-                return FlexibleSpaceBar(
-                  background: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                    ),
-                    child: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-                        child: Opacity(
-                          opacity: opacity,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Saudação
-                              authState.when(
-                                data: (usuario) => Text(
-                                  'Olá, ${usuario?.nome.split(' ').first ?? 'Usuário'}!',
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    color: theme.colorScheme.onPrimary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                loading: () => Text(
-                                  'Olá!',
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    color: theme.colorScheme.onPrimary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                error: (_, __) => Text(
-                                  'Olá!',
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    color: theme.colorScheme.onPrimary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Alugue ou compre itens incríveis perto de você',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(120),
-              child: Builder(
-                builder: (context) {
-                  // Calcular o espaçamento baseado no scroll offset
-                  final maxScroll = 170 - kToolbarHeight; // expandedHeight - toolbarHeight
-                  final scrollProgress = (_scrollOffset / maxScroll).clamp(0.0, 1.0);
-                  final spacing = scrollProgress < 0.5 ? 2.0 : 0.0; // 2 quando expandido, 0 quando colapsado
-
-                  return Container(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () => context.push('${AppRoutes.buscar}?fromHome=true'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.search, color: Colors.grey),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Buscar furadeira, bike, cadeira...',
-                                  style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: spacing),
-                        // Tabs para filtrar
-                        TabBar(
-                          controller: _tabController,
-                          indicatorColor: theme.colorScheme.onPrimary,
-                          labelColor: theme.colorScheme.onPrimary,
-                          unselectedLabelColor: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
-                          labelPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                          tabs: const [
-                            Tab(text: 'Todos'),
-                            Tab(text: 'Aluguel'),
-                            Tab(text: 'Venda'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
+      body: CustomScrollView(
+        slivers: [
 
           // Categorias populares
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8), // Reduz bottom para menos espaço
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -218,7 +122,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 80,
+                    height: screenHeight * 0.12,
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       children: const [
@@ -324,8 +228,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
         ],
       ),
-    ),
-  );
+    );
   }
 
   String _getTituloSecao(TipoItem? filtro) {

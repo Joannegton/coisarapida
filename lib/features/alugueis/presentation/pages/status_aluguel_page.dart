@@ -160,6 +160,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -171,8 +173,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         actions: [
           // Badge de status
           Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * 0.04),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width * 0.03,
+              vertical: 6,
+            ),
             decoration: BoxDecoration(
               color: isSolicitado
                   ? Colors.orange[100]
@@ -185,17 +190,18 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   isSolicitado
                       ? Icons.hourglass_empty_rounded
                       : (emAtraso ? Icons.warning_rounded : Icons.check_circle_rounded),
-                  size: 16,
+                  size: MediaQuery.of(context).size.width * 0.04,
                   color: isSolicitado
                       ? Colors.orange[700]
                       : (emAtraso ? Colors.red[700] : Colors.green[700]),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: MediaQuery.of(context).size.width * 0.015),
                 Text(
                   isSolicitado
                       ? 'Pendente'
@@ -226,21 +232,26 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         ),
         child: SafeArea( // Adicionado SafeArea para garantir que o conteúdo não seja cortado
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: EdgeInsets.fromLTRB(
+              MediaQuery.of(context).size.width * 0.04,
+              MediaQuery.of(context).size.width * 0.04,
+              MediaQuery.of(context).size.width * 0.04,
+              MediaQuery.of(context).size.width * 0.08,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Se está solicitado, mostrar card de aguardando aprovação
                 if (isSolicitado) ...[
                   _buildAguardandoAprovacaoCard(theme, isLocador),
-                  const SizedBox(height: 20),
+                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
                 ] else ...[
                   // Indicador de progresso do aluguel (só para aluguéis aprovados)
                   _buildProgressIndicator(theme, dataLimite),
-                  const SizedBox(height: 20),
+                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
                   // Status do item
                   _buildStatusCard(theme, emAtraso, isLocador),
-                  const SizedBox(height: 20),
+                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
                 ],
 
                 // Informações do aluguel (sempre visível)
@@ -248,7 +259,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
                 // Apenas mostrar contador, upload e algumas ações se NÃO estiver solicitado
                 if (!isSolicitado) ...[
-                  const SizedBox(height: 20),
+                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
 
                   // Contador de tempo (só para locatário)
                   if (isLocatario) ...[
@@ -256,7 +267,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                       dataLimite: dataLimite,
                       onAtraso: () => _verificarAtraso(),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: MediaQuery.of(context).size.width * 0.05),
                   ],
 
                   // Upload de fotos de verificação (só para locatário)
@@ -265,7 +276,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                       aluguelId: widget.aluguelId,
                       itemId: _dadosAluguelAtuais['itemId'] as String,
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: MediaQuery.of(context).size.width * 0.05),
                   ],
                 ],
 
@@ -290,9 +301,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     final totalDias = dataLimite.difference(dataInicio).inDays;
     final diasPassados = agora.difference(dataInicio).inDays;
     final progresso = (diasPassados / totalDias).clamp(0.0, 1.0);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -310,7 +322,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(screenWidth * 0.02),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -318,20 +330,22 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: Icon(
                   Icons.timeline_rounded,
                   color: theme.colorScheme.primary,
-                  size: 20,
+                  size: screenWidth * 0.05,
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Progresso do Aluguel',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
+              SizedBox(width: screenWidth * 0.03),
+              Expanded(
+                child: Text(
+                  'Progresso do Aluguel',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: screenWidth * 0.04),
 
           // Barra de progresso
           Container(
@@ -356,17 +370,19 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: screenWidth * 0.03),
 
           // Informações do progresso
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Dia ${diasPassados > 0 ? diasPassados : 0} de $totalDias',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Text(
+                  'Dia ${diasPassados > 0 ? diasPassados : 0} de $totalDias',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               Text(
@@ -379,11 +395,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ],
           ),
 
-          const SizedBox(height: 8),
+          SizedBox(height: screenWidth * 0.02),
 
           // Status do progresso
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03, vertical: 6),
             decoration: BoxDecoration(
               color: agora.isAfter(dataLimite)
                   ? Colors.red[50]
@@ -421,9 +437,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   Widget _buildAguardandoAprovacaoCard(ThemeData theme, bool isLocador) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.orange[100]!, Colors.orange[50]!, Colors.white],
@@ -447,7 +464,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         children: [
           // Ícone com fundo circular
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.orange[100],
@@ -458,11 +475,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ),
             child: Icon(
               Icons.hourglass_empty_rounded,
-              size: 32,
+              size: screenWidth * 0.08,
               color: Colors.orange[700],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: screenWidth * 0.03),
 
           // Título do status
           Text(
@@ -472,12 +489,13 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               color: Colors.orange[800],
               letterSpacing: 0.5,
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: screenWidth * 0.03),
 
           // Descrição do status
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(screenWidth * 0.03),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.7),
               borderRadius: BorderRadius.circular(12),
@@ -502,9 +520,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   Widget _buildStatusCard(ThemeData theme, bool emAtraso, bool isLocador) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: emAtraso
@@ -530,7 +549,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         children: [
           // Ícone com fundo circular
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: emAtraso ? Colors.red[100] : Colors.green[100],
@@ -541,11 +560,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ),
             child: Icon(
               emAtraso ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
-              size: 32,
+              size: screenWidth * 0.08,
               color: emAtraso ? Colors.red[700] : Colors.green[700],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: screenWidth * 0.03),
 
           // Título do status
           Text(
@@ -555,13 +574,14 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               color: emAtraso ? Colors.red[800] : Colors.green[800],
               letterSpacing: 0.5,
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: screenWidth * 0.02),
 
           // Badge de multa (se houver)
           if (emAtraso && _valorMulta != null) ...[
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.red[500],
                 borderRadius: BorderRadius.circular(20),
@@ -576,12 +596,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.attach_money_rounded,
                     color: Colors.white,
-                    size: 18,
+                    size: screenWidth * 0.045,
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: screenWidth * 0.015),
                   Text(
                     'Multa: R\$ ${_valorMulta!.toStringAsFixed(2)}',
                     style: theme.textTheme.bodyLarge?.copyWith(
@@ -592,12 +612,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: screenWidth * 0.03),
           ],
 
           // Descrição do status
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(screenWidth * 0.03),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.7),
               borderRadius: BorderRadius.circular(12),
@@ -622,9 +642,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   Widget _buildInformacoesAluguel(ThemeData theme, bool isLocador) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -646,7 +667,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(screenWidth * 0.02),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -654,20 +675,22 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: Icon(
                   Icons.info_outline_rounded,
                   color: theme.colorScheme.primary,
-                  size: 20,
+                  size: screenWidth * 0.05,
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Informações do Aluguel',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
+              SizedBox(width: screenWidth * 0.03),
+              Expanded(
+                child: Text(
+                  'Informações do Aluguel',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: screenWidth * 0.05),
 
           // Grid de informações principais
           Row(
@@ -681,7 +704,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   theme.colorScheme.primary,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: screenWidth * 0.03),
               Expanded(
                 child: _buildInfoCard(
                   theme,
@@ -693,7 +716,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: screenWidth * 0.03),
 
           Row(
             children: [
@@ -706,7 +729,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   Colors.orange[600]!,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: screenWidth * 0.03),
               Expanded(
                 child: _buildInfoCard(
                   theme,
@@ -720,9 +743,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           ),
 
           // Informações do locador (sempre visível)
-          const SizedBox(height: 20),
+          SizedBox(height: screenWidth * 0.05),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
               borderRadius: BorderRadius.circular(12),
@@ -737,10 +760,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   children: [
                     Icon(
                       Icons.person_rounded,
-                      size: 18,
+                      size: screenWidth * 0.045,
                       color: theme.colorScheme.primary,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: screenWidth * 0.02),
                     Text(
                       'Locador',
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -750,7 +773,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: screenWidth * 0.02),
                 Text(
                   _dadosAluguelAtuais['nomeLocador'] as String? ?? 'Locador',
                   style: theme.textTheme.bodyLarge?.copyWith(
@@ -763,9 +786,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
           // Informações do locatário (só para locador)
           if (isLocador) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: screenWidth * 0.04),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(screenWidth * 0.04),
               decoration: BoxDecoration(
                 color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(12),
@@ -780,10 +803,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     children: [
                       Icon(
                         Icons.people_rounded,
-                        size: 18,
+                        size: screenWidth * 0.045,
                         color: theme.colorScheme.secondary,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: screenWidth * 0.02),
                       Text(
                         'Locatário',
                         style: theme.textTheme.titleSmall?.copyWith(
@@ -793,11 +816,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: screenWidth * 0.03),
                   _buildContatoRow(theme, Icons.person, _dadosAluguelAtuais['nomeLocatario'] ?? 'João Silva'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: screenWidth * 0.02),
                   _buildContatoRow(theme, Icons.phone, _dadosAluguelAtuais['telefoneLocatario'] ?? '(11) 99999-9999'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: screenWidth * 0.02),
                   _buildContatoRow(theme, Icons.location_on, _dadosAluguelAtuais['enderecoLocatario'] ?? 'Rua das Flores, 123'),
                 ],
               ),
@@ -809,8 +832,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   Widget _buildInfoCard(ThemeData theme, String titulo, String valor, IconData icone, Color cor) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: cor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -823,8 +847,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         children: [
           Row(
             children: [
-              Icon(icone, size: 16, color: cor),
-              const SizedBox(width: 6),
+              Icon(icone, size: screenWidth * 0.04, color: cor),
+              SizedBox(width: screenWidth * 0.015),
               Expanded(
                 child: Text(
                   titulo,
@@ -838,7 +862,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: screenWidth * 0.015),
           Text(
             valor,
             style: theme.textTheme.titleMedium?.copyWith(
@@ -854,14 +878,15 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   Widget _buildContatoRow(ThemeData theme, IconData icone, String texto) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Row(
       children: [
         Icon(
           icone,
-          size: 16,
+          size: screenWidth * 0.04,
           color: theme.colorScheme.onSurfaceVariant,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: screenWidth * 0.02),
         Expanded(
           child: Text(
             texto,
@@ -875,10 +900,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario, bool isSolicitado) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16), // Margem inferior para evitar corte
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.only(bottom: screenWidth * 0.04),
+      padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -900,7 +926,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(screenWidth * 0.02),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -908,20 +934,22 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: Icon(
                   Icons.touch_app_rounded,
                   color: theme.colorScheme.primary,
-                  size: 20,
+                  size: screenWidth * 0.05,
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Ações Disponíveis',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
+              SizedBox(width: screenWidth * 0.03),
+              Expanded(
+                child: Text(
+                  'Ações Disponíveis',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: screenWidth * 0.05),
 
           // Se está solicitado, mostrar ações específicas
           if (isSolicitado) ...[
@@ -934,7 +962,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   color: theme.colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: screenWidth * 0.03),
               
               _buildActionButton(
                 theme,
@@ -946,7 +974,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 isPrimary: true,
               ),
               
-              const SizedBox(height: 12),
+              SizedBox(height: screenWidth * 0.03),
               
               _buildActionButton(
                 theme,
@@ -965,10 +993,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   color: Colors.orange[700],
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: screenWidth * 0.03),
               
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(screenWidth * 0.04),
                 decoration: BoxDecoration(
                   color: Colors.orange[50],
                   borderRadius: BorderRadius.circular(12),
@@ -976,8 +1004,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.hourglass_empty_rounded, color: Colors.orange[700]),
-                    const SizedBox(width: 12),
+                    Icon(Icons.hourglass_empty_rounded, size: screenWidth * 0.05, color: Colors.orange[700]),
+                    SizedBox(width: screenWidth * 0.03),
                     Expanded(
                       child: Text(
                         'Sua solicitação foi enviada! O locador analisará e responderá em breve.',
@@ -990,7 +1018,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ),
               ),
               
-              const SizedBox(height: 12),
+              SizedBox(height: screenWidth * 0.03),
               
               _buildActionButton(
                 theme,
@@ -1010,7 +1038,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: screenWidth * 0.03),
 
             // Botão principal - Confirmar Devolução
             _buildActionButton(
@@ -1023,7 +1051,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               isPrimary: true,
             ),
 
-            const SizedBox(height: 12),
+            SizedBox(height: screenWidth * 0.03),
 
             // Botões secundários em linha
             Row(
@@ -1039,7 +1067,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     isCompact: true,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: screenWidth * 0.03),
                 Expanded(
                   child: _buildActionButton(
                     theme,
@@ -1062,7 +1090,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: screenWidth * 0.03),
 
             // Botão principal - Aprovar Devolução
             _buildActionButton(
@@ -1075,7 +1103,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               isPrimary: true,
             ),
 
-            const SizedBox(height: 12),
+            SizedBox(height: screenWidth * 0.03),
 
             // Botões secundários em linha
             Row(
@@ -1091,7 +1119,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     isCompact: true,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: screenWidth * 0.03),
                 Expanded(
                   child: _buildActionButton(
                     theme,
@@ -1121,9 +1149,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     bool isPrimary = false,
     bool isCompact = false,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
-      height: isCompact ? 80 : 100,
+      height: isCompact ? screenWidth * 0.2 : screenWidth * 0.25,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -1131,7 +1160,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           foregroundColor: isPrimary ? Colors.white : cor,
           elevation: isPrimary ? 4 : 0,
           shadowColor: isPrimary ? cor.withOpacity(0.3) : Colors.transparent,
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(screenWidth * 0.04),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: isPrimary
@@ -1142,7 +1171,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(screenWidth * 0.02),
               decoration: BoxDecoration(
                 color: isPrimary
                     ? Colors.white.withOpacity(0.2)
@@ -1151,11 +1180,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
               child: Icon(
                 icone,
-                size: isCompact ? 20 : 24,
+                size: isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
                 color: isPrimary ? Colors.white : cor,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: screenWidth * 0.03),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1174,7 +1203,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (!isCompact) ...[
-                    const SizedBox(height: 2),
+                    SizedBox(height: screenWidth * 0.005),
                     Text(
                       subtitulo,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -1192,7 +1221,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             if (!isCompact)
               Icon(
                 Icons.arrow_forward_ios_rounded,
-                size: 16,
+                size: screenWidth * 0.04,
                 color: isPrimary ? Colors.white : cor,
               ),
           ],

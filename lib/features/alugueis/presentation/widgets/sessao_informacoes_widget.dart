@@ -29,6 +29,9 @@ class SessaoInformacoesAluguelWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.04; // 4% da largura da tela
+    final avatarRadius = screenWidth * 0.08; // 8% da largura
 
     return 
     Column(
@@ -36,7 +39,7 @@ class SessaoInformacoesAluguelWidget extends StatelessWidget {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: CircleAvatar(
-            radius: 30,
+            radius: avatarRadius,
             backgroundImage: NetworkImage(item.fotos.first),
           ),
           title: Text(
@@ -50,11 +53,11 @@ class SessaoInformacoesAluguelWidget extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: padding),
 
         _buildSelectTipoLocacao(theme),
 
-        const SizedBox(height: 16),
+        SizedBox(height: padding),
 
         Column(
           children: [
@@ -76,11 +79,11 @@ class SessaoInformacoesAluguelWidget extends StatelessWidget {
           ],
         ),
       
-        const SizedBox(height: 16),
+        SizedBox(height: padding),
 
         _buildResumoAluguel(context ,theme),
 
-        const SizedBox(height: 24),
+        SizedBox(height: padding * 1.5),
         TextFormField(
           decoration: const InputDecoration(
             labelText: 'Observações (opcional)',
@@ -138,10 +141,12 @@ class SessaoInformacoesAluguelWidget extends StatelessWidget {
   }
 
   Widget _buildResumoAluguel(BuildContext context, ThemeData theme) {
+    final padding = MediaQuery.of(context).size.width * 0.04;
+    
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(padding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -149,7 +154,7 @@ class SessaoInformacoesAluguelWidget extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurface,
             )),
-            const SizedBox(height: 12),
+            SizedBox(height: padding * 0.75),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -164,36 +169,36 @@ class SessaoInformacoesAluguelWidget extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: padding * 0.5),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Duração total:', style: TextStyle(color: theme.colorScheme.onSurface)),
-                Text(duracaoTexto, style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+                Flexible(child: Text('Duração total:', style: TextStyle(color: theme.colorScheme.onSurface))),
+                Flexible(child: Text(duracaoTexto, style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface), textAlign: TextAlign.right)),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: padding * 0.5),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Data de Coleta:', style: TextStyle(color: theme.colorScheme.onSurface)),
-                Text(format(dataInicio), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+                Flexible(child: Text('Data de Coleta:', style: TextStyle(color: theme.colorScheme.onSurface))),
+                Flexible(child: Text(format(dataInicio), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface), textAlign: TextAlign.right)),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: padding * 0.5),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Data de entrega:', style: TextStyle(color: theme.colorScheme.onSurface)),
-                Text(format(dataFim), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+                Flexible(child: Text('Data de entrega:', style: TextStyle(color: theme.colorScheme.onSurface))),
+                Flexible(child: Text(format(dataFim), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface), textAlign: TextAlign.right)),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: padding * 0.5),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Valor do Caução:', style: TextStyle(color: theme.colorScheme.onSurface)),
-                Text('R\$ ${item.valorCaucao}', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+                Flexible(child: Text('Valor do Caução:', style: TextStyle(color: theme.colorScheme.onSurface))),
+                Flexible(child: Text('R\$ ${item.valorCaucao}', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface), textAlign: TextAlign.right)),
               ],
             ),
           ],

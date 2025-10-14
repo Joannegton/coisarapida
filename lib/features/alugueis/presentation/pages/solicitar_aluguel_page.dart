@@ -283,6 +283,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.04; // 4% da largura da tela
 
     final usuarioAsyncValue = ref.read(usuarioAtualStreamProvider);
     final locatario = usuarioAsyncValue.asData?.value;
@@ -346,7 +348,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
             )),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(padding),
         child: Form(
           key: _formKey,
           child: PageView(
@@ -358,16 +360,23 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
               });
             },
             children: [
-              SessaoInformacoesAluguelWidget(
-                item: widget.item,
-                alugarPorHora: _alugarPorHora,
-                dataFim: _dataFim,
-                dataInicio: _dataInicio,
-                onObservacoesSaved: (value) => _observacoes = value ?? '',
-                onTipoAluguelChanged: _onTipoAluguelChanged,
-                selecionarData: _selecionarData,
-                precoTotal: detalhesAluguel.precoTotal,
-                duracaoTexto: detalhesAluguel.duracaoTexto,
+              LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: SessaoInformacoesAluguelWidget(
+                      item: widget.item,
+                      alugarPorHora: _alugarPorHora,
+                      dataFim: _dataFim,
+                      dataInicio: _dataInicio,
+                      onObservacoesSaved: (value) => _observacoes = value ?? '',
+                      onTipoAluguelChanged: _onTipoAluguelChanged,
+                      selecionarData: _selecionarData,
+                      precoTotal: detalhesAluguel.precoTotal,
+                      duracaoTexto: detalhesAluguel.duracaoTexto,
+                    ),
+                  ),
+                ),
               ),
               _isAluguelIniciado && _paginaAtual >= 1
                   ? AceiteContratoPage(
@@ -405,6 +414,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   Widget _buildBotoesNavegacao(ThemeData theme, Usuario locatario,
       AsyncValue<ContratoDigital?> contratoState) {
     final config = _getBotaoConfig(locatario, contratoState);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.05; // 5% da largura da tela
 
     return Container(
       decoration: BoxDecoration(
@@ -417,7 +428,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(padding),
       child: SafeArea(
         child: Row(
           children: [
@@ -428,7 +439,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
                   icon: const Icon(Icons.arrow_back, size: 20),
                   label: const Text('Voltar'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: padding),
                     side: BorderSide(color: theme.colorScheme.primary, width: 2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -436,7 +447,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: padding),
             ],
             Expanded(
               flex: 2,
@@ -917,8 +928,8 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       );
     } else {
       final textoBotao = valorCaucao > 0
-          ? 'Pagar Caução - R\$ ${valorCaucao.toStringAsFixed(2)}'
-          : 'Pagar Aluguel - R\$ ${valorAluguel.toStringAsFixed(2)}';
+          ? 'Pagar - R\$ ${valorCaucao.toStringAsFixed(2)}'
+          : 'Pagar - R\$ ${valorAluguel.toStringAsFixed(2)}';
           
       return (
         text: textoBotao,

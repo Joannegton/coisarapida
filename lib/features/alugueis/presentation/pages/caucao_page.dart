@@ -40,7 +40,8 @@ class CaucaoConteudoWidget extends StatelessWidget {
           _buildDetalhesCaucao(theme, nomeItem, valorAluguel, diasAluguel, valorCaucao),
           const SizedBox(height: 24),
           // Métodos de pagamento
-          _buildMetodosPagamento(theme),
+          // _buildMetodosPagamento(theme),
+          _buildPagamentoMercadoPago(context, theme),
           const SizedBox(height: 24),
           // Termos e condições
           _buildTermosCondicoes(theme),
@@ -224,41 +225,88 @@ class CaucaoConteudoWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildTermosCondicoes(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Condições da Caução',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+  Widget _buildPagamentoMercadoPago(BuildContext context, ThemeData theme) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Image.asset(
+              'assets/images/logo-mercado-pago.png',
+              width: screenWidth * 0.5,
+              fit: BoxFit.contain,
             ),
-          ),
-          const SizedBox(height: 8),
-          
-          _buildCondicaoItem('✅ Liberação automática após devolução aprovada'),
-          _buildCondicaoItem('⚠️ Desconto de multas por atraso'),
-          _buildCondicaoItem('🔧 Desconto de custos de reparo em caso de danos'),
-          _buildCondicaoItem('📅 Prazo máximo de 7 dias para liberação'),
-          _buildCondicaoItem('💳 Sem cobrança de juros ou taxas adicionais'),
-        ],
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.security,
+                  color: Colors.green,
+                  size: 32,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Pagamento Seguro',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCondicaoItem(String texto) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Text(
-        texto,
-        style: const TextStyle(fontSize: 12),
+  Widget _buildTermosCondicoes(ThemeData theme) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Condições da Caução',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildCondicaoItem('✅ Liberação automática após devolução aprovada', theme),
+            const SizedBox(height: 8),
+            _buildCondicaoItem('⚠️ Desconto de multas por atraso', theme),
+            const SizedBox(height: 8),
+            _buildCondicaoItem('🔧 Desconto de custos de reparo em caso de danos', theme),
+            const SizedBox(height: 8),
+            _buildCondicaoItem('📅 Prazo máximo de 7 dias para liberação', theme),
+            const SizedBox(height: 8),
+            _buildCondicaoItem('💳 Sem cobrança de juros ou taxas adicionais', theme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCondicaoItem(String texto, ThemeData theme) {
+    return Text(
+      texto,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        height: 1.4,
       ),
     );
   }

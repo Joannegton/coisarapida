@@ -20,9 +20,11 @@ class DetalhesItemContentWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.04; // 4% da largura da tela
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -32,9 +34,9 @@ class DetalhesItemContentWidget extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: padding * 0.5),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: padding * 0.75, vertical: padding * 0.25),
             decoration: BoxDecoration(
               color: theme.colorScheme.primary.withAlpha(25),
               borderRadius: BorderRadius.circular(20),
@@ -49,12 +51,12 @@ class DetalhesItemContentWidget extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: padding),
 
           // Preços
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: padding * 0.75,
+            runSpacing: padding * 0.75,
             children: [
               // Preço de Venda (se aplicável)
               if ((item.tipo == TipoItem.venda ||
@@ -88,21 +90,21 @@ class DetalhesItemContentWidget extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: padding * 1.25),
 
           ProprietarioCardWidget(item: item, onChatPressed: onChatPressed),
 
-          const SizedBox(height: 20),
+          SizedBox(height: padding * 1.25),
 
           Text(
             'Descrição',
             style: theme.textTheme.titleLarge
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: padding * 0.5),
           Text(item.descricao, style: theme.textTheme.bodyLarge),
 
-          const SizedBox(height: 20),
+          SizedBox(height: padding * 1.25),
 
           if (item.regrasUso != null && item.regrasUso!.isNotEmpty) ...[
             Text(
@@ -110,9 +112,9 @@ class DetalhesItemContentWidget extends StatelessWidget {
               style: theme.textTheme.titleLarge
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: padding * 0.5),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(padding),
               decoration: BoxDecoration(
                 color: Colors.orange.withAlpha(25),
                 borderRadius: BorderRadius.circular(12),
@@ -121,18 +123,18 @@ class DetalhesItemContentWidget extends StatelessWidget {
               child:
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Icon(Icons.warning, color: Colors.orange, size: 20),
-                const SizedBox(width: 8),
+                SizedBox(width: padding * 0.5),
                 Expanded(
                     child: Text(item.regrasUso!,
                         style: theme.textTheme.bodyMedium)),
               ]),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: padding * 1.25),
           ],
 
           // Informações adicionais
           InformacoesAdicionaisWidget(item: item, formatarData: formatarData),
-          const SizedBox(height: 20),
+          SizedBox(height: padding * 1.25),
 
           // Localização
           LocalizacaoCardWidget(item: item),

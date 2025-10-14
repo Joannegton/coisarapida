@@ -276,21 +276,25 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
   }
 
   Widget _buildItemListTile(BuildContext context, ThemeData theme, Item item) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final imageSize = screenWidth * 0.18; // 18% da largura da tela para a imagem
+    final padding = screenWidth * 0.03; // 3% para padding
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: padding),
       child: InkWell(
         onTap: () => context.push('${AppRoutes.detalhesItem}/${item.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(padding),
           child: Row(
             children: [
               // Imagem do item
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  width: 80,
-                  height: 80,
+                  width: imageSize,
+                  height: imageSize,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     image: item.fotos.isNotEmpty
@@ -303,14 +307,14 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                   child: item.fotos.isEmpty
                       ? Icon(
                           Icons.image,
-                          size: 32,
+                          size: imageSize * 0.4, // 40% do tamanho da imagem
                           color: Colors.grey.shade400,
                         )
                       : null,
                 ),
               ),
               
-              const SizedBox(width: 12),
+              SizedBox(width: padding),
               
               // Informações do item
               Expanded(
@@ -342,14 +346,18 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                           color: Colors.grey.shade600,
                         ),
                         const SizedBox(width: 2),
-                        Text(
-                          // TODO: Calcular e exibir a distância real
-                          item.localizacao.cidade, // Exemplo, idealmente seria a distância
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
+                        Expanded(
+                          child: Text(
+                            // TODO: Calcular e exibir a distância real
+                            item.localizacao.cidade, // Exemplo, idealmente seria a distância
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width:2),
                         const Icon(
                           Icons.star,
                           size: 14,
@@ -362,6 +370,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                             color: Colors.grey.shade600,
                           ),
                         ),
+                        const SizedBox(width: 16), // Espaço moderado para separar da coluna de preço/status
                       ],
                     ),
                   ],

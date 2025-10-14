@@ -40,13 +40,16 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     final usuarioAtualAsyncValue = ref.watch(usuarioAtualStreamProvider);
     final theme = Theme.of(context);
 
+    final screenHeight = MediaQuery.of(context).size.height;
+    final expandedHeight = screenHeight * 0.4; // 40% da altura da tela para as fotos
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             backgroundColor: theme.colorScheme.surface,
-            expandedHeight: 300,
+            expandedHeight: expandedHeight,
             systemOverlayStyle: SystemUiOverlayStyle(
               statusBarIconBrightness: theme.brightness == Brightness.dark
                   ? Brightness.light
@@ -179,8 +182,11 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
   }
 
   Widget _buildBottomBarProprietario(Item item, ThemeData theme) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.04; // 4% da largura da tela
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         boxShadow: [
@@ -201,9 +207,12 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                     context, 'Estatísticas em desenvolvimento'),
                 icon: const Icon(Icons.bar_chart),
                 label: const Text('Estatísticas'),
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: padding * 2),
+                ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: padding),
             // Botão de Editar
             Expanded(
               flex: 2,
@@ -212,7 +221,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                 icon: const Icon(Icons.edit),
                 label: const Text('Editar Item'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: padding * 2),
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
                 ),

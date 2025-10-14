@@ -6,11 +6,12 @@ class ConfiguracoesRapidas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context); 
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(screenWidth * 0.05),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -20,7 +21,7 @@ class ConfiguracoesRapidas extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: screenWidth * 0.04),
             
             _buildItemConfiguracao(
               'Notificações',
@@ -54,12 +55,17 @@ class ConfiguracoesRapidas extends StatelessWidget {
     IconData icone,
     VoidCallback onTap,
   ) {
-    return ListTile(
-      leading: Icon(icone),
-      title: Text(titulo),
-      subtitle: Text(subtitulo),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: onTap,
+    return Builder(
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        return ListTile(
+          leading: Icon(icone, size: screenWidth * 0.06),
+          title: Text(titulo),
+          subtitle: Text(subtitulo),
+          trailing: Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04),
+          onTap: onTap,
+        );
+      }
     );
   }
 

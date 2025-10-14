@@ -20,6 +20,9 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.04; // 4% da largura da tela
+    
     final bool isAluguel = item.tipo == TipoItem.aluguel;
     final bool isVenda = item.tipo == TipoItem.venda;
     final bool isAmbos = item.tipo == TipoItem.ambos;
@@ -37,7 +40,7 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
     if (isVenda || isAmbos) primaryButtonIcon = Icons.shopping_cart;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         boxShadow: [
@@ -58,6 +61,9 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
                   onPressed: item.disponivel ? onAlugarPressed : null,
                   icon: const Icon(Icons.calendar_today),
                   label: const Text('Alugar'),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: padding * 2),
+                  ),
                 ),
               )
             else
@@ -72,10 +78,13 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Conversar'),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: padding * 2),
+                  ),
                 ),
               ),
 
-            const SizedBox(width: 12),
+            SizedBox(width: padding),
 
             // Botão principal (Comprar ou Alugar)
             Expanded(
@@ -88,7 +97,7 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
                 label:
                     Text(item.disponivel ? primaryButtonText : 'Indisponível'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: padding * 2),
                   backgroundColor: primaryButtonColor,
                   foregroundColor: theme.colorScheme.onPrimary,
                 ),
