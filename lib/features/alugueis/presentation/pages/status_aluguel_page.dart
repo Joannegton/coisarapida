@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -11,6 +12,9 @@ import '../../../seguranca/domain/entities/denuncia.dart';
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../../../chat/presentation/controllers/chat_controller.dart';
 import '../../../itens/presentation/providers/item_provider.dart';
+import '../../../avaliacoes/presentation/providers/avaliacao_providers.dart';
+import '../providers/aluguel_providers.dart';
+import '../../domain/entities/aluguel.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
@@ -31,13 +35,66 @@ class StatusAluguelPage extends ConsumerStatefulWidget {
 
 class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   Timer? _timer;
+  StreamSubscription<DocumentSnapshot>? _aluguelSubscription;
   double? _valorMulta;
+  late Map<String, dynamic> _dadosAluguelAtuais;
   bool _isCreatingChat = false;
   
   @override
   void initState() {
     super.initState();
+    // Inicializar dados com valores padrão para campos que podem estar faltando
+    _dadosAluguelAtuais = {
+      'dataLimiteDevolucao': widget.dadosAluguel['dataLimiteDevolucao'] ?? DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+      'locadorId': widget.dadosAluguel['locadorId'] ?? '',
+      'valorDiaria': widget.dadosAluguel['valorDiaria'] ?? 0.0,
+      'compradorId': widget.dadosAluguel['compradorId'] ?? '',
+      'status': widget.dadosAluguel['status'] ?? 'solicitado',
+      'nomeItem': widget.dadosAluguel['nomeItem'] ?? 'Item',
+      'itemId': widget.dadosAluguel['itemId'] ?? '',
+      'dataInicio': widget.dadosAluguel['dataInicio'] ?? DateTime.now().toIso8601String(),
+      'valorAluguel': widget.dadosAluguel['valorAluguel'] ?? 0.0,
+      'valorCaucao': widget.dadosAluguel['valorCaucao'] ?? 0.0,
+      'nomeLocador': widget.dadosAluguel['nomeLocador'] ?? 'Locador',
+      'nomeLocatario': widget.dadosAluguel['nomeLocatario'] ?? 'Locatário',
+      'telefoneLocatario': widget.dadosAluguel['telefoneLocatario'] ?? '',
+      'enderecoLocatario': widget.dadosAluguel['enderecoLocatario'] ?? '',
+      ...widget.dadosAluguel, // Sobrescrever com valores reais se existirem
+    };
     _iniciarTimer();
+    _iniciarListenerAluguel();
+  }
+
+  void _iniciarListenerAluguel() {
+    _aluguelSubscription = FirebaseFirestore.instance
+        .collection('alugueis')
+        .doc(widget.aluguelId)
+        .snapshots()
+        .listen((snapshot) {
+          if (mounted && snapshot.exists) {
+            final data = snapshot.data() as Map<String, dynamic>;
+            // Mesclar dados do Firestore com valores padrão
+            setState(() {
+              _dadosAluguelAtuais = {
+                'dataLimiteDevolucao': data['dataLimiteDevolucao'] ?? _dadosAluguelAtuais['dataLimiteDevolucao'],
+                'locadorId': data['locadorId'] ?? _dadosAluguelAtuais['locadorId'],
+                'valorDiaria': data['valorDiaria'] ?? _dadosAluguelAtuais['valorDiaria'],
+                'compradorId': data['compradorId'] ?? _dadosAluguelAtuais['compradorId'],
+                'status': data['status'] ?? _dadosAluguelAtuais['status'],
+                'nomeItem': data['nomeItem'] ?? _dadosAluguelAtuais['nomeItem'],
+                'itemId': data['itemId'] ?? _dadosAluguelAtuais['itemId'],
+                'dataInicio': data['dataInicio'] ?? _dadosAluguelAtuais['dataInicio'],
+                'valorAluguel': data['valorAluguel'] ?? _dadosAluguelAtuais['valorAluguel'],
+                'valorCaucao': data['valorCaucao'] ?? _dadosAluguelAtuais['valorCaucao'],
+                'nomeLocador': data['nomeLocador'] ?? _dadosAluguelAtuais['nomeLocador'],
+                'nomeLocatario': data['nomeLocatario'] ?? _dadosAluguelAtuais['nomeLocatario'],
+                'telefoneLocatario': data['telefoneLocatario'] ?? _dadosAluguelAtuais['telefoneLocatario'],
+                'enderecoLocatario': data['enderecoLocatario'] ?? _dadosAluguelAtuais['enderecoLocatario'],
+                ...data, // Sobrescrever com valores reais do Firestore
+              };
+            });
+          }
+        });
   }
 
   void _iniciarTimer() {
@@ -48,7 +105,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _verificarAtraso() async {
-    final dataLimite = DateTime.parse(widget.dadosAluguel['dataLimiteDevolucao']);
+    final dataLimite = _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']);
     final agora = DateTime.now();
     
     if (agora.isAfter(dataLimite)) {
@@ -56,9 +113,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       final repository = ref.read(segurancaRepositoryProvider);
       final multa = await repository.calcularMultaAtraso(
         aluguelId: widget.aluguelId,
-        locadorId: widget.dadosAluguel['locadorId'],
+        locadorId: _dadosAluguelAtuais['locadorId'],
         dataLimiteDevolucao: dataLimite,
-        valorDiaria: double.parse(widget.dadosAluguel['valorDiaria'].toString()),
+        valorDiaria: double.parse(_dadosAluguelAtuais['valorDiaria'].toString()),
       );
       
       if (multa > 0 && mounted) {
@@ -72,15 +129,15 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dataLimite = DateTime.parse(widget.dadosAluguel['dataLimiteDevolucao']);
+    final dataLimite = _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']);
     final agora = DateTime.now();
     final emAtraso = agora.isAfter(dataLimite);
     final usuario = ref.watch(usuarioAtualStreamProvider).value;
-    final isLocador = usuario?.id == widget.dadosAluguel['locadorId'];
-    final isLocatario = usuario?.id == widget.dadosAluguel['compradorId'] || usuario?.id != widget.dadosAluguel['locadorId'];
+    final isLocador = usuario?.id == _dadosAluguelAtuais['locadorId'];
+    final isLocatario = usuario?.id == _dadosAluguelAtuais['compradorId'] || usuario?.id != _dadosAluguelAtuais['locadorId'];
     
     // Verificar se o status é "solicitado" (aguardando aprovação)
-    final statusAluguel = widget.dadosAluguel['status'] as String?;
+    final statusAluguel = _dadosAluguelAtuais['status'] as String?;
     final isSolicitado = statusAluguel == 'solicitado';
 
     return Scaffold(
@@ -98,7 +155,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
             ),
             Text(
-              widget.dadosAluguel['nomeItem'],
+              _dadosAluguelAtuais['nomeItem'] as String? ?? 'Item',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
@@ -203,10 +260,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   ],
 
                   // Upload de fotos de verificação (só para locatário)
-                  if (isLocatario) ...[
+                  if (isLocatario && _dadosAluguelAtuais['itemId'] != null) ...[
                     UploadFotosVerificacao(
                       aluguelId: widget.aluguelId,
-                      itemId: widget.dadosAluguel['itemId'],
+                      itemId: _dadosAluguelAtuais['itemId'] as String,
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -229,7 +286,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
   Widget _buildProgressIndicator(ThemeData theme, DateTime dataLimite) {
     final agora = DateTime.now();
-    final dataInicio = DateTime.parse(widget.dadosAluguel['dataInicio'] ?? agora.subtract(const Duration(days: 1)).toIso8601String());
+    final dataInicio = _parseDateTime(_dadosAluguelAtuais['dataInicio'] ?? agora.subtract(const Duration(days: 1)));
     final totalDias = dataLimite.difference(dataInicio).inDays;
     final diasPassados = agora.difference(dataInicio).inDays;
     final progresso = (diasPassados / totalDias).clamp(0.0, 1.0);
@@ -619,7 +676,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: _buildInfoCard(
                   theme,
                   'Item Alugado',
-                  widget.dadosAluguel['nomeItem'],
+                  _dadosAluguelAtuais['nomeItem'] as String? ?? 'Item',
                   Icons.inventory_2_rounded,
                   theme.colorScheme.primary,
                 ),
@@ -629,7 +686,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: _buildInfoCard(
                   theme,
                   'Valor Total',
-                  'R\$ ${widget.dadosAluguel['valorAluguel']}',
+                  'R\$ ${_dadosAluguelAtuais['valorAluguel'] ?? 0}',
                   Icons.attach_money_rounded,
                   Colors.green[600]!,
                 ),
@@ -644,7 +701,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: _buildInfoCard(
                   theme,
                   'Caução',
-                  'R\$ ${widget.dadosAluguel['valorCaucao']}',
+                  'R\$ ${_dadosAluguelAtuais['valorCaucao'] ?? 0}',
                   Icons.security_rounded,
                   Colors.orange[600]!,
                 ),
@@ -654,7 +711,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: _buildInfoCard(
                   theme,
                   'Data Limite',
-                  _formatarData(DateTime.parse(widget.dadosAluguel['dataLimiteDevolucao'])),
+                  _formatarData(_parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao'])),
                   Icons.calendar_today_rounded,
                   Colors.blue[600]!,
                 ),
@@ -695,7 +752,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  widget.dadosAluguel['nomeLocador'],
+                  _dadosAluguelAtuais['nomeLocador'] as String? ?? 'Locador',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
@@ -737,11 +794,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildContatoRow(theme, Icons.person, widget.dadosAluguel['nomeLocatario'] ?? 'João Silva'),
+                  _buildContatoRow(theme, Icons.person, _dadosAluguelAtuais['nomeLocatario'] ?? 'João Silva'),
                   const SizedBox(height: 8),
-                  _buildContatoRow(theme, Icons.phone, widget.dadosAluguel['telefoneLocatario'] ?? '(11) 99999-9999'),
+                  _buildContatoRow(theme, Icons.phone, _dadosAluguelAtuais['telefoneLocatario'] ?? '(11) 99999-9999'),
                   const SizedBox(height: 8),
-                  _buildContatoRow(theme, Icons.location_on, widget.dadosAluguel['enderecoLocatario'] ?? 'Rua das Flores, 123'),
+                  _buildContatoRow(theme, Icons.location_on, _dadosAluguelAtuais['enderecoLocatario'] ?? 'Rua das Flores, 123'),
                 ],
               ),
             ),
@@ -1391,8 +1448,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _processarDevolucao() async {
+    bool dialogAberto = false;
+    
     try {
-      // Simular processo de devolução
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1407,10 +1465,17 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           ),
         ),
       );
+      dialogAberto = true;
 
-      await Future.delayed(const Duration(seconds: 2));
+      // Atualizar status do aluguel para "devolucaoPendente"
+      final aluguelController = ref.read(aluguelControllerProvider.notifier);
+      await aluguelController.atualizarStatusAluguel(
+        widget.aluguelId, 
+        StatusAluguel.devolucaoPendente,
+      );
 
-      if (mounted) {
+      if (mounted && dialogAberto) {
+        dialogAberto = false;
         Navigator.of(context).pop();
         SnackBarUtils.mostrarSucesso(
           context,
@@ -1418,7 +1483,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && dialogAberto) {
+        dialogAberto = false;
         Navigator.of(context).pop();
         SnackBarUtils.mostrarErro(context, 'Erro ao processar devolução: $e');
       }
@@ -1481,6 +1547,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _processarAprovacao() async {
+    bool dialogAberto = false;
+    
     try {
       showDialog(
         context: context,
@@ -1496,21 +1564,90 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           ),
         ),
       );
+      dialogAberto = true;
 
-      await Future.delayed(const Duration(seconds: 2));
+      // Atualizar status do aluguel para concluído
+      final aluguelController = ref.read(aluguelControllerProvider.notifier);
+      await aluguelController.atualizarStatusAluguel(widget.aluguelId, StatusAluguel.concluido);
 
+      // Liberar a caução
+      await aluguelController.liberarCaucaoAluguel(widget.aluguelId);
+
+      // Criar avaliações pendentes
       if (mounted) {
-        Navigator.of(context).pop();
+        await _criarAvaliacoesPendentes();
+      }
+
+      if (mounted && dialogAberto) {
+        dialogAberto = false;
+        // Navegar para a página de aluguéis após sucesso
+        context.go(AppRoutes.meusAlugueis);
         SnackBarUtils.mostrarSucesso(
           context,
           'Devolução aprovada! Caução liberada para o locatário. ✅',
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && dialogAberto) {
+        dialogAberto = false;
         Navigator.of(context).pop();
         SnackBarUtils.mostrarErro(context, 'Erro ao aprovar devolução: $e');
       }
+    }
+  }
+
+  Future<void> _criarAvaliacoesPendentes() async {
+    try {
+      final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
+      if (usuarioAtual == null) {
+        return;
+      }
+
+      // Buscar dados completos do aluguel no Firestore
+      final aluguelRepository = ref.read(aluguelRepositoryProvider);
+      final aluguel = await aluguelRepository.getAluguelPorId(widget.aluguelId);
+      
+      if (aluguel == null) {
+        return;
+      }
+
+      // Buscar fotos dos usuários
+      final authController = ref.read(authControllerProvider.notifier);
+      final locadorUser = await authController.buscarUsuario(aluguel.locadorId);
+      final locatarioUser = await authController.buscarUsuario(aluguel.locatarioId);
+
+      final locadorFoto = locadorUser?.fotoUrl;
+      final locatarioFoto = locatarioUser?.fotoUrl;
+
+      // Importar o serviço de avaliações pendentes
+      final avaliacaoPendenteService = ref.read(avaliacaoPendenteServiceProvider);
+
+      // Criar avaliação pendente para o locatário avaliar o locador
+      await avaliacaoPendenteService.criarAvaliacaoPendente(
+        aluguelId: widget.aluguelId,
+        itemId: aluguel.itemId,
+        itemNome: aluguel.itemNome,
+        avaliadorId: aluguel.locatarioId,
+        avaliadoId: aluguel.locadorId,
+        avaliadoNome: aluguel.locadorNome,
+        avaliadoFoto: locadorFoto,
+        tipoUsuario: 'locatario',
+      );
+
+      // Criar avaliação pendente para o locador avaliar o locatário
+      await avaliacaoPendenteService.criarAvaliacaoPendente(
+        aluguelId: widget.aluguelId,
+        itemId: aluguel.itemId,
+        itemNome: aluguel.itemNome,
+        avaliadorId: aluguel.locadorId,
+        avaliadoId: aluguel.locatarioId,
+        avaliadoNome: aluguel.locatarioNome,
+        avaliadoFoto: locatarioFoto,
+        tipoUsuario: 'locador',
+      );
+
+    } catch (e) {
+      // Não mostrar erro para o usuário, pois isso é um processo em background
     }
   }
 
@@ -1554,7 +1691,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       isScrollControlled: true,
       builder: (context) => _FormularioDenuncia(
         aluguelId: widget.aluguelId,
-        dadosAluguel: widget.dadosAluguel,
+        dadosAluguel: _dadosAluguelAtuais,
       ),
     );
   }
@@ -1569,7 +1706,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     try {
       // 1. Capturar TODAS as referências síncronas ANTES de qualquer await
       final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
-      final itemId = widget.dadosAluguel['itemId'] as String?;
+      final itemId = _dadosAluguelAtuais['itemId'] as String?;
       
       // Validações síncronas
       if (usuarioAtual == null) {
@@ -1609,7 +1746,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
       if (!mounted) return;
 
-      final locadorId = widget.dadosAluguel['locadorId'] as String?;
+      final locadorId = _dadosAluguelAtuais['locadorId'] as String?;
       context.push('${AppRoutes.chat}/$chatId', extra: locadorId);
     } catch (e) {
       if (mounted) {
@@ -1625,6 +1762,16 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     }
   }
 
+  DateTime _parseDateTime(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    } else if (value is String) {
+      return DateTime.parse(value);
+    } else {
+      return DateTime.now();
+    }
+  }
+
   String _formatarData(DateTime data) {
     return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
   }
@@ -1632,6 +1779,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   @override
   void dispose() {
     _timer?.cancel();
+    _aluguelSubscription?.cancel();
     super.dispose();
   }
 }

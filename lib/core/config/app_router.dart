@@ -220,26 +220,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       // Avaliação
+      // Avaliação
       GoRoute(
-        path: AppRoutes
-            .avaliacao, // Usará query parameters: /avaliacao?avaliadoId=xxx&aluguelId=yyy
+        path: AppRoutes.avaliacao,
         name: AppRoutes.avaliacao,
         builder: (context, state) {
           final avaliadoId = state.uri.queryParameters['avaliadoId'];
+          final avaliadoNome = state.uri.queryParameters['avaliadoNome'] ?? 'Usuário';
+          final avaliadoFoto = state.uri.queryParameters['avaliadoFoto'];
           final aluguelId = state.uri.queryParameters['aluguelId'];
-          final itemId = state.uri.queryParameters['itemId']; // Lendo itemId
+          final itemId = state.uri.queryParameters['itemId'];
+          final itemNome = state.uri.queryParameters['itemNome'];
+          final isObrigatoria = state.uri.queryParameters['isObrigatoria'] == 'true';
+          final avaliacaoPendenteId = state.uri.queryParameters['avaliacaoPendenteId'];
+          
           if (avaliadoId == null || aluguelId == null) {
-            // Idealmente, redirecionar para uma página de erro ou home
             return const Scaffold(
-                body: Center(child: Text("IDs inválidos para avaliação")));
+              body: Center(child: Text("IDs inválidos para avaliação")),
+            );
           }
+          
           return AvaliacaoPage(
             avaliadoId: avaliadoId,
+            avaliadoNome: avaliadoNome,
+            avaliadoFoto: avaliadoFoto,
             aluguelId: aluguelId,
-            itemId: itemId, // Passando itemId para AvaliacaoPage
+            itemId: itemId,
+            itemNome: itemNome,
+            isObrigatoria: isObrigatoria,
+            avaliacaoPendenteId: avaliacaoPendenteId,
           );
         },
       ),
+
+
     ],
   );
 });

@@ -58,3 +58,9 @@ final solicitacoesEnviadasProvider = StreamProvider<List<Aluguel>>((ref) {
     return Stream.error(e, stackTrace);
   }
 });
+
+// Provider para obter um aluguel específico por ID em tempo real
+final aluguelPorIdProvider = StreamProvider.family<Aluguel?, String>((ref, aluguelId) {
+  final repository = ref.watch(aluguelRepositoryProvider);
+  return repository.getAluguelStream(aluguelId);
+});

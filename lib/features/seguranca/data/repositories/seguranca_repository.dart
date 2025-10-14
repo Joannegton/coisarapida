@@ -9,6 +9,7 @@ import 'dart:convert';
 import '../../domain/entities/contrato.dart';
 import '../../domain/entities/denuncia.dart';
 import '../../domain/entities/verificacao_fotos.dart';
+import '../../domain/entities/problema.dart';
 
 /// Repositório responsável por todas as operações de segurança
 class SegurancaRepository {
@@ -486,5 +487,120 @@ class SegurancaRepository {
     final dados = '$contratoId-$ip-${DateTime.now().millisecondsSinceEpoch}';
     final bytes = utf8.encode(dados);
     return base64.encode(bytes);
+  }
+
+  // ==================== PROBLEMAS ====================
+
+  /// Cria um novo problema reportado
+  Future<Problema> reportarProblema({
+    required String aluguelId,
+    required String itemId,
+    required String reportadoContraId,
+    required TipoProblema tipo,
+    required PrioridadeProblema prioridade,
+    required String descricao,
+    List<File>? fotos,
+  }) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw ServerException('Usuário não autenticado');
+      }
+
+      final problemaId = _firestore.collection('problemas').doc().id;
+      
+      // Upload de fotos se houver
+      List<String> urlsFotos = [];
+      if (fotos != null && fotos.isNotEmpty) {
+        urlsFotos = await _uploadFilesToStorage(
+          fotos,
+          'problemas/$problemaId',
+        );
+      }
+
+      // Buscar nome do usuário atual
+      final userDoc = await _firestore.collection('usuarios').doc(currentUser.uid).get();
+      final userName = userDoc.data()?['nome'] ?? 'Usuário';
+
+      final problema = Problema(
+        id: problemaId,
+        aluguelId: aluguelId,
+        itemId: itemId,
+        reportadoPorId: currentUser.uid,
+        reportadoPorNome: userName,
+        reportadoContraId: reportadoContraId,
+        tipo: tipo,
+        prioridade: prioridade,
+        descricao: descricao,
+        fotos: urlsFotos,
+        status: StatusProblema.aberto,
+        criadoEm: DateTime.now(),
+      );
+
+      await _firestore
+          .collection('problemas')
+          .doc(problemaId)
+          .set(problema.toMap());
+
+      return problema;
+    } catch (e) {
+      throw ServerException('Erro ao reportar problema: $e');
+    }
+  }
+
+  /// Busca problemas de um aluguel
+  Future<List<Problema>> buscarProblemasAluguel(String aluguelId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('problemas')
+          .where('aluguelId', isEqualTo: aluguelId)
+          .orderBy('criadoEm', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Problema.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      throw ServerException('Erro ao buscar problemas: $e');
+    }
+  }
+
+  /// Atualiza o status de um problema
+  Future<void> atualizarStatusProblema({
+    required String problemaId,
+    required StatusProblema novoStatus,
+    String? resolucao,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'status': novoStatus.toString().split('.').last,
+      };
+
+      if (novoStatus == StatusProblema.resolvido) {
+        updates['resolvidoEm'] = DateTime.now().millisecondsSinceEpoch;
+        if (resolucao != null) {
+          updates['resolucao'] = resolucao;
+        }
+      }
+
+      await _firestore
+          .collection('problemas')
+          .doc(problemaId)
+          .update(updates);
+    } catch (e) {
+      throw ServerException('Erro ao atualizar status do problema: $e');
+    }
+  }
+
+  /// Stream de problemas de um aluguel
+  Stream<List<Problema>> problemasAluguelStream(String aluguelId) {
+    return _firestore
+        .collection('problemas')
+        .where('aluguelId', isEqualTo: aluguelId)
+        .orderBy('criadoEm', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Problema.fromMap(doc.data()))
+            .toList());
   }
 }

@@ -104,12 +104,30 @@ class AluguelRepositoryImpl implements AluguelRepository {
     try {
       final doc = await _firestore.collection('alugueis').doc(aluguelId).get();
       if (doc.exists) {
-        return AluguelModel.fromFirestore(
-            doc as QueryDocumentSnapshot<Map<String, dynamic>>);
+        return AluguelModel.fromFirestore(doc);
       }
       return null;
     } catch (e) {
       throw ServerException('Erro ao buscar aluguel: ${e.toString()}');
+    }
+  }
+
+  @override
+  @override
+  Stream<Aluguel?> getAluguelStream(String aluguelId) {
+    try {
+      return _firestore
+          .collection('alugueis')
+          .doc(aluguelId)
+          .snapshots()
+          .map((doc) {
+            if (doc.exists) {
+              return AluguelModel.fromFirestore(doc);
+            }
+            return null;
+          });
+    } catch (e) {
+      throw ServerException('Erro ao buscar stream do aluguel: ${e.toString()}');
     }
   }
 

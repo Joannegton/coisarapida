@@ -8,6 +8,7 @@ import '../../data/repositories/seguranca_repository.dart';
 import '../../domain/entities/contrato.dart';
 import '../../domain/entities/denuncia.dart';
 import '../../domain/entities/verificacao_fotos.dart';
+import '../../domain/entities/problema.dart';
 
 /// Provider do repositório de segurança
 final segurancaRepositoryProvider = Provider<SegurancaRepository>((ref) {
@@ -271,5 +272,82 @@ class VerificacaoFotosNotifier
   /// Recarrega a verificação
   Future<void> recarregar() async {
     await _carregarVerificacao();
+  }
+}
+
+// ==================== PROBLEMAS ====================
+
+/// Provider para stream de problemas de um aluguel
+final problemasAluguelStreamProvider = StreamProvider.family<List<Problema>, String>(
+  (ref, aluguelId) {
+    final repository = ref.watch(segurancaRepositoryProvider);
+    return repository.problemasAluguelStream(aluguelId);
+  },
+);
+
+/// Provider para reportar problema
+final reportarProblemaProvider = StateNotifierProvider<ReportarProblemaNotifier, AsyncValue<void>>(
+  (ref) {
+    final repository = ref.watch(segurancaRepositoryProvider);
+    return ReportarProblemaNotifier(repository);
+  },
+);
+
+class ReportarProblemaNotifier extends StateNotifier<AsyncValue<void>> {
+  final SegurancaRepository _repository;
+
+  ReportarProblemaNotifier(this._repository) : super(const AsyncValue.data(null));
+
+  /// Reporta um novo problema
+  Future<Problema> reportar({
+    required String aluguelId,
+    required String itemId,
+    required String reportadoContraId,
+    required TipoProblema tipo,
+    required PrioridadeProblema prioridade,
+    required String descricao,
+    List<File>? fotos,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final problema = await _repository.reportarProblema(
+        aluguelId: aluguelId,
+        itemId: itemId,
+        reportadoContraId: reportadoContraId,
+        tipo: tipo,
+        prioridade: prioridade,
+        descricao: descricao,
+        fotos: fotos,
+      );
+
+      state = const AsyncValue.data(null);
+      return problema;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
+
+  /// Atualiza status de um problema
+  Future<void> atualizarStatus({
+    required String problemaId,
+    required StatusProblema novoStatus,
+    String? resolucao,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      await _repository.atualizarStatusProblema(
+        problemaId: problemaId,
+        novoStatus: novoStatus,
+        resolucao: resolucao,
+      );
+
+      state = const AsyncValue.data(null);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
   }
 }

@@ -9,6 +9,8 @@ abstract class AluguelRepository {
 
   Future<Aluguel?> getAluguelPorId(String aluguelId);
 
+  Stream<Aluguel?> getAluguelStream(String aluguelId);
+
   Stream<List<Aluguel>> getAlugueisPorUsuario(String usuarioId,
       {bool comoLocador = false, bool comoLocatario = false});
 
