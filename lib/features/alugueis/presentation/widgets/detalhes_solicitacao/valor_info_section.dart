@@ -4,10 +4,12 @@ import '../../../domain/entities/aluguel.dart';
 /// Widget com informações de valores
 class ValorInfoSection extends StatelessWidget {
   final Aluguel aluguel;
+  final bool isLocador;
 
   const ValorInfoSection({
     super.key,
     required this.aluguel,
+    required this.isLocador,
   });
 
   @override
@@ -68,13 +70,13 @@ class ValorInfoSection extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total a receber',
+                  isLocador ? 'Total a receber' : 'Total a pagar',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  'R\$ ${(aluguel.precoTotal * 0.9).toStringAsFixed(2)}',
+                  'R\$ ${(isLocador ? aluguel.precoTotal * 0.9 : aluguel.precoTotal).toStringAsFixed(2)}',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,
@@ -99,7 +101,9 @@ class ValorInfoSection extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'O valor será creditado após a conclusão do aluguel',
+                      isLocador
+                        ? 'O valor será creditado após a conclusão do aluguel'
+                        : 'O valor será cobrado após a aprovação da solicitação',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onPrimaryContainer,
                       ),

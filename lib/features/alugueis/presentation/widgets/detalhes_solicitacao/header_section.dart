@@ -4,10 +4,12 @@ import '../../../domain/entities/aluguel.dart';
 /// Widget do cabeçalho com status da solicitação
 class HeaderSection extends StatelessWidget {
   final Aluguel aluguel;
+  final bool isLocador;
 
   const HeaderSection({
     super.key,
     required this.aluguel,
+    required this.isLocador,
   });
 
   @override
@@ -63,14 +65,14 @@ class HeaderSection extends StatelessWidget {
         return _StatusInfo(
           icon: Icons.pending_actions,
           title: 'Solicitação Pendente',
-          subtitle: 'Aguardando sua aprovação',
+          subtitle: isLocador ? 'Aguardando sua aprovação' : 'Aguardando aprovação do locador',
           color: Colors.orange,
         );
       case StatusAluguel.aprovado:
         return _StatusInfo(
           icon: Icons.check_circle,
           title: 'Solicitação Aprovada',
-          subtitle: 'Aguardando pagamento do locatário',
+          subtitle: isLocador ? 'Aguardando pagamento do locatário' : 'Aguardando confirmação de pagamento',
           color: Colors.green,
         );
       case StatusAluguel.recusado:
@@ -79,6 +81,13 @@ class HeaderSection extends StatelessWidget {
           title: 'Solicitação Recusada',
           subtitle: 'Esta solicitação foi recusada',
           color: Colors.red,
+        );
+      case StatusAluguel.devolucaoPendente:
+        return _StatusInfo(
+          icon: Icons.assignment_return,
+          title: 'Devolução Pendente',
+          subtitle: isLocador ? 'Aguardando você aceitar a devolução no app' : 'Aguardando o dono do item aceitar a devolução no app',
+          color: Colors.blue,
         );
       default:
         return _StatusInfo(

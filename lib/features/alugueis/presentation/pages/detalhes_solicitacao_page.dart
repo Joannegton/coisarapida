@@ -11,6 +11,7 @@ import '../../domain/entities/aluguel.dart';
 import '../helpers/solicitacao_helpers.dart';
 import '../widgets/detalhes_solicitacao/header_section.dart';
 import '../widgets/detalhes_solicitacao/item_info_section.dart';
+import '../widgets/detalhes_solicitacao/locador_info_section.dart';
 import '../widgets/detalhes_solicitacao/locatario_info_section.dart';
 import '../widgets/detalhes_solicitacao/periodo_info_section.dart';
 import '../widgets/detalhes_solicitacao/valor_info_section.dart';
@@ -190,7 +191,7 @@ class _DetalhesSolicitacaoPageState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header com status
-                HeaderSection(aluguel: widget.aluguel),
+                HeaderSection(aluguel: widget.aluguel, isLocador: isLocador),
 
                 const SizedBox(height: 16),
 
@@ -199,8 +200,11 @@ class _DetalhesSolicitacaoPageState
 
                 const SizedBox(height: 16),
 
-                // Informações do locatário
-                LocatarioInfoSection(aluguel: widget.aluguel),
+                // Informações do usuário relevante
+                if (isLocatario)
+                  LocadorInfoSection(aluguel: widget.aluguel)
+                else
+                  LocatarioInfoSection(aluguel: widget.aluguel),
 
                 const SizedBox(height: 16),
 
@@ -210,7 +214,7 @@ class _DetalhesSolicitacaoPageState
                 const SizedBox(height: 16),
 
                 // Informações de valor
-                ValorInfoSection(aluguel: widget.aluguel),
+                ValorInfoSection(aluguel: widget.aluguel, isLocador: isLocador),
 
                 const SizedBox(height: 16),
 
@@ -228,7 +232,7 @@ class _DetalhesSolicitacaoPageState
           ),
 
           // Botões de ação fixos na parte inferior
-          if (widget.aluguel.status == StatusAluguel.solicitado)
+          if (widget.aluguel.status == StatusAluguel.solicitado && isLocador)
             Positioned(
               bottom: 0,
               left: 0,
