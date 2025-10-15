@@ -57,6 +57,47 @@ class MenuMaisPage extends ConsumerWidget {
                 iconeAcao: Icon(Icons.arrow_forward_ios, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
               ),
               const Divider(height: 1),
+              
+              // Seção de Verificações Opcionais
+              Padding(
+                padding: EdgeInsets.fromLTRB(screenWidth * 0.04, screenWidth * 0.06, screenWidth * 0.04, screenWidth * 0.02),
+                child: Row(
+                  children: [
+                    Icon(Icons.verified_user, size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Verificações Opcionais',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              MenuListTile(
+                icone: Icons.phone_android,
+                texto: usuario.telefoneVerificado ? 'Telefone Verificado ✓' : 'Verificar Telefone',
+                onTap: () => context.push(AppRoutes.verificacaoTelefone),
+                iconeAcao: Icon(
+                  usuario.telefoneVerificado ? Icons.check_circle : Icons.arrow_forward_ios,
+                  size: 20,
+                  color: usuario.telefoneVerificado ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+              ),
+              const Divider(height: 1),
+              MenuListTile(
+                icone: Icons.home,
+                texto: usuario.enderecoVerificado ? 'Residência Verificada ✓' : 'Verificar Residência',
+                onTap: () => context.push(AppRoutes.verificacaoResidencia),
+                iconeAcao: Icon(
+                  usuario.enderecoVerificado ? Icons.check_circle : Icons.arrow_forward_ios,
+                  size: 20,
+                  color: usuario.enderecoVerificado ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+              ),
+              const Divider(height: 1),
+              
               SizedBox(height: screenWidth * 0.04),
               MinhasEstatisticaWidget(usuario: usuario),
               const ConfiguracoesRapidas()

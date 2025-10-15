@@ -1,0 +1,89 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Regras para a pasta de fotos dos itens: 'itens/{itemId}/nome_da_foto.jpg'
+    match /itens/{itemId}/{allPaths=**} {
+
+      // Leitura:
+      // Permite que qualquer pessoa (autenticada ou não) leia as fotos dos itens.
+      // Se você quiser restringir a leitura apenas para usuários autenticados,
+      // mude para: allow read: if request.auth != null;
+      allow read: if true;
+
+      // Escrita (Upload/Atualização de fotos):
+      // Permite a escrita se:
+      // 1. O usuário estiver autenticado.
+      // 2. E (
+      //    a. O documento do item correspondente no Firestore ainda NÃO existir
+      //       (para o upload inicial durante a criação do item)
+      //    OU
+      //    b. O documento do item no Firestore EXISTIR E o 'proprietarioId'
+      //       nesse documento for igual ao UID do usuário autenticado
+      //       (permitindo que o proprietário atualize/adicione fotos).
+      //   )
+      // 3. E o tamanho do arquivo for menor que 5MB (ajuste conforme necessário).
+      // 4. E o tipo de conteúdo for uma imagem.
+      allow write: if request.auth != null &&
+                     (
+                       !firestore.exists(/databases/(default)/documents/itens/$(itemId)) ||
+                       firestore.get(/databases/(default)/documents/itens/$(itemId)).data.proprietarioId == request.auth.uid
+                     ) &&
+                     request.resource.size < 5 * 1024 * 1024 && // Limite de 5MB
+                     request.resource.contentType.matches('image/.*');
+
+      // Exclusão de fotos:
+      // Permite a exclusão se:
+      // 1. O usuário estiver autenticado.
+      // 2. E o 'proprietarioId' no documento do item no Firestore
+      //    corresponder ao UID do usuário autenticado.
+      allow delete: if request.auth != null &&
+                      firestore.exists(/databases/(default)/documents/itens/$(itemId)) &&
+                      firestore.get(/databases/(default)/documents/itens/$(itemId)).data.proprietarioId == request.auth.uid;
+    }
+
+    // Regras para uploads de multas (imagens relacionadas)
+    match /multas/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId &&
+                      request.resource.size < 10 * 1024 * 1024 && // Limite de 10MB
+                      request.resource.contentType.matches('image/.*');
+    }
+
+    // Regras para verificações de fotos (atualizadas)
+    match /verificacoes_fotos/{userId}/{aluguelId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+                    request.resource.size < 10 * 1024 * 1024 &&
+                    request.resource.contentType.matches('image/.*');
+    }
+
+    // Regras para denúncias
+    match /denuncias/{denunciaId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+                      request.resource.size < 10 * 1024 * 1024 &&
+                      request.resource.contentType.matches('image/.*');
+    }
+
+    // Regras para fotos de problemas reportados
+    match /problemas/{problemaId}/{allPaths=**} {
+        // Leitura: permite qualquer usuário autenticado
+        allow read: if request.auth != null;
+
+        // Escrita: permite upload se usuário autenticado e imagem válida
+        allow write: if request.auth != null &&
+                        request.resource.size < 10 * 1024 * 1024 && // Limite de 10MB
+                        request.resource.contentType.matches('image/.*');
+
+        // Exclusão: não permitir (manter histórico)
+        allow delete: if false;
+      }
+    }
+    
+    // Comprovantes de Residencia - TEMPORÁRIO: permitir tudo para debug
+    match /comprovantes_residencia/{userId}/{allPaths=**} {
+      allow read, write: if true; // TEMPORÁRIO: permitir tudo
+    }
+}

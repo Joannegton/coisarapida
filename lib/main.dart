@@ -1,6 +1,8 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -35,6 +37,12 @@ void main() async {
   // Inicializar Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Desabilitar App Check temporariamente para desenvolvimento
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug, // Use debug para desenvolvimento/emulador
+    appleProvider: AppleProvider.debug,
   );
 
   // Configurar handler para mensagens em background

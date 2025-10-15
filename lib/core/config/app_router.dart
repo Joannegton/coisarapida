@@ -7,6 +7,8 @@ import 'package:coisarapida/features/avaliacoes/presentation/pages/avaliacao_pag
 import 'package:coisarapida/features/chat/presentation/pages/lista_chat_page.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:coisarapida/features/menu/presentation/pages/menu_mais_page.dart';
+import 'package:coisarapida/features/seguranca/presentation/pages/verificacao_residencia_page.dart';
+import 'package:coisarapida/features/seguranca/presentation/pages/verificacao_telefone_page.dart';
 import 'package:coisarapida/features/vendas/presentation/pages/comprar_item_page.dart';
 import 'package:coisarapida/shared/widgets/botton_navigation_widget.dart';
 import 'package:flutter/material.dart';
@@ -227,7 +229,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return ComprarItemPage(item: item);
         },
       ),
-      // Avaliação
+      // Verificação
+      GoRoute(
+        path: AppRoutes.verificacaoTelefone,
+        name: 'verificacao-telefone',
+        builder: (context, state) {
+          return const VerificacaoTelefonePage();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.verificacaoResidencia,
+        name: 'verificacao-residencia',
+        builder: (context, state) {
+          return const VerificacaoResidenciaPage();
+        },
+      ),
+
       // Avaliação
       GoRoute(
         path: AppRoutes.avaliacao,

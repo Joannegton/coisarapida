@@ -180,7 +180,10 @@ class _HomePageState extends ConsumerState<HomePage>
                   mainAxisSpacing: 12,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => ItemCard(item: itensFiltrados[index]),
+                  (context, index) => ItemCard(
+                    item: itensFiltrados[index]['item'],
+                    distancia: itensFiltrados[index]['distancia'],
+                  ),
                   childCount: itensFiltrados
                       .take(6)
                       .length, // Mostrar apenas 6 itens na home

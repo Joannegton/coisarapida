@@ -1,0 +1,419 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regras para a coleção 'usuarios'
+    match /usuarios/{userId} {
+      allow get: if request.auth != null; // Permite ler um documento de usuário específico se autenticado
+      allow list: if false; // Geralmente não se permite listar todos os usuários
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    
+    	// Regras para a subcoleção 'favoritos'
+      match /favoritos/{itemId} {
+        // Permite ler (listar) os favoritos do próprio usuário
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // Permite criar (adicionar) um favorito para o próprio usuário
+        // Valida que apenas o campo 'favoritedAt' está sendo escrito e é um timestamp do servidor
+        allow create: if request.auth != null && request.auth.uid == userId &&
+                         request.resource.data.keys().hasOnly(['favoritedAt']) &&
+                         request.resource.data.favoritedAt == request.time;
+        // Permite deletar (remover) um favorito do próprio usuário
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Regras para a coleção 'itens'
+    match /itens/{itemId} {
+      // Leitura: Qualquer usuário autenticado pode ler os detalhes dos itens.
+      // Se desejar que seja público para não autenticados, mude para: allow read: if true;
+      allow read: if request.auth != null;
+
+      // Criação:
+      allow create: if request.auth != null &&
+                     request.resource.data.proprietarioId == request.auth.uid &&
+                     // Validações de campos obrigatórios e tipos
+                     request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() < 100 &&
+                     request.resource.data.descricao is string && request.resource.data.descricao.size() > 0 && request.resource.data.descricao.size() < 1000 &&
+                     request.resource.data.categoria is string && request.resource.data.categoria.size() > 0 &&
+                     request.resource.data.fotos is list && request.resource.data.fotos.size() >= 1 && request.resource.data.fotos.size() <= 5 &&
+                     request.resource.data.precoPorDia is number && request.resource.data.precoPorDia >= 0 &&
+                     (request.resource.data.precoPorHora == null || (request.resource.data.precoPorHora is number && request.resource.data.precoPorHora >= 0)) &&
+                     (request.resource.data.precoVenda == null || (request.resource.data.precoVenda is number && request.resource.data.precoVenda >= 0)) &&
+                     (request.resource.data.caucao == null || (request.resource.data.caucao is number && request.resource.data.caucao >= 0)) &&
+                     (request.resource.data.regrasUso == null || (request.resource.data.regrasUso is string && request.resource.data.regrasUso.size() < 1000)) &&
+                     request.resource.data.disponivel is bool &&
+                     request.resource.data.aprovacaoAutomatica is bool &&
+                     request.resource.data.proprietarioNome is string && request.resource.data.proprietarioNome.size() > 0 &&
+                     request.resource.data.proprietarioReputacao is number &&
+                     request.resource.data.tipo is string && (request.resource.data.tipo == "aluguel" || request.resource.data.tipo == "venda" || request.resource.data.tipo == "ambos") &&
+                     request.resource.data.estado is string && (request.resource.data.estado == "novo" || request.resource.data.estado == "usado" || request.resource.data.estado == "seminovo") &&
+                     request.resource.data.localizacao is map &&
+                     request.resource.data.localizacao.latitude is number &&
+                     request.resource.data.localizacao.longitude is number &&
+                     request.resource.data.localizacao.endereco is string && request.resource.data.localizacao.endereco.size() > 0 &&
+                     (request.resource.data.localizacao.bairro == null || request.resource.data.localizacao.bairro is string) &&
+                     request.resource.data.localizacao.cidade is string && request.resource.data.localizacao.cidade.size() > 0 &&
+                     request.resource.data.localizacao.estado is string && request.resource.data.localizacao.estado.size() > 0 &&
+                     request.resource.data.criadoEm == request.time &&
+                     request.resource.data.atualizadoEm == request.time &&
+                     request.resource.data.avaliacao is number && request.resource.data.avaliacao == 0.0 &&
+                     request.resource.data.totalAlugueis is number && request.resource.data.totalAlugueis == 0 &&
+                     request.resource.data.visualizacoes is number && request.resource.data.visualizacoes == 0;
+
+      // Atualização:
+      allow update: if request.auth != null &&
+                     // Proprietário pode editar tudo (com todas as validações)
+                     ((resource.data.proprietarioId == request.auth.uid &&
+                       // Campos imutáveis para proprietário
+                       request.resource.data.proprietarioId == resource.data.proprietarioId &&
+                       request.resource.data.criadoEm == resource.data.criadoEm &&
+                       request.resource.data.proprietarioNome == resource.data.proprietarioNome &&
+                       request.resource.data.proprietarioReputacao == resource.data.proprietarioReputacao &&
+                       // Validações para campos atualizáveis
+                       request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() < 100 &&
+                       request.resource.data.descricao is string && request.resource.data.descricao.size() > 0 && request.resource.data.descricao.size() < 1000 &&
+                       request.resource.data.categoria is string && request.resource.data.categoria.size() > 0 &&
+                       request.resource.data.fotos is list && request.resource.data.fotos.size() >= 1 && request.resource.data.fotos.size() <= 5 &&
+                       request.resource.data.precoPorDia is number && request.resource.data.precoPorDia >= 0 &&
+                       (request.resource.data.precoPorHora == null || (request.resource.data.precoPorHora is number && request.resource.data.precoPorHora >= 0)) &&
+                       (request.resource.data.precoVenda == null || (request.resource.data.precoVenda is number && request.resource.data.precoVenda >= 0)) &&
+                       (request.resource.data.caucao == null || (request.resource.data.caucao is number && request.resource.data.caucao >= 0)) &&
+                       (request.resource.data.regrasUso == null || (request.resource.data.regrasUso is string && request.resource.data.regrasUso.size() < 1000)) &&
+                       request.resource.data.disponivel is bool &&
+                       request.resource.data.aprovacaoAutomatica is bool &&
+                       request.resource.data.tipo is string && (request.resource.data.tipo == "aluguel" || request.resource.data.tipo == "venda" || request.resource.data.tipo == "ambos") &&
+                       request.resource.data.estado is string && (request.resource.data.estado == "novo" || request.resource.data.estado == "usado" || request.resource.data.estado == "seminovo") &&
+                       request.resource.data.localizacao is map &&
+                       request.resource.data.localizacao.latitude is number &&
+                       request.resource.data.localizacao.longitude is number &&
+                       request.resource.data.localizacao.endereco is string && request.resource.data.localizacao.endereco.size() > 0 &&
+                       (request.resource.data.localizacao.bairro == null || request.resource.data.localizacao.bairro is string) &&
+                       request.resource.data.localizacao.cidade is string && request.resource.data.localizacao.cidade.size() > 0 &&
+                       request.resource.data.localizacao.estado is string && request.resource.data.localizacao.estado.size() > 0 &&
+                       request.resource.data.atualizadoEm == request.time) ||
+
+                      // Participantes de aluguel podem atualizar estatísticas E disponibilidade
+                      (request.auth != null &&
+                       // Permite mudanças em campos de estatísticas OU disponibilidade
+                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliacao', 'totalAlugueis', 'visualizacoes', 'atualizadoEm']) ||
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['disponivel', 'atualizadoEm'])) &&
+                       request.resource.data.atualizadoEm == request.time &&
+                       // Campos críticos permanecem imutáveis
+                       request.resource.data.proprietarioId == resource.data.proprietarioId &&
+                       request.resource.data.criadoEm == resource.data.criadoEm &&
+                       request.resource.data.proprietarioNome == resource.data.proprietarioNome &&
+                       request.resource.data.proprietarioReputacao == resource.data.proprietarioReputacao));
+
+      // Exclusão:
+      allow delete: if request.auth != null && resource.data.proprietarioId == request.auth.uid;
+    }
+
+    // Regras para a coleção 'chats'
+    match /chats/{chatId} {
+      // Permite criar um chat se o usuário autenticado for um dos participantes
+      // e os campos obrigatórios estiverem presentes e válidos.
+      allow create: if request.auth != null &&
+                       request.auth.uid in request.resource.data.participantes &&
+                       request.resource.data.participantes is list &&
+                       request.resource.data.participantes.size() == 2 &&
+                       request.resource.data.itemId is string && request.resource.data.itemId.size() > 0 &&
+                       request.resource.data.locadorId is string && request.resource.data.locadorId.size() > 0 &&
+                       request.resource.data.locatarioId is string && request.resource.data.locatarioId.size() > 0 &&
+                       request.resource.data.locadorId in request.resource.data.participantes &&
+                       request.resource.data.locatarioId in request.resource.data.participantes &&
+                       request.resource.data.locadorId != request.resource.data.locatarioId && // Não pode ser chat consigo mesmo
+                       request.resource.data.itemNome is string &&
+                       request.resource.data.itemFoto is string && // Permite string vazia se não houver foto
+                       request.resource.data.locadorNome is string &&
+                       request.resource.data.locadorFoto is string && // Permite string vazia
+                       request.resource.data.locatarioNome is string &&
+                       request.resource.data.locatarioFoto is string && // Permite string vazia
+                       (request.resource.data.ultimaMensagem == null || request.resource.data.ultimaMensagem is map) &&
+                       request.resource.data.mensagensNaoLidas is map &&
+                       request.resource.data.criadoEm == request.time &&
+                       request.resource.data.atualizadoEm == request.time;
+
+      // Permite a um usuário autenticado ler um chat específico se for participante.
+      // A validação é feita contra o ID do chat, que contém os IDs dos participantes.
+      // Isso permite a verificação de existência (get) mesmo quando o documento ainda não foi criado.
+      allow get: if request.auth != null && 
+                    (request.auth.uid == chatId.split('_')[0] || 
+                     request.auth.uid == chatId.split('_')[1]);
+                     
+      // Permite listar chats se o usuário estiver autenticado.
+      // A consulta do cliente DEVE filtrar por 'participantes' array-contains request.auth.uid.
+      allow list: if request.auth != null;
+
+      // Permite atualizar um chat se o usuário for participante e as regras forem seguidas.
+      allow update: if request.auth != null &&
+                       request.auth.uid in resource.data.participantes &&
+                       // Campos imutáveis
+                       request.resource.data.itemId == resource.data.itemId &&
+                       request.resource.data.participantes == resource.data.participantes &&
+                       request.resource.data.locadorId == resource.data.locadorId &&
+                       request.resource.data.locatarioId == resource.data.locatarioId &&
+                       request.resource.data.criadoEm == resource.data.criadoEm &&
+                       // Campos que podem ser atualizados (com validação básica)
+                       (request.resource.data.ultimaMensagem == null || request.resource.data.ultimaMensagem is map) &&
+                       request.resource.data.mensagensNaoLidas is map &&
+                       request.resource.data.atualizadoEm == request.time;
+
+      // Não permitir delete de chats por enquanto.
+      allow delete: if false;
+
+      // Regras para a subcoleção 'messages'
+      match /messages/{messageId} {
+        // Permite ler mensagens se o usuário for participante do chat pai.
+        allow read: if request.auth != null &&
+                       request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantes;
+
+        // Permite criar mensagens se:
+        // 1. O usuário estiver autenticado.
+        // 2. O remetente da mensagem for o usuário autenticado.
+        // 3. O usuário autenticado for participante do chat pai.
+        // 4. Validações básicas da mensagem.
+        allow create: if request.auth != null &&
+                         request.resource.data.remetenteId == request.auth.uid &&
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantes &&
+                         request.resource.data.remetenteNome is string && request.resource.data.remetenteNome.size() > 0 &&
+                         request.resource.data.conteudo is string && request.resource.data.conteudo.size() > 0 && request.resource.data.conteudo.size() < 1000 &&
+                         request.resource.data.tipo is string && (request.resource.data.tipo == "texto" || request.resource.data.tipo == "imagem" || request.resource.data.tipo == "sistema") &&
+                         request.resource.data.enviadaEm == request.time &&
+                         request.resource.data.lida == false && // Mensagens novas sempre são criadas como não lidas
+                         (request.resource.data.anexoUrl == null || request.resource.data.anexoUrl is string);
+
+        // Permite a atualização SOMENTE para marcar uma mensagem como lida.
+        allow update: if request.auth != null &&
+                         // O usuário deve ser um participante do chat.
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantes &&
+                         // Apenas o campo 'lida' pode ser alterado.
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']) &&
+                         // O campo 'lida' só pode mudar de 'false' para 'true'.
+                         request.resource.data.lida == true &&
+                         resource.data.lida == false;
+
+        // Mensagens não podem ser excluídas pelos usuários.
+        allow delete: if false;
+      }
+    }
+    
+    // Regras para a coleção 'avaliacoes'
+    match /avaliacoes/{avaliacaoId} {
+      // Leitura: Qualquer pessoa (autenticada ou não) pode ler avaliações.
+      // Isso é comum para perfis públicos.
+      allow read: if true;
+
+      // Criação:
+      // - Usuário deve estar autenticado.
+      // - O 'avaliadorId' deve ser o UID do usuário autenticado.
+      // - O 'avaliadorId' não pode ser igual ao 'avaliadoId' (não pode se auto-avaliar).
+      // - Validações básicas de campos.
+      allow create: if request.auth != null &&
+                       request.resource.data.avaliadorId == request.auth.uid &&
+                       request.resource.data.avaliadorId != request.resource.data.avaliadoId &&
+                       request.resource.data.avaliadoId is string && request.resource.data.avaliadoId.size() > 0 &&
+                       request.resource.data.tipoAvaliado is string && (request.resource.data.tipoAvaliado == "usuario" || request.resource.data.tipoAvaliado == "item") &&
+                       request.resource.data.aluguelId is string && request.resource.data.aluguelId.size() > 0 && // Assumindo que uma avaliação está ligada a um aluguel
+                       request.resource.data.nota is number && request.resource.data.nota >= 1 && request.resource.data.nota <= 5 &&
+                       (request.resource.data.comentario == null || (request.resource.data.comentario is string && request.resource.data.comentario.size() <= 500)) &&
+                       request.resource.data.data == request.time &&
+                       request.resource.data.avaliadorNome is string && request.resource.data.avaliadorNome.size() > 0 &&
+                       (request.resource.data.avaliadorFotoUrl == null || request.resource.data.avaliadorFotoUrl is string);
+                       // Adicionar validação para garantir que o usuário só pode avaliar após um aluguel concluído (pode exigir leitura de 'alugueis')
+
+      // Atualização e Exclusão:
+      // Geralmente, avaliações não são atualizadas ou excluídas pelos usuários finais.
+      // Se precisar, permita apenas ao autor ou a um admin.
+      allow update, delete: if false; // Ou: if request.auth != null && resource.data.avaliadorId == request.auth.uid;
+    }
+    
+    // Regras para a coleção 'avaliacoes_pendentes'
+    match /avaliacoes_pendentes/{avaliacaoPendenteId} {
+      // Leitura: Usuário pode ler suas próprias avaliações pendentes
+      allow get: if request.auth != null && request.auth.uid == resource.data.usuarioId;
+
+      // Listagem: Usuário pode listar suas próprias avaliações pendentes
+      allow list: if request.auth != null && request.auth.uid == resource.data.usuarioId;
+
+      // Criação: Permite criar avaliações pendentes (geralmente feito pelo sistema)
+      allow create: if request.auth != null;
+
+      // Atualização: Usuário pode atualizar suas próprias avaliações pendentes (marcar como concluída)
+      allow update: if request.auth != null && request.auth.uid == resource.data.usuarioId;
+
+      // Exclusão: Geralmente não permitida, mas pode ser útil para limpeza
+      allow delete: if request.auth != null && request.auth.uid == resource.data.usuarioId;
+    }
+    
+    // Regras para a coleção 'alugueis'
+    match /alugueis/{aluguelId} {
+      // Leitura: Somente participantes (locador ou locatário) podem ler os detalhes do aluguel.
+      allow get: if request.auth != null && request.auth.uid in resource.data.participantes;
+      
+      // Listagem: As queries do cliente devem ser seguras (filtrar por locadorId ou locatarioId).
+      // Permite listar se o usuário está autenticado. A segurança real vem da query do cliente
+      // que DEVE incluir um filtro pelo ID do usuário (ex: where('locadorId', '==', request.auth.uid)).
+      allow list: if request.auth != null;
+
+      // Criação (Solicitação):
+      // - Usuário deve estar autenticado.
+      // - O 'locatarioId' deve ser o UID do usuário autenticado.
+      // - Locador não pode ser o mesmo que locatário.
+      // - Status inicial deve ser 'solicitado'.
+      allow create: if request.auth != null &&
+                       request.resource.data.locatarioId is string &&
+                       request.resource.data.locatarioId == request.auth.uid &&
+                       request.resource.data.locadorId is string &&
+                       request.resource.data.locadorId != request.auth.uid &&
+                       request.resource.data.status is string &&
+                       request.resource.data.status == "solicitado" &&
+                       request.resource.data.itemId is string && request.resource.data.itemId.size() > 0 &&
+                       request.resource.data.itemNome is string && request.resource.data.itemNome.size() > 0 &&
+                       request.resource.data.locadorNome is string && request.resource.data.locadorNome.size() > 0 &&
+                       request.resource.data.locatarioNome is string && request.resource.data.locatarioNome.size() > 0 &&
+                       request.resource.data.dataInicio is timestamp &&
+                       request.resource.data.dataFim is timestamp &&
+                       request.resource.data.dataFim > request.resource.data.dataInicio &&
+                       request.resource.data.precoTotal is number && request.resource.data.precoTotal >= 0 &&
+                       request.resource.data.participantes is list &&
+                       request.resource.data.participantes.size() == 2 &&
+                       request.resource.data.locadorId in request.resource.data.participantes &&
+                       request.resource.data.locatarioId in request.resource.data.participantes;
+      // Atualização (Status, etc.):
+      // - Somente participantes podem atualizar.
+      // - Lógica específica para quem pode mudar para qual status.
+      //   Ex: Locador pode aprovar/recusar. Locatário pode cancelar antes da aprovação.
+      allow update: if request.auth != null && request.auth.uid in resource.data.participantes;
+                      // Adicionar validações mais finas para campos e transições de status.
+      // Exclusão: Geralmente não se permite, a menos que seja um cancelamento lógico (mudança de status).
+      allow delete: if false;
+    }
+    
+    // Regras para a coleção 'contratos'
+    match /contratos/{contratoId} {
+      // Leitura: Permite que um usuário autenticado leia um contrato se ele for o locador ou o locatário.
+      // Certifique-se que os documentos em 'contratos' tenham os campos 'locadorId' e 'locatarioId'.
+      allow get: if request.auth != null &&
+                    (request.auth.uid == resource.data.locadorId || request.auth.uid == resource.data.locatarioId);
+
+      // Criação:
+      // - Usuário deve estar autenticado.
+      // - O 'locatarioId' no novo documento deve ser o UID do usuário autenticado.
+      // - Validações básicas de campos.
+      allow create: if request.auth != null &&
+                       request.resource.data.locatarioId == request.auth.uid &&
+                       request.resource.data.aluguelId is string &&
+                       request.resource.data.locadorId is string &&
+                       request.resource.data.itemId is string &&
+                       request.resource.data.conteudoHtml is string && request.resource.data.conteudoHtml.size() > 0 &&
+                       request.resource.data.criadoEm == request.time && // Garante que o cliente envie o timestamp correto
+                       request.resource.data.versaoContrato is string;
+                       // Adicione validação para 'aceite' ser nulo na criação, se aplicável
+                       // && request.resource.data.aceite == null
+
+      // Atualização (para registrar o aceite do contrato):
+      // - Usuário deve estar autenticado.
+      // - O usuário autenticado deve ser o 'locatarioId' do contrato.
+      // - Apenas o campo 'aceite' pode ser modificado/adicionado.
+      allow update: if request.auth != null &&
+                       request.auth.uid == resource.data.locatarioId &&
+                       request.resource.data.aceite is map && // Garante que 'aceite' é um mapa
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceite']) &&
+                       // Validações para os campos dentro de 'aceite'
+                       request.resource.data.aceite.dataHora == request.time &&
+                       request.resource.data.aceite.enderecoIp is string &&
+                       request.resource.data.aceite.assinaturaDigital is string;
+    }
+    
+    // Regras para a coleção 'multas' (atualizadas para permitir writes autenticados)
+    match /multas/{multaId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null && 
+                       exists(/databases/$(database)/documents/alugueis/$(request.resource.data.aluguelId)) &&
+                       request.auth.uid in get(/databases/$(database)/documents/alugueis/$(request.resource.data.aluguelId)).data.participantes;
+
+      allow update, delete: if request.auth != null && resource.data.locadorId == request.auth.uid;
+    }
+    
+    // Regras para a coleção 'verificacoes_fotos' (atualizadas para permitir writes autenticados)
+    match /verificacoes_fotos/{document} {
+      allow list: if request.auth != null;
+
+      // Leitura: usuário deve ser locatário ou locador
+      allow get: if request.auth != null &&
+        (request.auth.uid == resource.data.locatarioId ||
+         request.auth.uid == resource.data.locadorId);
+
+      // Criação: permite se o usuário for participante do aluguel
+      allow create: if request.auth != null &&
+        exists(/databases/$(database)/documents/alugueis/$(request.resource.data.aluguelId)) &&
+        request.auth.uid in get(/databases/$(database)/documents/alugueis/$(request.resource.data.aluguelId)).data.participantes;
+
+      // Atualização: usuário deve ser locatário ou locador do documento
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.locatarioId ||
+         request.auth.uid == resource.data.locadorId);
+
+      // Exclusão: somente participantes
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.locatarioId ||
+         request.auth.uid == resource.data.locadorId);
+    }
+    
+    // Regras para problemas reportados
+    match /problemas/{problemaId} {
+      // Qualquer usuário autenticado pode ler problemas
+      allow read: if request.auth != null;
+      
+      // Criar problema: usuário deve ser participante do aluguel
+      allow create: if request.auth != null && 
+                       exists(/databases/$(database)/documents/alugueis/$(request.resource.data.aluguelId)) &&
+                       request.auth.uid in get(/databases/$(database)/documents/alugueis/$(request.resource.data.aluguelId)).data.participantes &&
+                       request.resource.data.reportadoPorId == request.auth.uid &&
+                       request.resource.data.status == 'aberto';
+      
+      // Atualizar problema: quem reportou ou qualquer participante do aluguel pode atualizar
+      allow update: if request.auth != null && 
+                       (request.auth.uid == resource.data.reportadoPorId || 
+                        request.auth.uid in get(/databases/$(database)/documents/alugueis/$(resource.data.aluguelId)).data.participantes);
+      
+      // Não permitir exclusão (manter histórico)
+      allow delete: if false;
+    }
+    
+    match /notificacoes/{notificacaoId} {
+      allow read: if request.auth != null && 
+        resource.data.destinatarioId == request.auth.uid;
+      allow write: if request.auth != null;
+    }
+    
+     // Regras para verificações de residência (painel admin)
+    match /verificacoes_residencia/{verifId} {
+      // Usuários autenticados podem listar verificações (necessário para painel admin)
+      allow list: if request.auth != null;
+      // Apenas o próprio usuário pode ler detalhes de sua verificação
+      allow get: if request.auth != null && request.auth.uid == resource.data.usuarioId;
+      // Sistema/usuários podem criar solicitações
+      allow create: if request.auth != null;
+      // Sistema/admin pode atualizar status (aprovar/rejeitar)
+      allow update: if request.auth != null;
+      // Não permitir exclusão
+      allow delete: if false;
+    }
+
+    // Regras para hatelimit de verificação SMS (usado pelas funções)
+    match /verificacoes_sms/{userId} {
+      // Apenas o próprio usuário pode ler seus códigos
+      allow get: if request.auth != null && request.auth.uid == userId;
+      // Sistema pode criar e atualizar códigos
+      allow write: if request.auth != null;
+      // Não permitir listagem
+      allow list: if false;
+    }
+    
+    // Adicione aqui regras para outras coleções.
+  }
+}

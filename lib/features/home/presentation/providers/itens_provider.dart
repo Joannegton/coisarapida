@@ -2,6 +2,8 @@ import 'package:coisarapida/features/itens/data/models/item_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:coisarapida/features/itens/presentation/providers/item_provider.dart'; // Para itemRepositoryProvider
+import 'package:coisarapida/core/providers/location_provider.dart';
+import 'package:geolocator/geolocator.dart';
 
 /// Provider para itens próximos ao usuário
 final itensProximosProvider = FutureProvider<List<Item>>((ref) async {
@@ -23,17 +25,48 @@ final itensProximosProvider = FutureProvider<List<Item>>((ref) async {
   }
 });
 
-final itensFiltradosProvider =
-    Provider.family<List<Item>, TipoItem?>((ref, tipoFiltro) {
-  // Assista ao valor do FutureProvider. Retorna uma lista vazia se ainda não houver dados.
-  final itensAsyncValue = ref.watch(itensProximosProvider);
-  final itens = itensAsyncValue.value ?? [];
+/// Provider para itens com distância calculada
+final itensComDistanciaProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  final itensAsync = ref.watch(itensProximosProvider);
+  final locationAsync = ref.watch(userLocationProvider);
 
-  if (tipoFiltro == null) {
-    return itens;
+  if (!itensAsync.hasValue) return [];
+
+  final itens = itensAsync.value!;
+
+  if (!locationAsync.hasValue) {
+    // Retorna itens sem distância
+    return itens.map((item) => {'item': item, 'distancia': null}).toList();
   }
 
-  return itens.where((item) {
+  final userPosition = locationAsync.value!;
+  final locationService = ref.watch(locationServiceProvider);
+
+  return itens.map((item) {
+    final distancia = locationService.calcularDistancia(
+      userPosition.latitude,
+      userPosition.longitude,
+      item.localizacao.latitude,
+      item.localizacao.longitude,
+    );
+    return {
+      'item': item,
+      'distancia': distancia,
+    };
+  }).toList();
+});
+
+final itensFiltradosProvider =
+    Provider.family<List<Map<String, dynamic>>, TipoItem?>((ref, tipoFiltro) {
+  // Assista ao valor do Provider. Retorna uma lista vazia se ainda não houver dados.
+  final itensComDistancia = ref.watch(itensComDistanciaProvider);
+
+  if (tipoFiltro == null) {
+    return itensComDistancia;
+  }
+
+  return itensComDistancia.where((itemMap) {
+    final item = itemMap['item'] as Item;
     if (tipoFiltro == TipoItem.aluguel) {
       return item.tipo == TipoItem.aluguel || item.tipo == TipoItem.ambos;
     }

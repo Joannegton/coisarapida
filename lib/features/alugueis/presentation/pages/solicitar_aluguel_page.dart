@@ -1,3 +1,4 @@
+import 'package:coisarapida/core/utils/verificacao_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
 import 'package:coisarapida/features/alugueis/domain/entities/caucao_aluguel.dart';
@@ -564,6 +565,12 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       return;
     }
     _formKey.currentState!.save();
+
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
 
     if (!_validarDatas()) {
       return;

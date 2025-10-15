@@ -6,8 +6,9 @@ import '../../../../core/constants/app_routes.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
+  final double? distancia;
 
-  const ItemCard({super.key, required this.item});
+  const ItemCard({super.key, required this.item, this.distancia});
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +182,7 @@ class ItemCard extends StatelessWidget {
                       const SizedBox(width: 3),
                       Expanded(
                         child: Text(
-                          '${item.localizacao.cidade}',
+                          distancia != null ? '${distancia!.toStringAsFixed(1)} km • ${item.localizacao.cidade}' : '${item.localizacao.cidade}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 11,

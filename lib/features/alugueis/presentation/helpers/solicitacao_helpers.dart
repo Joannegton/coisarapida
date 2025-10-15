@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/notification_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
+import '../../../../core/utils/verificacao_helper.dart';
 import '../../domain/entities/aluguel.dart';
 import '../controllers/aluguel_controller.dart';
 
@@ -16,6 +17,12 @@ class SolicitacaoHelpers {
     Aluguel aluguel, {
     bool fecharPaginaAposRecusar = false,
   }) async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     String? motivoRecusa;
     final motivoController = TextEditingController();
 
@@ -133,6 +140,12 @@ class SolicitacaoHelpers {
     Aluguel aluguel, {
     bool fecharPaginaAposAprovar = false,
   }) async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     final bool? confirmarAprovacao = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {

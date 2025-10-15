@@ -48,7 +48,8 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final itensState = ref.watch(itensProximosProvider);
+    final itensAsync = ref.watch(itensProximosProvider);
+    final itensComDistancia = ref.watch(itensComDistanciaProvider);
     
     return Scaffold(
       appBar: AppBar(
@@ -167,9 +168,9 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
           
           // Lista de resultados
           Expanded(
-            child: itensState.when(
+            child: itensAsync.when(
               data: (itens) {
-                final itensFiltrados = _filtrarItens(itens);
+                final itensFiltrados = _filtrarItens(itensComDistancia);
                 
                 if (itensFiltrados.isEmpty) {
                   return Center(
@@ -275,7 +276,9 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     );
   }
 
-  Widget _buildItemListTile(BuildContext context, ThemeData theme, Item item) {
+  Widget _buildItemListTile(BuildContext context, ThemeData theme, Map<String, dynamic> itemMap) {
+    final item = itemMap['item'] as Item;
+    final distancia = itemMap['distancia'] as double?;
     final screenWidth = MediaQuery.of(context).size.width;
     final imageSize = screenWidth * 0.18; // 18% da largura da tela para a imagem
     final padding = screenWidth * 0.03; // 3% para padding
@@ -348,8 +351,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
-                            // TODO: Calcular e exibir a distância real
-                            item.localizacao.cidade, // Exemplo, idealmente seria a distância
+                            distancia != null ? '${distancia.toStringAsFixed(1)} km • ${item.localizacao.cidade}' : item.localizacao.cidade,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.grey.shade600,
                             ),
@@ -527,8 +529,9 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     );
   }
 
-  List<Item> _filtrarItens(List<Item> itens) {
-    var itensFiltrados = itens.where((item) {
+  List<Map<String, dynamic>> _filtrarItens(List<Map<String, dynamic>> itens) {
+    var itensFiltrados = itens.where((map) {
+      final item = map['item'] as Item;
       // Filtro por categoria
       if (_categoriaSelecionada != 'todos' && item.categoria != _categoriaSelecionada) {
         return false;
@@ -540,10 +543,10 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
       }
       
       // Filtro por distância
-      // TODO: Implementar cálculo de distância real e filtro
-      // if (calcularDistancia(item.localizacao) > _distanciaMaxima) {
-      //   return false;
-      // }
+      final distancia = map['distancia'] as double?;
+      if (distancia != null && distancia > _distanciaMaxima) {
+        return false;
+      }
       
       // Filtro por preço
       final preco = item.precoPorDia;
@@ -573,17 +576,35 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     // Ordenação
     switch (_ordenarPor) {
       case 'distancia':
-        // TODO: Ordenar por distância real quando implementado
-        // itensFiltrados.sort((a, b) => calcularDistancia(a.localizacao).compareTo(calcularDistancia(b.localizacao)));
+        itensFiltrados.sort((a, b) {
+          final distA = a['distancia'] as double?;
+          final distB = b['distancia'] as double?;
+          if (distA == null && distB == null) return 0;
+          if (distA == null) return 1;
+          if (distB == null) return -1;
+          return distA.compareTo(distB);
+        });
         break;
       case 'preco_menor':
-        itensFiltrados.sort((a, b) => a.precoPorDia.compareTo(b.precoPorDia));
+        itensFiltrados.sort((a, b) {
+          final itemA = a['item'] as Item;
+          final itemB = b['item'] as Item;
+          return itemA.precoPorDia.compareTo(itemB.precoPorDia);
+        });
         break;
       case 'preco_maior':
-        itensFiltrados.sort((a, b) => b.precoPorDia.compareTo(a.precoPorDia));
+        itensFiltrados.sort((a, b) {
+          final itemA = a['item'] as Item;
+          final itemB = b['item'] as Item;
+          return itemB.precoPorDia.compareTo(itemA.precoPorDia);
+        });
         break;
       case 'avaliacao':
-        itensFiltrados.sort((a, b) => b.avaliacao.compareTo(a.avaliacao));
+        itensFiltrados.sort((a, b) {
+          final itemA = a['item'] as Item;
+          final itemB = b['item'] as Item;
+          return itemB.avaliacao.compareTo(itemA.avaliacao);
+        });
         break;
     }
     

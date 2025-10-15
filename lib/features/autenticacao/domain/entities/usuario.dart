@@ -17,6 +17,10 @@ class Usuario {
   final bool verificado;
   final String? cpf;
   final Endereco? endereco;
+  
+  // Campos de verificação
+  final bool telefoneVerificado;
+  final bool enderecoVerificado;
 
   const Usuario({
     required this.id,
@@ -33,6 +37,8 @@ class Usuario {
     this.verificado = false,
     this.cpf,
     this.endereco,
+    this.telefoneVerificado = false,
+    this.enderecoVerificado = false,
   });
 
   Usuario copyWith({
@@ -50,6 +56,8 @@ class Usuario {
     bool? verificado,
     String? cpf,
     Endereco? endereco,
+    bool? telefoneVerificado,
+    bool? enderecoVerificado,
   }) {
     return Usuario(
       id: id ?? this.id,
@@ -66,6 +74,8 @@ class Usuario {
       verificado: verificado ?? this.verificado,
       cpf: cpf ?? this.cpf,
       endereco: endereco ?? this.endereco,
+      telefoneVerificado: telefoneVerificado ?? this.telefoneVerificado,
+      enderecoVerificado: enderecoVerificado ?? this.enderecoVerificado,
     );
   }
 

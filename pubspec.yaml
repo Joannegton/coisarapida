@@ -29,6 +29,7 @@ dependencies:
   firebase_messaging: ^16.0.0
   flutter_local_notifications: ^18.0.1
   google_sign_in: ^7.1.1
+  firebase_app_check: ^0.4.0
 
 
   # Mapas e Localização

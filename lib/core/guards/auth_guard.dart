@@ -25,6 +25,7 @@ class AuthGuard extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(usuarioAtualStreamProvider);
     final isLoggedIn = authState.hasValue && authState.value != null;
+    final usuario = authState.value;
 
     final isOnSplash = state.uri.toString() == AppRoutes.splash;
     final isOnAuthPages = [
@@ -43,8 +44,9 @@ class AuthGuard extends ChangeNotifier {
       return AppRoutes.login;
     }
 
-    // Se está logado e está em páginas de auth, redireciona para home
-    if (isLoggedIn && isOnAuthPages) {
+    // Se está logado e em páginas de auth, redireciona para home
+    // NOTA: Removida obrigatoriedade de verificação de endereço/telefone
+    if (isLoggedIn && usuario != null && isOnAuthPages) {
       return AppRoutes.home;
     }
 

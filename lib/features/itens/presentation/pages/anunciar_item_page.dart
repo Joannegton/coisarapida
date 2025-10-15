@@ -4,6 +4,7 @@ import 'package:coisarapida/features/itens/presentation/widgets/sessao_fotos.dar
 import 'package:coisarapida/features/itens/presentation/widgets/sessao_precos.dart';
 import 'package:flutter/material.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import 'package:coisarapida/core/utils/verificacao_helper.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -285,6 +286,12 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
   }
 
   void _publicarItem() {
+    // Verificar se usuário está 100% verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       SnackBarUtils.mostrarErro(context,
           'Preencha corretamente todos os campos obrigatórios (marcados em vermelho).');

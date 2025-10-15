@@ -1,3 +1,4 @@
+import 'package:coisarapida/core/utils/verificacao_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1340,6 +1341,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _processarAprovacaoSolicitacao() async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     try {
       showDialog(
         context: context,
@@ -1377,6 +1384,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _processarRecusaSolicitacao(String motivo) async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     try {
       showDialog(
         context: context,
@@ -1414,6 +1427,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _processarCancelamentoSolicitacao() async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     try {
       showDialog(
         context: context,
@@ -1477,6 +1496,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _processarDevolucao() async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     bool dialogAberto = false;
     
     try {
@@ -1576,6 +1601,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _processarAprovacao() async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
     bool dialogAberto = false;
     
     try {
