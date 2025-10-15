@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/tema_provider.dart';
 import '../providers/idioma_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
+import '../../../../core/widgets/notification_settings_widget.dart';
 
 /// Tela de configurações
 class ConfiguracoesPage extends ConsumerWidget {
@@ -37,32 +38,7 @@ class ConfiguracoesPage extends ConsumerWidget {
           const SizedBox(height: 24),
           
           // Seção Notificações
-          _buildSecao(
-            context,
-            theme,
-            'Notificações',
-            Icons.notifications,
-            [
-              _buildItemNotificacao(
-                'Entregas',
-                'Receber notificações sobre suas entregas',
-                true,
-                (valor) => _alterarNotificacao(context, 'entregas', valor),
-              ),
-              _buildItemNotificacao(
-                'Promoções',
-                'Receber ofertas e promoções especiais',
-                false,
-                (valor) => _alterarNotificacao(context, 'promocoes', valor),
-              ),
-              _buildItemNotificacao(
-                'Atualizações',
-                'Novidades e atualizações do app',
-                true,
-                (valor) => _alterarNotificacao(context, 'atualizacoes', valor),
-              ),
-            ],
-          ),
+          const NotificationSettingsWidget(),
           
           const SizedBox(height: 24),
           
@@ -228,20 +204,6 @@ class ConfiguracoesPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildItemNotificacao(
-    String titulo,
-    String subtitulo,
-    bool valor,
-    Function(bool) onChanged,
-  ) {
-    return SwitchListTile(
-      title: Text(titulo),
-      subtitle: Text(subtitulo),
-      value: valor,
-      onChanged: onChanged,
-    );
-  }
-
   Widget _buildItemConfiguracao(
     String titulo,
     String subtitulo,
@@ -380,13 +342,6 @@ class ConfiguracoesPage extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _alterarNotificacao(BuildContext context, String tipo, bool valor) {
-    SnackBarUtils.mostrarSucesso(
-      context,
-      'Notificação de $tipo ${valor ? 'ativada' : 'desativada'}',
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/notification_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../domain/entities/aluguel.dart';
 import '../controllers/aluguel_controller.dart';
@@ -85,6 +86,8 @@ class SolicitacaoHelpers {
 
     if (confirmarRecusa == true) {
       final controller = ref.read(aluguelControllerProvider.notifier);
+      final notificationManager = ref.read(notificationManagerProvider);
+      
       try {
         await controller.atualizarStatusAluguel(
           aluguel.id,
@@ -92,10 +95,19 @@ class SolicitacaoHelpers {
           motivo: motivoRecusa,
         );
 
+        // Enviar notificação ao locatário
+        await notificationManager.notificarSolicitacaoRecusada(
+          locatarioId: aluguel.locatarioId,
+          locadorNome: aluguel.locadorNome,
+          itemNome: aluguel.itemNome,
+          aluguelId: aluguel.id,
+          motivo: motivoRecusa,
+        );
+
         if (context.mounted) {
           SnackBarUtils.mostrarInfo(
             context,
-            'Solicitação recusada${motivoRecusa != null && motivoRecusa!.isNotEmpty ? ' e notificação enviada' : ''}.',
+            'Solicitação recusada e notificação enviada ao locatário.',
           );
 
           // Fechar página de detalhes se solicitado
@@ -212,10 +224,20 @@ class SolicitacaoHelpers {
 
     if (confirmarAprovacao == true) {
       final controller = ref.read(aluguelControllerProvider.notifier);
+      final notificationManager = ref.read(notificationManagerProvider);
+      
       try {
         await controller.atualizarStatusAluguel(
           aluguel.id,
           StatusAluguel.aprovado,
+        );
+
+        // Enviar notificação ao locatário
+        await notificationManager.notificarSolicitacaoAprovada(
+          locatarioId: aluguel.locatarioId,
+          locadorNome: aluguel.locadorNome,
+          itemNome: aluguel.itemNome,
+          aluguelId: aluguel.id,
         );
 
         if (context.mounted) {

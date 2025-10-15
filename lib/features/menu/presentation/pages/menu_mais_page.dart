@@ -42,24 +42,19 @@ class MenuMaisPage extends ConsumerWidget {
                 onTap: () => context.push(AppRoutes.favoritos),
               ),
               const Divider(height: 1),
+              // Notificações não vistas (indicadas pela bolinha vermelha)
               MenuListTile(
                 icone: Icons.notifications_outlined,
                 texto: 'Notificações',
-                onTap: () {},
+                onTap: () => context.push(AppRoutes.notificacoes),
                 iconeAcao: const Icon(Icons.circle, color: Color.fromARGB(255, 231, 16, 1), size: 12),
               ),
               const Divider(height: 1),
               MenuListTile(
-                icone: Icons.account_balance_wallet_outlined,
-                texto: 'Saldo em conta',
-                onTap: () {},
-                iconeAcao: Text(
-                  'R\$ 150,00',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                icone: Icons.settings_outlined,
+                texto: 'Configurações',
+                onTap: () => context.push(AppRoutes.configuracoes),
+                iconeAcao: Icon(Icons.arrow_forward_ios, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
               ),
               const Divider(height: 1),
               SizedBox(height: screenWidth * 0.04),

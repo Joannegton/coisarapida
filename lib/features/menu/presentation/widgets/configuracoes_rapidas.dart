@@ -1,13 +1,18 @@
-import 'package:coisarapida/core/utils/snackbar_utils.dart';
+import 'package:coisarapida/core/providers/notification_provider.dart';
+import 'package:coisarapida/features/configuracoes/presentation/providers/tema_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class ConfiguracoesRapidas extends StatelessWidget {
+class ConfiguracoesRapidas extends ConsumerWidget {
   const ConfiguracoesRapidas({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
+    final temaAtual = ref.watch(temaProvider);
+    final notificationService = ref.watch(notificationServiceProvider);
 
     return Card(
       child: Padding(
@@ -23,25 +28,50 @@ class ConfiguracoesRapidas extends StatelessWidget {
             ),
             SizedBox(height: screenWidth * 0.04),
             
-            _buildItemConfiguracao(
-              'Notificações',
-              'Gerenciar notificações',
-              Icons.notifications,
-              () => _configurarNotificacoes(context),
+            // Switch de Notificações
+            FutureBuilder<bool>(
+              future: notificationService.hasPermission(),
+              builder: (context, snapshot) {
+                final hasPermission = snapshot.data ?? false;
+                return _buildItemSwitch(
+                  context,
+                  ref,
+                  'Notificações',
+                  'Ativar notificações do app',
+                  Icons.notifications_outlined,
+                  hasPermission,
+                  (value) async {
+                    if (value) {
+                      await notificationService.requestPermission();
+                      final granted = await notificationService.hasPermission();
+                      if (!granted && context.mounted) {
+                        _mostrarDialogoPermissao(context);
+                      }
+                    } else {
+                      if (context.mounted) {
+                        _mostrarDialogoDesativar(context);
+                      }
+                    }
+                  },
+                );
+              },
             ),
             
-            _buildItemConfiguracao(
-              'Privacidade',
-              'Configurações de privacidade',
-              Icons.privacy_tip,
-              () => _configurarPrivacidade(context),
-            ),
+            const Divider(height: 1),
             
-            _buildItemConfiguracao(
-              'Suporte',
-              'Central de ajuda',
-              Icons.help,
-              () => _abrirSuporte(context),
+            // Switch de Tema
+            _buildItemSwitch(
+              context,
+              ref,
+              temaAtual == ThemeMode.dark ? 'Tema Escuro' : 'Tema Claro',
+              temaAtual == ThemeMode.dark ? 'Modo escuro ativado' : 'Modo claro ativado',
+              temaAtual == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
+              temaAtual == ThemeMode.dark,
+              (value) {
+                ref.read(temaProvider.notifier).alterarTema(
+                  value ? ThemeMode.dark : ThemeMode.light,
+                );
+              },
             ),
           ],
         ),
@@ -49,35 +79,72 @@ class ConfiguracoesRapidas extends StatelessWidget {
     );
   }
 
-  Widget _buildItemConfiguracao(
+  Widget _buildItemSwitch(
+    BuildContext context,
+    WidgetRef ref,
     String titulo,
     String subtitulo,
     IconData icone,
-    VoidCallback onTap,
+    bool valor,
+    Function(bool) onChanged,
   ) {
-    return Builder(
-      builder: (context) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        return ListTile(
-          leading: Icon(icone, size: screenWidth * 0.06),
-          title: Text(titulo),
-          subtitle: Text(subtitulo),
-          trailing: Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04),
-          onTap: onTap,
-        );
-      }
+    final screenWidth = MediaQuery.of(context).size.width;
+    return SwitchListTile(
+      secondary: Icon(icone, size: screenWidth * 0.06),
+      title: Text(titulo),
+      subtitle: Text(subtitulo),
+      value: valor,
+      onChanged: onChanged,
     );
   }
 
-  void _configurarNotificacoes(BuildContext context) {
-    SnackBarUtils.mostrarInfo(context, 'Configurações de notificação em desenvolvimento');
+  void _mostrarDialogoPermissao(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Permissão Negada'),
+        content: const Text(
+          'Para receber notificações, você precisa ativar a permissão nas configurações do seu dispositivo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              openAppSettings();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Abrir Configurações'),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _configurarPrivacidade(BuildContext context) {
-    SnackBarUtils.mostrarInfo(context, 'Configurações de privacidade em desenvolvimento');
-  }
-
-  void _abrirSuporte(BuildContext context) {
-    SnackBarUtils.mostrarInfo(context, 'Suporte em desenvolvimento');
+  void _mostrarDialogoDesativar(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Desativar Notificações'),
+        content: const Text(
+          'Para desativar as notificações, acesse as configurações do seu dispositivo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              openAppSettings();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Abrir Configurações'),
+          ),
+        ],
+      ),
+    );
   }
 }

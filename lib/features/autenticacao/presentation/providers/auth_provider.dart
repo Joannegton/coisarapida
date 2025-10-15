@@ -1,3 +1,4 @@
+import 'package:coisarapida/core/providers/notification_provider.dart';
 import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_providers.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:coisarapida/features/chat/presentation/providers/chat_provider.dart';
@@ -62,6 +63,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         email: email,
         senha: senha,
       );
+      
+      // Inicializar e salvar FCM token após login
+      await _setupNotifications();
+      
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
@@ -73,6 +78,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     
     try {
       await _authRepository.loginComGoogle();
+      
+      // Inicializar e salvar FCM token após login
+      await _setupNotifications();
+      
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
@@ -113,6 +122,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     
     try {
+      // Remover FCM token antes do logout
+      final usuarioAtual = _ref.read(usuarioAtualStreamProvider).value;
+      if (usuarioAtual != null) {
+        final notificationService = _ref.read(notificationServiceProvider);
+        await notificationService.removeFCMTokenForUser(usuarioAtual.id);
+      }
+      
       // Invalidar todos os providers relacionados ao usuário antes do logout
       // para evitar erros de permissão do Firestore
       _ref.invalidate(chatsProvider);
@@ -125,6 +141,22 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  /// Configura notificações após login
+  Future<void> _setupNotifications() async {
+    try {
+      final notificationService = _ref.read(notificationServiceProvider);
+      await notificationService.initialize();
+      
+      final usuarioAtual = _ref.read(usuarioAtualStreamProvider).value;
+      if (usuarioAtual != null) {
+        await notificationService.saveFCMTokenForUser(usuarioAtual.id);
+      }
+    } catch (e) {
+      // Não falhar o login se houver erro nas notificações
+      print('⚠️ Erro ao configurar notificações: $e');
     }
   }
 

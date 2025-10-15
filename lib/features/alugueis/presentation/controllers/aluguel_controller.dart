@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/core/providers/notification_provider.dart';
 import 'package:coisarapida/features/alugueis/domain/entities/aluguel.dart';
 import 'package:coisarapida/features/alugueis/domain/entities/caucao_aluguel.dart';
 import 'package:coisarapida/features/alugueis/domain/repositories/aluguel_repository.dart';
@@ -85,6 +86,16 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
     try {
       // O ID do aluguel já deve estar definido no objeto 'aluguel'
       final idCriado = await _aluguelRepository.solicitarAluguel(aluguel);
+      
+      // Enviar notificação ao locador
+      final notificationManager = _ref.read(notificationManagerProvider);
+      await notificationManager.notificarNovaSolicitacao(
+        locadorId: aluguel.locadorId,
+        locatarioNome: aluguel.locatarioNome,
+        itemNome: aluguel.itemNome,
+        aluguelId: idCriado,
+      );
+      
       state = const AsyncValue.data(null);
       return idCriado;
     } catch (e, stackTrace) {

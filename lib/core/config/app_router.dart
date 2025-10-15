@@ -22,6 +22,7 @@ import '../../features/itens/presentation/pages/anunciar_item_page.dart';
 import '../../features/perfil/presentation/pages/perfil_page.dart';
 import '../../features/perfil/presentation/pages/perfil_publico_page.dart';
 import '../../features/configuracoes/presentation/pages/configuracoes_page.dart';
+import '../../features/notificacoes/presentation/pages/notificacoes_page.dart';
 import '../constants/app_routes.dart';
 import '../guards/auth_guard.dart';
 import '../../features/buscar/presentation/pages/buscar_page.dart';
@@ -156,6 +157,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.configuracoes,
         name: 'configuracoes',
         builder: (context, state) => const ConfiguracoesPage(),
+      ),
+
+      // Notificações
+      GoRoute(
+        path: AppRoutes.notificacoes,
+        name: 'notificacoes',
+        builder: (context, state) => const NotificacoesPage(),
       ),
 
       // alugueis
