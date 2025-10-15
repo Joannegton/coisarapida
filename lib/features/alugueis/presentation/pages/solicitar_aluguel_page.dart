@@ -434,12 +434,13 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
           children: [
             if (_paginaAtual > 0) ...[
               Expanded(
+                flex: 2,
                 child: OutlinedButton.icon(
                   onPressed: _voltarPagina,
                   icon: const Icon(Icons.arrow_back, size: 20),
                   label: const Text('Voltar'),
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: padding),
+                    padding: EdgeInsets.symmetric(horizontal: padding * 0.5, vertical: padding),
                     side: BorderSide(color: theme.colorScheme.primary, width: 2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -450,7 +451,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
               SizedBox(width: padding),
             ],
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

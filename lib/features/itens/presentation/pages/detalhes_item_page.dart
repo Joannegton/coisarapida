@@ -2,6 +2,7 @@ import 'package:coisarapida/features/autenticacao/presentation/providers/auth_pr
 import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
+import 'package:coisarapida/shared/widgets/scrolling_text.dart';
 import 'package:coisarapida/shared/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -202,20 +203,21 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
           children: [
             // Botão de Estatísticas
             Expanded(
+              flex: 2,
               child: OutlinedButton.icon(
                 onPressed: () => SnackBarUtils.mostrarInfo(
                     context, 'Estatísticas em desenvolvimento'),
                 icon: const Icon(Icons.bar_chart),
-                label: const Text('Estatísticas'),
+                label: ScrollingText('Estatísticas'),
                 style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: padding * 2),
+                  padding: EdgeInsets.symmetric(horizontal: padding * 0.5, vertical: padding * 2),
                 ),
               ),
             ),
             SizedBox(width: padding),
             // Botão de Editar
             Expanded(
-              flex: 2,
+              flex: 3,
               child: ElevatedButton.icon(
                 onPressed: () => context.push('/editar-item/${item.id}'),
                 icon: const Icon(Icons.edit),

@@ -1,3 +1,4 @@
+import 'package:coisarapida/shared/widgets/scrolling_text.dart';
 import 'package:flutter/material.dart';
 import '../../domain/entities/item.dart';
 
@@ -57,17 +58,19 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
             // Botão secundário (Alugar em modo 'Ambos', ou Chat)
             if (isAmbos)
               Expanded(
+                flex: 2,
                 child: OutlinedButton.icon(
                   onPressed: item.disponivel ? onAlugarPressed : null,
                   icon: const Icon(Icons.calendar_today),
                   label: const Text('Alugar'),
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: padding * 2),
+                    padding: EdgeInsets.symmetric(horizontal: padding * 0.5, vertical: padding * 2),
                   ),
                 ),
               )
             else
               Expanded(
+                flex: 2,
                 child: OutlinedButton.icon(
                   onPressed: onChatPressed,
                   icon: const Icon(Icons.chat),
@@ -77,9 +80,9 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Conversar'),
+                      : ScrollingText('Conversar'),
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: padding * 2),
+                    padding: EdgeInsets.symmetric(horizontal: padding * 0.5, vertical: padding * 2),
                   ),
                 ),
               ),
@@ -88,16 +91,15 @@ class DetalhesItemBottomBarWidget extends StatelessWidget {
 
             // Botão principal (Comprar ou Alugar)
             Expanded(
-              flex: 2,
+              flex: 3,
               child: ElevatedButton.icon(
                 onPressed: item.disponivel
                     ? (isAluguel ? onAlugarPressed : onComprarPressed)
                     : null,
                 icon: Icon(primaryButtonIcon),
-                label:
-                    Text(item.disponivel ? primaryButtonText : 'Indisponível'),
+                label: Text(primaryButtonText),
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: padding * 2),
+                  padding: EdgeInsets.symmetric(horizontal: padding * 0.5, vertical: padding * 2),
                   backgroundColor: primaryButtonColor,
                   foregroundColor: theme.colorScheme.onPrimary,
                 ),

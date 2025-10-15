@@ -34,6 +34,7 @@ class ActionButtonsSection extends StatelessWidget {
           children: [
             // Botão Recusar
             Expanded(
+              flex: 2,
               child: OutlinedButton.icon(
                 onPressed: isLoading ? null : onRecusar,
                 icon: const Icon(Icons.close),
@@ -41,14 +42,14 @@ class ActionButtonsSection extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.error,
                   side: BorderSide(color: theme.colorScheme.error),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             // Botão Aprovar
             Expanded(
-              flex: 2,
+              flex: 3,
               child: ElevatedButton.icon(
                 onPressed: isLoading ? null : onAprovar,
                 icon: isLoading
@@ -65,7 +66,7 @@ class ActionButtonsSection extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                 ),
               ),
             ),
