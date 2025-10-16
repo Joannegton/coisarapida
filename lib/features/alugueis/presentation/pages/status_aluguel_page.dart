@@ -2058,7 +2058,7 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await ref.read(denunciaProvider.notifier).criarDenuncia(
+      await ref.read(criarDenunciaProvider.notifier).criar(
         aluguelId: widget.aluguelId,
         denuncianteId: 'usuario_atual_id', // Pegar do auth
         denunciadoId: widget.dadosAluguel['locadorId'],

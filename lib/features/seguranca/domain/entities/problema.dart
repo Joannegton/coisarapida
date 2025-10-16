@@ -32,55 +32,6 @@ class Problema {
     this.resolucao,
   });
 
-  factory Problema.fromMap(Map<String, dynamic> map) {
-    return Problema(
-      id: map['id'] as String,
-      aluguelId: map['aluguelId'] as String,
-      itemId: map['itemId'] as String,
-      reportadoPorId: map['reportadoPorId'] as String,
-      reportadoPorNome: map['reportadoPorNome'] as String,
-      reportadoContraId: map['reportadoContraId'] as String,
-      tipo: TipoProblema.values.firstWhere(
-        (e) => e.toString().split('.').last == map['tipo'],
-        orElse: () => TipoProblema.outro,
-      ),
-      prioridade: PrioridadeProblema.values.firstWhere(
-        (e) => e.toString().split('.').last == map['prioridade'],
-        orElse: () => PrioridadeProblema.media,
-      ),
-      descricao: map['descricao'] as String,
-      fotos: List<String>.from(map['fotos'] ?? []),
-      status: StatusProblema.values.firstWhere(
-        (e) => e.toString().split('.').last == map['status'],
-        orElse: () => StatusProblema.aberto,
-      ),
-      criadoEm: DateTime.fromMillisecondsSinceEpoch(map['criadoEm'] as int),
-      resolvidoEm: map['resolvidoEm'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['resolvidoEm'] as int)
-          : null,
-      resolucao: map['resolucao'] as String?,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'aluguelId': aluguelId,
-      'itemId': itemId,
-      'reportadoPorId': reportadoPorId,
-      'reportadoPorNome': reportadoPorNome,
-      'reportadoContraId': reportadoContraId,
-      'tipo': tipo.toString().split('.').last,
-      'prioridade': prioridade.toString().split('.').last,
-      'descricao': descricao,
-      'fotos': fotos,
-      'status': status.toString().split('.').last,
-      'criadoEm': criadoEm.millisecondsSinceEpoch,
-      'resolvidoEm': resolvidoEm?.millisecondsSinceEpoch,
-      'resolucao': resolucao,
-    };
-  }
-
   Problema copyWith({
     String? id,
     String? aluguelId,

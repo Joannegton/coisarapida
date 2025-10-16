@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import '../providers/seguranca_provider.dart';
 import 'dart:async';
 
 /// Página para verificação de telefone por SMS
@@ -111,67 +111,33 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
     setState(() => _enviando = true);
 
     try {
-      print('🔥 [FRONTEND] Chamando Firebase Functions...');
-      final functions = FirebaseFunctions.instance;
-      final callable = functions.httpsCallable('enviarCodigoSMS');
+      final usuario = ref.read(usuarioAtualStreamProvider).value;
+      if (usuario == null) {
+        throw Exception('Usuário não encontrado');
+      }
 
-      print('🔥 [FRONTEND] Fazendo chamada com telefone: $telefoneFormatado');
-      final result = await callable.call({
-        'data': {
-          'telefone': telefoneFormatado,
-        },
+      await ref.read(verificacaoTelefoneProvider.notifier).enviarCodigoSMS(
+        usuarioId: usuario.id,
+        telefone: telefoneFormatado,
+      );
+
+      print('✅ [FRONTEND] Código enviado com sucesso!');
+      setState(() {
+        _codigoEnviado = true;
+        _codigoController.clear();
       });
-
-      print('✅ [FRONTEND] Resposta recebida: ${result.data}');
-
-      if (result.data['success'] == true) {
-        print('✅ [FRONTEND] Código enviado com sucesso!');
-        setState(() {
-          _codigoEnviado = true;
-          _codigoController.clear();
-        });
-        _iniciarContador();
-
-        if (mounted) {
-          SnackBarUtils.mostrarSucesso(
-            context,
-            'Código enviado para ${_formatarTelefoneDisplay(telefone)}',
-          );
-
-          // Em desenvolvimento, mostrar o código
-          if (result.data['codigoDebug'] != null) {
-            print('🔍 [FRONTEND] Código de debug: ${result.data['codigoDebug']}');
-            SnackBarUtils.mostrarInfo(
-              context,
-              'DESENVOLVIMENTO: Código ${result.data['codigoDebug']}',
-            );
-          }
-        }
-      } else {
-        print('❌ [FRONTEND] Resposta sem sucesso: ${result.data}');
-        if (mounted) {
-          SnackBarUtils.mostrarErro(
-            context,
-            result.data['message'] ?? 'Erro ao enviar código',
-          );
-        }
-      }
-    } on FirebaseFunctionsException catch (error) {
-      print('❌ [FRONTEND] FirebaseFunctionsException:');
-      print('   Código: ${error.code}');
-      print('   Mensagem: ${error.message}');
-      print('   Detalhes: ${error.details}');
+      _iniciarContador();
 
       if (mounted) {
-        SnackBarUtils.mostrarErro(context, error.message ?? 'Erro ao enviar código');
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Código enviado para ${_formatarTelefoneDisplay(telefone)}',
+        );
       }
-    } catch (error) {
-      print('❌ [FRONTEND] Erro genérico: $error');
-      print('   Tipo: ${error.runtimeType}');
-      print('   Stack: ${error.toString()}');
-
+    } catch (e) {
+      print('❌ [FRONTEND] Erro ao enviar código: $e');
       if (mounted) {
-        SnackBarUtils.mostrarErro(context, 'Erro ao enviar código: ${error.toString()}');
+        SnackBarUtils.mostrarErro(context, 'Erro ao enviar código: $e');
       }
     } finally {
       if (mounted) {
@@ -197,56 +163,29 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
     setState(() => _verificando = true);
 
     try {
-      print('🔥 [FRONTEND] Chamando função verificarCodigoSMS...');
-      final functions = FirebaseFunctions.instance;
-      final callable = functions.httpsCallable('verificarCodigoSMS');
-
-      print('🔥 [FRONTEND] Fazendo chamada com código: $codigo');
-      final telefoneFormatado = _formatarTelefone(_telefoneController.text);
-      final result = await callable.call({
-        'data': {
-          'codigo': codigo,
-          'telefone': telefoneFormatado,
-        },
-      });
-
-      print('✅ [FRONTEND] Resposta da verificação: ${result.data}');
-
-      if (result.data['success'] == true) {
-        print('✅ [FRONTEND] Código verificado com sucesso!');
-        if (mounted) {
-          SnackBarUtils.mostrarSucesso(
-            context,
-            'Telefone verificado com sucesso! ✅',
-          );
-          ref.invalidate(usuarioAtualStreamProvider);
-          Navigator.of(context).pop();
-        }
-      } else {
-        print('❌ [FRONTEND] Verificação falhou: ${result.data}');
-        if (mounted) {
-          SnackBarUtils.mostrarErro(
-            context,
-            result.data['message'] ?? 'Código incorreto'
-          );
-        }
+      final usuario = ref.read(usuarioAtualStreamProvider).value;
+      if (usuario == null) {
+        throw Exception('Usuário não encontrado');
       }
-    } on FirebaseFunctionsException catch (error) {
-      print('❌ [FRONTEND] FirebaseFunctionsException na verificação:');
-      print('   Código: ${error.code}');
-      print('   Mensagem: ${error.message}');
-      print('   Detalhes: ${error.details}');
 
+      await ref.read(verificacaoTelefoneProvider.notifier).verificarCodigoSMS(
+        usuarioId: usuario.id,
+        codigo: codigo,
+      );
+
+      print('✅ [FRONTEND] Código verificado com sucesso!');
       if (mounted) {
-        SnackBarUtils.mostrarErro(context, error.message ?? 'Erro ao verificar código');
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Telefone verificado com sucesso! ✅',
+        );
+        ref.invalidate(usuarioAtualStreamProvider);
+        Navigator.of(context).pop();
       }
-    } catch (error) {
-      print('❌ [FRONTEND] Erro genérico na verificação: $error');
-      print('   Tipo: ${error.runtimeType}');
-      print('   Stack: ${error.toString()}');
-
+    } catch (e) {
+      print('❌ [FRONTEND] Erro na verificação: $e');
       if (mounted) {
-        SnackBarUtils.mostrarErro(context, 'Erro ao verificar código: ${error.toString()}');
+        SnackBarUtils.mostrarErro(context, 'Erro ao verificar código: $e');
       }
     } finally {
       if (mounted) {

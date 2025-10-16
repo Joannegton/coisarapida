@@ -31,41 +31,33 @@ class VerificacaoFotos {
   bool get temFotosAntes => fotosAntes.isNotEmpty;
   bool get temFotosDepois => fotosDepois.isNotEmpty;
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'aluguelId': aluguelId,
-      'itemId': itemId,
-      'locatarioId': locatarioId,
-      'locadorId': locadorId,
-      'fotosAntes': fotosAntes,
-      'fotosDepois': fotosDepois,
-      'dataFotosAntes': dataFotosAntes?.millisecondsSinceEpoch,
-      'dataFotosDepois': dataFotosDepois?.millisecondsSinceEpoch,
-      'observacoesAntes': observacoesAntes,
-      'observacoesDepois': observacoesDepois,
-      'verificacaoCompleta': verificacaoCompleta,
-    };
-  }
-
-  factory VerificacaoFotos.fromMap(Map<String, dynamic> map) {
+  VerificacaoFotos copyWith({
+    String? id,
+    String? aluguelId,
+    String? itemId,
+    String? locatarioId,
+    String? locadorId,
+    List<String>? fotosAntes,
+    List<String>? fotosDepois,
+    DateTime? dataFotosAntes,
+    DateTime? dataFotosDepois,
+    String? observacoesAntes,
+    String? observacoesDepois,
+    bool? verificacaoCompleta,
+  }) {
     return VerificacaoFotos(
-      id: map['id'] ?? '',
-      aluguelId: map['aluguelId'] ?? '',
-      itemId: map['itemId'] ?? '',
-      locatarioId: map['locatarioId'] ?? '',
-      locadorId: map['locadorId'] ?? '',
-      fotosAntes: List<String>.from(map['fotosAntes'] ?? []),
-      fotosDepois: List<String>.from(map['fotosDepois'] ?? []),
-      dataFotosAntes: map['dataFotosAntes'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(map['dataFotosAntes'])
-          : null,
-      dataFotosDepois: map['dataFotosDepois'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(map['dataFotosDepois'])
-          : null,
-      observacoesAntes: map['observacoesAntes'],
-      observacoesDepois: map['observacoesDepois'],
-      verificacaoCompleta: map['verificacaoCompleta'] ?? false,
+      id: id ?? this.id,
+      aluguelId: aluguelId ?? this.aluguelId,
+      itemId: itemId ?? this.itemId,
+      locatarioId: locatarioId ?? this.locatarioId,
+      locadorId: locadorId ?? this.locadorId,
+      fotosAntes: fotosAntes ?? this.fotosAntes,
+      fotosDepois: fotosDepois ?? this.fotosDepois,
+      dataFotosAntes: dataFotosAntes ?? this.dataFotosAntes,
+      dataFotosDepois: dataFotosDepois ?? this.dataFotosDepois,
+      observacoesAntes: observacoesAntes ?? this.observacoesAntes,
+      observacoesDepois: observacoesDepois ?? this.observacoesDepois,
+      verificacaoCompleta: verificacaoCompleta ?? this.verificacaoCompleta,
     );
   }
 }

@@ -3,16 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'dart:io';
 
-import '../../data/repositories/seguranca_repository.dart';
-// import '../../domain/entities/caucao.dart'; // Caucao não é mais uma entidade separada aqui
+import '../../domain/repositories/seguranca_repository.dart';
+import '../../data/repositories/seguranca_repository_impl.dart';
 import '../../domain/entities/contrato.dart';
 import '../../domain/entities/denuncia.dart';
 import '../../domain/entities/verificacao_fotos.dart';
 import '../../domain/entities/problema.dart';
+import '../../domain/entities/verificacao_telefone.dart';
+import '../../domain/entities/verificacao_residencia.dart';
 
 /// Provider do repositório de segurança
+/// Usa a implementação padronizada seguindo Clean Architecture
 final segurancaRepositoryProvider = Provider<SegurancaRepository>((ref) {
-  return SegurancaRepository();
+  return SegurancaRepositoryImpl();
 });
 
 /* /// Provider para gerenciar caução - REMOVIDO
@@ -120,6 +123,18 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
   ContratoNotifier(this._repository, this._aluguelId)
       : super(const AsyncValue.data(null));
 
+  /// Carrega contrato existente
+  Future<void> carregarContrato() async {
+    state = const AsyncValue.loading();
+
+    try {
+      final contrato = await _repository.obterContratoPorAluguel(_aluguelId);
+      state = AsyncValue.data(contrato);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
   /// Gera contrato digital
   Future<void> gerarContrato({
     required String locatarioId,
@@ -141,6 +156,7 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
       state = AsyncValue.data(contrato);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      rethrow;
     }
   }
 
@@ -171,22 +187,57 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
   }
 }
 
-/// Provider para denúncias
-final denunciaProvider =
-    StateNotifierProvider<DenunciaNotifier, AsyncValue<List<Denuncia>>>(
-  (ref) {
+/// Provider para denúncias de um usuário específico
+final denunciasUsuarioProvider = StateNotifierProvider.family<
+    DenunciasUsuarioNotifier, AsyncValue<List<Denuncia>>, String>(
+  (ref, usuarioId) {
     final repository = ref.watch(segurancaRepositoryProvider);
-    return DenunciaNotifier(repository);
+    return DenunciasUsuarioNotifier(repository, usuarioId);
   },
 );
 
-class DenunciaNotifier extends StateNotifier<AsyncValue<List<Denuncia>>> {
+class DenunciasUsuarioNotifier extends StateNotifier<AsyncValue<List<Denuncia>>> {
+  final SegurancaRepository _repository;
+  final String _usuarioId;
+
+  DenunciasUsuarioNotifier(this._repository, this._usuarioId)
+      : super(const AsyncValue.loading()) {
+    _carregarDenuncias();
+  }
+
+  /// Carrega denúncias do usuário
+  Future<void> _carregarDenuncias() async {
+    try {
+      final denuncias = await _repository.obterDenunciasUsuario(_usuarioId);
+      state = AsyncValue.data(denuncias);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Recarrega as denúncias
+  Future<void> recarregar() async {
+    state = const AsyncValue.loading();
+    await _carregarDenuncias();
+  }
+}
+
+/// Provider para criar denúncia
+final criarDenunciaProvider =
+    StateNotifierProvider<CriarDenunciaNotifier, AsyncValue<void>>(
+  (ref) {
+    final repository = ref.watch(segurancaRepositoryProvider);
+    return CriarDenunciaNotifier(repository);
+  },
+);
+
+class CriarDenunciaNotifier extends StateNotifier<AsyncValue<void>> {
   final SegurancaRepository _repository;
 
-  DenunciaNotifier(this._repository) : super(const AsyncValue.data([]));
+  CriarDenunciaNotifier(this._repository) : super(const AsyncValue.data(null));
 
   /// Cria nova denúncia
-  Future<void> criarDenuncia({
+  Future<Denuncia> criar({
     required String aluguelId,
     required String denuncianteId,
     required String denunciadoId,
@@ -194,6 +245,8 @@ class DenunciaNotifier extends StateNotifier<AsyncValue<List<Denuncia>>> {
     required String descricao,
     required List<File> evidencias,
   }) async {
+    state = const AsyncValue.loading();
+
     try {
       final denuncia = await _repository.criarDenuncia(
         aluguelId: aluguelId,
@@ -204,11 +257,11 @@ class DenunciaNotifier extends StateNotifier<AsyncValue<List<Denuncia>>> {
         evidencias: evidencias,
       );
 
-      // Adicionar à lista local
-      final denunciasAtuais = state.value ?? [];
-      state = AsyncValue.data([...denunciasAtuais, denuncia]);
+      state = const AsyncValue.data(null);
+      return denuncia;
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+      rethrow;
     }
   }
 }
@@ -235,34 +288,77 @@ class VerificacaoFotosNotifier
   /// Carrega verificação existente
   Future<void> _carregarVerificacao() async {
     try {
-      final verificacao = await _repository.buscarVerificacaoFotos(_aluguelId);
+      final verificacao = await _repository.obterVerificacaoFotos(_aluguelId);
       state = AsyncValue.data(verificacao);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 
-  /// Salva fotos de verificação
-  Future<void> salvarFotos({
-    required String itemId,
-    List<File>? fotosAntes,
-    List<File>? fotosDepois,
-    String? observacoesAntes,
-    String? observacoesDepois,
+  /// Salva fotos de verificação (fotos antes)
+  Future<void> salvarFotosAntes({
+    required String verificacaoId,
+    required List<File> fotos,
+    String? observacoes,
   }) async {
     state = const AsyncValue.loading();
 
     try {
-      final verificacao = await _repository.salvarFotosVerificacao(
+      await _repository.adicionarFotosAntes(
+        verificacaoId: verificacaoId,
+        fotos: fotos,
+        observacoes: observacoes,
+      );
+
+      // Recarregar verificação atualizada
+      await _carregarVerificacao();
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
+
+  /// Salva fotos de verificação (fotos depois)
+  Future<void> salvarFotosDepois({
+    required String verificacaoId,
+    required List<File> fotos,
+    String? observacoes,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      await _repository.adicionarFotosDepois(
+        verificacaoId: verificacaoId,
+        fotos: fotos,
+        observacoes: observacoes,
+      );
+
+      // Recarregar verificação atualizada
+      await _carregarVerificacao();
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
+
+  /// Cria uma nova verificação de fotos
+  Future<VerificacaoFotos> criarVerificacao({
+    required String itemId,
+    required String locatarioId,
+    required String locadorId,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final verificacao = await _repository.criarVerificacaoFotos(
         aluguelId: _aluguelId,
         itemId: itemId,
-        fotosAntes: fotosAntes,
-        fotosDepois: fotosDepois,
-        observacoesAntes: observacoesAntes,
-        observacoesDepois: observacoesDepois,
+        locatarioId: locatarioId,
+        locadorId: locadorId,
       );
 
       state = AsyncValue.data(verificacao);
+      return verificacao;
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
       rethrow;
@@ -302,6 +398,8 @@ class ReportarProblemaNotifier extends StateNotifier<AsyncValue<void>> {
   Future<Problema> reportar({
     required String aluguelId,
     required String itemId,
+    required String reportadoPorId,
+    required String reportadoPorNome,
     required String reportadoContraId,
     required TipoProblema tipo,
     required PrioridadeProblema prioridade,
@@ -311,14 +409,16 @@ class ReportarProblemaNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      final problema = await _repository.reportarProblema(
+      final problema = await _repository.criarProblema(
         aluguelId: aluguelId,
         itemId: itemId,
+        reportadoPorId: reportadoPorId,
+        reportadoPorNome: reportadoPorNome,
         reportadoContraId: reportadoContraId,
         tipo: tipo,
         prioridade: prioridade,
         descricao: descricao,
-        fotos: fotos,
+        fotos: fotos ?? [],
       );
 
       state = const AsyncValue.data(null);
@@ -348,6 +448,150 @@ class ReportarProblemaNotifier extends StateNotifier<AsyncValue<void>> {
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
       rethrow;
+    }
+  }
+}
+
+// ==================== VERIFICAÇÃO DE TELEFONE ====================
+
+/// Provider para verificação de telefone
+final verificacaoTelefoneProvider = StateNotifierProvider<VerificacaoTelefoneNotifier, AsyncValue<VerificacaoTelefone?>>(
+  (ref) => VerificacaoTelefoneNotifier(ref.watch(segurancaRepositoryProvider)),
+);
+
+class VerificacaoTelefoneNotifier extends StateNotifier<AsyncValue<VerificacaoTelefone?>> {
+  final SegurancaRepository _repository;
+
+  VerificacaoTelefoneNotifier(this._repository) : super(const AsyncValue.data(null));
+
+  /// Envia código SMS para verificação
+  Future<void> enviarCodigoSMS({
+    required String usuarioId,
+    required String telefone,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final verificacao = await _repository.enviarCodigoSMS(
+        usuarioId: usuarioId,
+        telefone: telefone,
+      );
+
+      state = AsyncValue.data(verificacao);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Verifica código SMS
+  Future<void> verificarCodigoSMS({
+    required String usuarioId,
+    required String codigo,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final verificacao = await _repository.verificarCodigoSMS(
+        usuarioId: usuarioId,
+        codigo: codigo,
+      );
+
+      state = AsyncValue.data(verificacao);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Carrega verificação atual do usuário
+  Future<void> carregarVerificacaoAtual(String usuarioId) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final verificacao = await _repository.obterVerificacaoTelefone(usuarioId);
+      state = AsyncValue.data(verificacao);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Cancela verificação em andamento
+  Future<void> cancelarVerificacao(String usuarioId) async {
+    try {
+      await _repository.cancelarVerificacaoTelefone(usuarioId);
+      state = const AsyncValue.data(null);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+}
+
+// ==================== VERIFICAÇÃO DE RESIDÊNCIA ====================
+
+/// Provider para verificação de residência
+final verificacaoResidenciaProvider = StateNotifierProvider<VerificacaoResidenciaNotifier, AsyncValue<VerificacaoResidencia?>>(
+  (ref) => VerificacaoResidenciaNotifier(ref.watch(segurancaRepositoryProvider)),
+);
+
+class VerificacaoResidenciaNotifier extends StateNotifier<AsyncValue<VerificacaoResidencia?>> {
+  final SegurancaRepository _repository;
+
+  VerificacaoResidenciaNotifier(this._repository) : super(const AsyncValue.data(null));
+
+  /// Solicita verificação de residência
+  Future<void> solicitarVerificacao({
+    required String usuarioId,
+    required EnderecoVerificacao endereco,
+    required File comprovante,
+  }) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final verificacao = await _repository.solicitarVerificacaoResidencia(
+        usuarioId: usuarioId,
+        endereco: endereco,
+        comprovante: comprovante,
+      );
+
+      state = AsyncValue.data(verificacao);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Carrega verificação atual do usuário
+  Future<void> carregarVerificacaoAtual(String usuarioId) async {
+    state = const AsyncValue.loading();
+
+    try {
+      final verificacao = await _repository.obterVerificacaoResidencia(usuarioId);
+      state = AsyncValue.data(verificacao);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Faz upload do comprovante
+  Future<String> uploadComprovante({
+    required File comprovante,
+    required String usuarioId,
+  }) async {
+    try {
+      return await _repository.uploadComprovanteResidencia(
+        comprovante: comprovante,
+        usuarioId: usuarioId,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Cancela verificação em andamento
+  Future<void> cancelarVerificacao(String usuarioId) async {
+    try {
+      await _repository.cancelarVerificacaoResidencia(usuarioId);
+      state = const AsyncValue.data(null);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 }

@@ -4,6 +4,9 @@ lib/core/config/firebase_options.dart
 android/app/google-services.json
 
 backend/functions/node_modules/ 
+backend/functions/.env.local
+web/admin/config.js
+
 # Miscellaneous
 *.class
 *.log

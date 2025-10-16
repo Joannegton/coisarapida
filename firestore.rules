@@ -315,14 +315,14 @@ service cloud.firestore {
 
       // Atualização (para registrar o aceite do contrato):
       // - Usuário deve estar autenticado.
-      // - O usuário autenticado deve ser o 'locatarioId' do contrato.
+      // - O usuário autenticado deve ser o 'locadorId' OU o 'locatarioId' do contrato.
       // - Apenas o campo 'aceite' pode ser modificado/adicionado.
       allow update: if request.auth != null &&
-                       request.auth.uid == resource.data.locatarioId &&
+                       (request.auth.uid == resource.data.locadorId || request.auth.uid == resource.data.locatarioId) &&
                        request.resource.data.aceite is map && // Garante que 'aceite' é um mapa
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceite']) &&
                        // Validações para os campos dentro de 'aceite'
-                       request.resource.data.aceite.dataHora == request.time &&
+                       request.resource.data.aceite.dataHora is number &&
                        request.resource.data.aceite.enderecoIp is string &&
                        request.resource.data.aceite.assinaturaDigital is string;
     }

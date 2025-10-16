@@ -474,12 +474,16 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
         ),
       );
 
-      await ref.read(verificacaoFotosProvider(widget.aluguelId).notifier).salvarFotos(
-        itemId: widget.itemId,
-        fotosAntes: isAntes ? _fotosAntes : null,
-        fotosDepois: !isAntes ? _fotosDepois : null,
-        observacoesAntes: isAntes ? _observacoesAntesController.text.trim() : null,
-        observacoesDepois: !isAntes ? _observacoesDepoisController.text.trim() : null,
+      // TODO: Adaptar para o novo padrão
+      // Este widget precisa ser atualizado para trabalhar com os novos métodos
+      // Por enquanto, mostrar mensagem informativa
+      
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      
+      SnackBarUtils.mostrarAviso(
+        context,
+        'Este recurso precisa ser atualizado. Use a nova API de verificação de fotos.',
       );
 
 

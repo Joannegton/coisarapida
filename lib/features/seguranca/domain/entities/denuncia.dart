@@ -6,7 +6,7 @@ class Denuncia {
   final String denunciadoId;
   final TipoDenuncia tipo;
   final String descricao;
-  final List<String> evidencias; // URLs das fotos/documentos
+  final List<String> evidencias;
   final StatusDenuncia status;
   final DateTime criadaEm;
   final DateTime? resolvidaEm;
@@ -28,45 +28,33 @@ class Denuncia {
     this.moderadorId,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'aluguelId': aluguelId,
-      'denuncianteId': denuncianteId,
-      'denunciadoId': denunciadoId,
-      'tipo': tipo.name,
-      'descricao': descricao,
-      'evidencias': evidencias,
-      'status': status.name,
-      'criadaEm': criadaEm.millisecondsSinceEpoch,
-      'resolvidaEm': resolvidaEm?.millisecondsSinceEpoch,
-      'resolucao': resolucao,
-      'moderadorId': moderadorId,
-    };
-  }
-
-  factory Denuncia.fromMap(Map<String, dynamic> map) {
+  Denuncia copyWith({
+    String? id,
+    String? aluguelId,
+    String? denuncianteId,
+    String? denunciadoId,
+    TipoDenuncia? tipo,
+    String? descricao,
+    List<String>? evidencias,
+    StatusDenuncia? status,
+    DateTime? criadaEm,
+    DateTime? resolvidaEm,
+    String? resolucao,
+    String? moderadorId,
+  }) {
     return Denuncia(
-      id: map['id'] ?? '',
-      aluguelId: map['aluguelId'] ?? '',
-      denuncianteId: map['denuncianteId'] ?? '',
-      denunciadoId: map['denunciadoId'] ?? '',
-      tipo: TipoDenuncia.values.firstWhere(
-        (e) => e.name == map['tipo'],
-        orElse: () => TipoDenuncia.outros,
-      ),
-      descricao: map['descricao'] ?? '',
-      evidencias: List<String>.from(map['evidencias'] ?? []),
-      status: StatusDenuncia.values.firstWhere(
-        (e) => e.name == map['status'],
-        orElse: () => StatusDenuncia.pendente,
-      ),
-      criadaEm: DateTime.fromMillisecondsSinceEpoch(map['criadaEm'] ?? 0),
-      resolvidaEm: map['resolvidaEm'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(map['resolvidaEm'])
-          : null,
-      resolucao: map['resolucao'],
-      moderadorId: map['moderadorId'],
+      id: id ?? this.id,
+      aluguelId: aluguelId ?? this.aluguelId,
+      denuncianteId: denuncianteId ?? this.denuncianteId,
+      denunciadoId: denunciadoId ?? this.denunciadoId,
+      tipo: tipo ?? this.tipo,
+      descricao: descricao ?? this.descricao,
+      evidencias: evidencias ?? this.evidencias,
+      status: status ?? this.status,
+      criadaEm: criadaEm ?? this.criadaEm,
+      resolvidaEm: resolvidaEm ?? this.resolvidaEm,
+      resolucao: resolucao ?? this.resolucao,
+      moderadorId: moderadorId ?? this.moderadorId,
     );
   }
 }

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
+import '../providers/seguranca_provider.dart';
+import '../../domain/entities/verificacao_residencia.dart';
 
 /// Página para verificação de residência
 class VerificacaoResidenciaPage extends ConsumerStatefulWidget {
@@ -120,18 +120,13 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
           children: [
             Icon(Icons.check_circle, color: Colors.green, size: 32),
             SizedBox(width: 12),
-            Expanded(child: Text('Comprovante Enviado!')),
+            Expanded(child: Text('Em análise!')),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Seu comprovante foi enviado para análise.',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            SizedBox(height: 16),
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -145,7 +140,7 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Aguardando aprovação do administrador',
+                      'Aguardando aprovação do sistema',
                       style: TextStyle(color: Colors.orange.shade900),
                     ),
                   ),
@@ -248,39 +243,29 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
     setState(() => _enviando = true);
 
     try {
-      // 1. Upload da imagem para Firebase Storage
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('comprovantes_residencia')
-          .child(usuario.id)
-          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final endereco = EnderecoVerificacao(
+        cep: usuario.endereco!.cep,
+        rua: usuario.endereco!.rua,
+        numero: usuario.endereco!.numero,
+        complemento: usuario.endereco!.complemento,
+        bairro: usuario.endereco!.bairro,
+        cidade: usuario.endereco!.cidade,
+        estado: usuario.endereco!.estado,
+      );
 
-      await storageRef.putFile(_comprovanteImagem!);
-      final comprovanteUrl = await storageRef.getDownloadURL();
+      await ref.read(verificacaoResidenciaProvider.notifier).solicitarVerificacao(
+        usuarioId: usuario.id,
+        endereco: endereco,
+        comprovante: _comprovanteImagem!,
+      );
 
-      // 2. Chamar Cloud Function para processar
-      final functions = FirebaseFunctions.instance;
-      final result = await functions.httpsCallable('solicitarVerificacaoResidencia').call({
-        'comprovanteUrl': comprovanteUrl,
-        'endereco': {
-          'rua': usuario.endereco!.rua,
-          'numero': usuario.endereco!.numero,
-          'bairro': usuario.endereco!.bairro,
-          'cidade': usuario.endereco!.cidade,
-          'estado': usuario.endereco!.estado,
-          'cep': usuario.endereco!.cep,
-        },
-      });
-
-      if (result.data['success'] == true) {
-        if (mounted) {
-          // Mostrar diálogo de sucesso com instrução para ir para home
-          _mostrarDialogoSucesso();
-        }
-      }
-    } catch (error) {
       if (mounted) {
-        SnackBarUtils.mostrarErro(context, 'Erro ao enviar comprovante: ${error.toString()}');
+        // Mostrar diálogo de sucesso com instrução para ir para home
+        _mostrarDialogoSucesso();
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(context, 'Erro ao enviar comprovante: $e');
       }
     } finally {
       if (mounted) {
@@ -363,7 +348,7 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Informações
+          // Informações 
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
