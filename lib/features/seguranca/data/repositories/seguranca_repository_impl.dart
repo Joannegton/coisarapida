@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/core/services/api_client.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:coisarapida/core/errors/exceptions.dart';
@@ -11,7 +11,6 @@ import '../models/denuncia_model.dart';
 import '../models/problema_model.dart';
 import '../models/verificacao_fotos_model.dart';
 import '../models/verificacao_telefone_model.dart';
-import '../models/verificacao_residencia_model.dart';
 import '../../domain/entities/contrato.dart';
 import '../../domain/entities/denuncia.dart';
 import '../../domain/entities/problema.dart';
@@ -25,17 +24,16 @@ import '../../domain/repositories/seguranca_repository.dart';
 class SegurancaRepositoryImpl implements SegurancaRepository {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
-  final FirebaseFunctions _functions;
   final FirebaseAuth _auth;
+  final ApiClient apiClient;
 
   SegurancaRepositoryImpl({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-    FirebaseFunctions? functions,
     FirebaseAuth? auth,
+    required this.apiClient,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _storage = storage ?? FirebaseStorage.instance,
-        _functions = functions ?? FirebaseFunctions.instance,
         _auth = auth ?? FirebaseAuth.instance;
 
   // ==================== CONTRATOS ====================
@@ -627,53 +625,50 @@ class SegurancaRepositoryImpl implements SegurancaRepository {
   // ==================== VERIFICAÇÃO DE TELEFONE ====================
 
   @override
-  Future<VerificacaoTelefone> enviarCodigoSMS({
-    required String usuarioId,
+  Future<Map<String, dynamic>> enviarCodigoSMS({
     required String telefone,
   }) async {
     try {
-      final result = await _functions.httpsCallable('enviarCodigoSMS').call({
-        'usuarioId': usuarioId,
+      final body = {
         'telefone': telefone,
-      });
+      };
+      await apiClient.post('/seguranca/verificacao-sms/enviar', body: body);
 
-      final data = result.data as Map<String, dynamic>;
-      return VerificacaoTelefoneModel.fromEntity(VerificacaoTelefone(
-        id: data['id'] as String? ?? '',
-        usuarioId: usuarioId,
-        telefone: telefone,
-        status: StatusVerificacaoTelefone.codigoEnviado,
-        dataCriacao: DateTime.now(),
-        tentativas: 1,
-        verificado: false,
-      ));
+      return {'message': 'Código SMS enviado com sucesso'};
     } catch (e) {
+      // Handle errors similar to residence
+      final errorMessage = e.toString();
+      final regex = RegExp(r'Erro 400:\s*(.+)');
+      final match = regex.firstMatch(errorMessage);
+      if (match != null) {
+        final extractedMessage = match.group(1)!;
+        throw ServerException(extractedMessage);
+      }
       throw ServerException('Erro ao enviar código SMS: ${e.toString()}');
     }
   }
 
   @override
-  Future<VerificacaoTelefone> verificarCodigoSMS({
-    required String usuarioId,
+  Future<Map<String, dynamic>> verificarCodigoSMS({
     required String codigo,
+    required String telefone,
   }) async {
     try {
-      final result = await _functions.httpsCallable('verificarCodigoSMS').call({
-        'usuarioId': usuarioId,
+      final body = {
+        'telefone': telefone,
         'codigo': codigo,
-      });
+      };
+      await apiClient.post('/seguranca/verificacao-sms/verificar', body: body);
 
-      final data = result.data as Map<String, dynamic>;
-      return VerificacaoTelefoneModel.fromEntity(VerificacaoTelefone(
-        id: data['id'] as String? ?? '',
-        usuarioId: usuarioId,
-        telefone: data['telefone'] as String? ?? '',
-        status: StatusVerificacaoTelefone.verificado,
-        dataCriacao: DateTime.now(),
-        tentativas: data['tentativas'] as int? ?? 1,
-        verificado: true,
-      ));
+      return { 'message': 'Telefone verificado' };
     } catch (e) {
+      final errorMessage = e.toString();
+      final regex = RegExp(r'Erro 400:\s*(.+)');
+      final match = regex.firstMatch(errorMessage);
+      if (match != null) {
+        final extractedMessage = match.group(1)!;
+        throw ServerException(extractedMessage);
+      }
       throw ServerException('Erro ao verificar código SMS: ${e.toString()}');
     }
   }
@@ -721,56 +716,41 @@ class SegurancaRepositoryImpl implements SegurancaRepository {
   // ==================== VERIFICAÇÃO DE RESIDÊNCIA ====================
 
   @override
-  Future<VerificacaoResidencia> solicitarVerificacaoResidencia({
+  Future<void> solicitarVerificacaoResidencia({
     required String usuarioId,
-    required EnderecoVerificacao endereco,
+    String? tipoComprovante,
+    String? observacoes,
     required File comprovante,
   }) async {
     try {
-      // Primeiro faz upload do comprovante
-      final comprovanteUrl = await uploadComprovanteResidencia(
-        comprovante: comprovante,
-        usuarioId: usuarioId,
+      await apiClient.postMultipart(
+        '/seguranca/verificacao-residencia',
+        fields: {
+          'tipoComprovante': tipoComprovante ?? 'mock_front',
+          if (observacoes != null) 'observacoes': observacoes,
+        },
+        file: comprovante,
+        fileFieldName: 'comprovante',
       );
-
-      final result = await _functions.httpsCallable('solicitarVerificacaoResidencia').call({
-        'usuarioId': usuarioId,
-        'endereco': endereco.toMap(),
-        'comprovanteUrl': comprovanteUrl,
+      
+      // Atualizar o statusEndereco do usuário para 'em_analise' no Firestore
+      await _firestore.collection('usuarios').doc(usuarioId).update({
+        'statusEndereco': 'em_analise',
+        'atualizadoEm': FieldValue.serverTimestamp(),
       });
-
-      final data = result.data as Map<String, dynamic>;
-      return VerificacaoResidenciaModel.fromEntity(VerificacaoResidencia(
-        id: data['id'] as String? ?? '',
-        usuarioId: usuarioId,
-        endereco: endereco,
-        comprovanteUrl: comprovanteUrl,
-        status: StatusVerificacaoResidencia.pendente,
-        dataCriacao: DateTime.now(),
-        aprovado: false,
-      ));
     } catch (e) {
-      throw ServerException('Erro ao solicitar verificação de residência: ${e.toString()}');
-    }
-  }
-
-  @override
-  Future<VerificacaoResidencia?> obterVerificacaoResidencia(String usuarioId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('verificacoes_residencia')
-          .where('usuarioId', isEqualTo: usuarioId)
-          .orderBy('dataCriacao', descending: true)
-          .limit(1)
-          .get();
-
-      if (querySnapshot.docs.isEmpty) {
-        return null;
+      //TODO ajustar padronização de erros
+      // Para erros do apiClient, tentar extrair mensagem do backend
+      final errorMessage = e.toString();
+      // Procurar por padrão "Erro 400: " seguido da mensagem
+      final regex = RegExp(r'Erro 400:\s*(.+)');
+      final match = regex.firstMatch(errorMessage);
+      if (match != null) {
+        final extractedMessage = match.group(1)!;
+        throw ServerException(extractedMessage);
       }
-
-      return VerificacaoResidenciaModel.fromFirestore(querySnapshot.docs.first);
-    } catch (e) {
-      throw ServerException('Erro ao obter verificação de residência: ${e.toString()}');
+      // Fallback para erro genérico
+      throw ServerException('Erro ao enviar comprovante');
     }
   }
 

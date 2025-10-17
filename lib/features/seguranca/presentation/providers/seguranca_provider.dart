@@ -11,11 +11,18 @@ import '../../domain/entities/verificacao_fotos.dart';
 import '../../domain/entities/problema.dart';
 import '../../domain/entities/verificacao_telefone.dart';
 import '../../domain/entities/verificacao_residencia.dart';
+import 'package:coisarapida/core/services/api_client.dart';
+
+/// Provider do ApiClient
+final apiClientProvider = Provider<ApiClient>((ref) {
+  return ApiClient();
+});
 
 /// Provider do repositório de segurança
 /// Usa a implementação padronizada seguindo Clean Architecture
 final segurancaRepositoryProvider = Provider<SegurancaRepository>((ref) {
-  return SegurancaRepositoryImpl();
+  final apiClient = ref.watch(apiClientProvider);
+  return SegurancaRepositoryImpl(apiClient: apiClient);
 });
 
 /* /// Provider para gerenciar caução - REMOVIDO
@@ -455,25 +462,26 @@ class ReportarProblemaNotifier extends StateNotifier<AsyncValue<void>> {
 // ==================== VERIFICAÇÃO DE TELEFONE ====================
 
 /// Provider para verificação de telefone
-final verificacaoTelefoneProvider = StateNotifierProvider<VerificacaoTelefoneNotifier, AsyncValue<VerificacaoTelefone?>>(
-  (ref) => VerificacaoTelefoneNotifier(ref.watch(segurancaRepositoryProvider)),
+final verificacaoTelefoneProvider = StateNotifierProvider<VerificacaoTelefoneNotifier, AsyncValue<Object?>>(
+  (ref) {
+    final repository = ref.watch(segurancaRepositoryProvider);
+    return VerificacaoTelefoneNotifier(repository);
+  },
 );
 
-class VerificacaoTelefoneNotifier extends StateNotifier<AsyncValue<VerificacaoTelefone?>> {
+class VerificacaoTelefoneNotifier extends StateNotifier<AsyncValue<Object?>> {
   final SegurancaRepository _repository;
 
   VerificacaoTelefoneNotifier(this._repository) : super(const AsyncValue.data(null));
 
   /// Envia código SMS para verificação
   Future<void> enviarCodigoSMS({
-    required String usuarioId,
     required String telefone,
   }) async {
     state = const AsyncValue.loading();
 
     try {
       final verificacao = await _repository.enviarCodigoSMS(
-        usuarioId: usuarioId,
         telefone: telefone,
       );
 
@@ -487,13 +495,14 @@ class VerificacaoTelefoneNotifier extends StateNotifier<AsyncValue<VerificacaoTe
   Future<void> verificarCodigoSMS({
     required String usuarioId,
     required String codigo,
+    required String telefone,
   }) async {
     state = const AsyncValue.loading();
 
     try {
       final verificacao = await _repository.verificarCodigoSMS(
-        usuarioId: usuarioId,
         codigo: codigo,
+        telefone: telefone
       );
 
       state = AsyncValue.data(verificacao);
@@ -540,31 +549,19 @@ class VerificacaoResidenciaNotifier extends StateNotifier<AsyncValue<Verificacao
   /// Solicita verificação de residência
   Future<void> solicitarVerificacao({
     required String usuarioId,
-    required EnderecoVerificacao endereco,
     required File comprovante,
   }) async {
     state = const AsyncValue.loading();
 
     try {
-      final verificacao = await _repository.solicitarVerificacaoResidencia(
+      await _repository.solicitarVerificacaoResidencia(
         usuarioId: usuarioId,
-        endereco: endereco,
         comprovante: comprovante,
       );
-
-      state = AsyncValue.data(verificacao);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  /// Carrega verificação atual do usuário
-  Future<void> carregarVerificacaoAtual(String usuarioId) async {
-    state = const AsyncValue.loading();
-
-    try {
-      final verificacao = await _repository.obterVerificacaoResidencia(usuarioId);
-      state = AsyncValue.data(verificacao);
+      
+      // Sucesso - manter estado como data(null) ou definir uma flag de sucesso
+      state = AsyncValue.data(null); // Indica que a solicitação foi bem-sucedida
+      
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }

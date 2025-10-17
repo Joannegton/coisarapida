@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:coisarapida/core/utils/verificacao_helper.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:go_router/go_router.dart';
 import 'package:coisarapida/features/avaliacoes/domain/entities/avaliacao.dart';
@@ -119,7 +120,7 @@ class PerfilPublicoPage extends ConsumerWidget {
                 ),
                 actions: [
                   PopupMenuButton<String>(
-                    onSelected: (value) => _handleMenuAction(context, value, usuario),
+                    onSelected: (value) => _handleMenuAction(context, value, usuario, ref),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'chat',
@@ -208,7 +209,7 @@ class PerfilPublicoPage extends ConsumerWidget {
                       PerfilBotoesAcaoWidget(
                         usuario: usuario,
                         theme: theme,
-                        onIniciarChat: () => _iniciarChat(context, usuario),
+                        onIniciarChat: () => _iniciarChat(context, usuario, ref),
                         onVerItensUsuario: () => _verItensUsuario(context, usuario),
                       ),
                     ],
@@ -243,10 +244,10 @@ class PerfilPublicoPage extends ConsumerWidget {
     );
   }
 
-  void _handleMenuAction(BuildContext context, String action, Usuario usuario) {
+  void _handleMenuAction(BuildContext context, String action, Usuario usuario, WidgetRef ref) {
     switch (action) {
       case 'chat':
-        _iniciarChat(context, usuario);
+        _iniciarChat(context, usuario, ref);
         break;
       case 'compartilhar':
         SnackBarUtils.mostrarInfo(context, 'Compartilhamento em desenvolvimento');
@@ -257,7 +258,17 @@ class PerfilPublicoPage extends ConsumerWidget {
     }
   }
 
-  void _iniciarChat(BuildContext context, Usuario usuario) {
+  void _iniciarChat(BuildContext context, Usuario usuario, WidgetRef ref) {
+    // Verificar se usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(
+        context,
+        ref,
+        mensagemCustomizada: 'Para enviar mensagens, você precisa completar as verificações de segurança.',
+      );
+      return;
+    }
+
     // Simular criação/abertura de chat
     context.push('${AppRoutes.chat}/chat_${usuario.id}'); // Usar o ID real do usuário
   }

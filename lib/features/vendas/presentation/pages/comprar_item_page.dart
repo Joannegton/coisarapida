@@ -1,4 +1,5 @@
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
+import 'package:coisarapida/core/utils/verificacao_helper.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
@@ -460,6 +461,16 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
   }
 
   Future<void> _handleProcessarPagamento(Usuario comprador) async {
+    // Verificar se usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(
+        context,
+        ref,
+        mensagemCustomizada: 'Para realizar compras, você precisa completar as verificações de segurança.',
+      );
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {

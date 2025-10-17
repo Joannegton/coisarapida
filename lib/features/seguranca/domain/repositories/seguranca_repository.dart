@@ -123,15 +123,14 @@ abstract class SegurancaRepository {
   // ==================== VERIFICAÇÃO DE TELEFONE ====================
 
   /// Inicia o processo de verificação de telefone enviando SMS
-  Future<VerificacaoTelefone> enviarCodigoSMS({
-    required String usuarioId,
+  Future<Map<String, dynamic>> enviarCodigoSMS({
     required String telefone,
   });
 
   /// Verifica o código SMS enviado
-  Future<VerificacaoTelefone> verificarCodigoSMS({
-    required String usuarioId,
+  Future<Map<String, dynamic>> verificarCodigoSMS({
     required String codigo,
+    required String telefone,
   });
 
   /// Busca a verificação de telefone atual do usuário
@@ -143,14 +142,12 @@ abstract class SegurancaRepository {
   // ==================== VERIFICAÇÃO DE RESIDÊNCIA ====================
 
   /// Solicita verificação de residência
-  Future<VerificacaoResidencia> solicitarVerificacaoResidencia({
+  Future<void> solicitarVerificacaoResidencia({
     required String usuarioId,
-    required EnderecoVerificacao endereco,
     required File comprovante,
+    String? tipoComprovante,
+    String? observacoes,
   });
-
-  /// Busca a verificação de residência do usuário
-  Future<VerificacaoResidencia?> obterVerificacaoResidencia(String usuarioId);
 
   /// Faz upload do comprovante de residência
   Future<String> uploadComprovanteResidencia({

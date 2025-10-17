@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coisarapida/features/autenticacao/data/models/endereco_model.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
 import '../../domain/entities/usuario.dart';
 
 /// Model para serialização/deserialização do usuário
@@ -23,6 +24,7 @@ class UsuarioModel extends Usuario {
     super.verificado,
     super.cpf,
     super.endereco,
+    super.statusEndereco,
   })  : _criadoEmInput = criadoEm,
         _atualizadoEmInput = atualizadoEm,
         super(
@@ -54,6 +56,7 @@ class UsuarioModel extends Usuario {
       verificado: map['verificado'] as bool? ?? false,
       cpf: map['cpf'] as String?,
       endereco: map['endereco'] != null ? EnderecoModel.fromMap(map['endereco']) : null,
+      statusEndereco: StatusEndereco.fromString(map['statusEndereco'] as String?),
     );
   }
 
@@ -79,6 +82,7 @@ class UsuarioModel extends Usuario {
       'verificado': verificado,
       'cpf': cpf,
       'endereco': (endereco as EnderecoModel?)?.toMap(),
+      'statusEndereco': statusEndereco?.toFirestore(),
     };
   }
 
@@ -99,6 +103,7 @@ class UsuarioModel extends Usuario {
       verificado: usuario.verificado,
       cpf: usuario.cpf,
       endereco: usuario.endereco != null ? EnderecoModel.fromEntity(usuario.endereco!) : null,
+      statusEndereco: usuario.statusEndereco,
     );
   }
 }

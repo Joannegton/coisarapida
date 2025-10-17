@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da Verificação - Coisa Rápida Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-shield-halved"></i>
+                <h1>Coisa Rápida - Admin</h1>
+            </div>
+            <div class="header-actions">
+                <button id="backBtn" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+                <button id="logoutBtn" class="btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Loading -->
+            <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Carregando detalhes...</p>
+            </div>
+
+            <!-- Verification Details -->
+            <div id="verificationDetails" class="verification-details">
+                <!-- Main Content Grid -->
+                <div class="details-grid">
+                    <!-- User and Verification Info -->
+                    <div class="info-section">
+                        <!-- User Info Card -->
+                        <div class="detail-card">
+                            <div class="card-header">
+                                <h2><i class="fas fa-user"></i> Informações do Usuário</h2>
+                            </div>
+                            <div class="card-content">
+                                <div class="user-info-grid">
+                                    <div class="info-item">
+                                        <label>Nome:</label>
+                                        <span id="detailNome">-</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <label>CPF:</label>
+                                        <span id="detailCPF">-</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <label>Email:</label>
+                                        <span id="detailEmail">-</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <label>Telefone:</label>
+                                        <span id="detailTelefone">-</span>
+                                    </div>
+                                    <div class="info-item full-width">
+                                        <label>Endereço Completo:</label>
+                                        <span id="detailEndereco">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verification Info Card -->
+                        <div class="detail-card">
+                            <div class="card-header">
+                                <h2><i class="fas fa-file-alt"></i> Detalhes da Verificação</h2>
+                            </div>
+                            <div class="card-content">
+                                <div class="verification-info-grid">
+                                    <div class="info-item">
+                                        <label>Data da Solicitação:</label>
+                                        <span id="detailDataSolicitacao">-</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <label>Tipo de Documento:</label>
+                                        <span id="detailTipoDocumento">-</span>
+                                    </div>
+                                    <div class="info-item full-width">
+                                        <label>Observações:</label>
+                                        <span id="detailObservacoes">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="detail-card">
+                            <div class="card-header">
+                                <h2><i class="fas fa-tasks"></i> Ações</h2>
+                            </div>
+                            <div class="card-content">
+                                <div class="action-buttons">
+                                    <button id="aprovarBtn" class="btn-success">
+                                        <i class="fas fa-check"></i> Aprovar Verificação
+                                    </button>
+                                    <button id="rejeitarBtn" class="btn-danger">
+                                        <i class="fas fa-times"></i> Rejeitar Verificação
+                                    </button>
+                                </div>
+
+                                <!-- Rejection Form (hidden by default) -->
+                                <div id="rejeicaoForm" class="rejection-form" style="display: none;">
+                                    <h3>Motivo da Rejeição</h3>
+                                    <textarea id="motivoRejeicao" placeholder="Digite o motivo da rejeição..." rows="4"></textarea>
+                                    <div class="form-actions">
+                                        <button id="confirmarRejeicao" class="btn-danger">
+                                            <i class="fas fa-times"></i> Confirmar Rejeição
+                                        </button>
+                                        <button id="cancelarRejeicao" class="btn-secondary">
+                                            <i class="fas fa-arrow-left"></i> Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div class="image-section">
+                        <div class="detail-card">
+                            <div class="card-header">
+                                <h2><i class="fas fa-image"></i> Comprovante</h2>
+                                <div class="image-controls">
+                                    <button id="zoomIn" class="btn-icon" title="Aumentar zoom">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button id="zoomOut" class="btn-icon" title="Diminuir zoom">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button id="rotateBtn" class="btn-icon" title="Rotacionar">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    <a id="downloadBtn" class="btn-icon" title="Baixar imagem" target="_blank">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                <div class="image-container">
+                                    <img id="detailImagem" src="" alt="Comprovante" onclick="openImageModal()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Modal for Full Screen -->
+            <div id="imageModal" class="image-modal" style="display: none;">
+                <div class="modal-backdrop" onclick="closeImageModal()"></div>
+                <div class="modal-content">
+                    <button class="modal-close" onclick="closeImageModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <img id="modalImage" src="" alt="Comprovante em tela cheia">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="detalhes.js"></script>
+</body>
+</html>

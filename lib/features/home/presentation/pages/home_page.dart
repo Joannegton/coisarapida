@@ -1,3 +1,6 @@
+import 'package:coisarapida/core/utils/verificacao_helper.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/home/presentation/providers/home_provider.dart';
 import 'package:coisarapida/features/home/presentation/providers/itens_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
@@ -106,6 +109,31 @@ class _HomePageState extends ConsumerState<HomePage>
       ),
       body: CustomScrollView(
         slivers: [
+          // Banner de verificação (se necessário)
+          SliverToBoxAdapter(
+            child: Builder(
+              builder: (context) {
+                final bannerWidget = VerificacaoHelper.bannerVerificacao(ref, context);
+                if (bannerWidget != null) {
+                  return GestureDetector(
+                    onTap: () {
+                      final authState = ref.read(usuarioAtualStreamProvider);
+                      if (!authState.hasValue || authState.value == null) return;
+                      
+                      final usuario = authState.value!;
+                      if (usuario.telefone == null || usuario.telefone!.isEmpty) {
+                        context.push(AppRoutes.verificacaoTelefone);
+                      } else if (usuario.statusEndereco == StatusEndereco.rejeitado || usuario.statusEndereco == null) {
+                        context.push(AppRoutes.verificacaoResidencia);
+                      }
+                    },
+                    child: bannerWidget,
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
 
           // Categorias populares
           SliverToBoxAdapter(

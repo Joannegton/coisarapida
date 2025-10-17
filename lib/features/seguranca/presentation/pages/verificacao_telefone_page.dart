@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
+import 'package:coisarapida/core/constants/app_routes.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import '../providers/seguranca_provider.dart';
 import 'dart:async';
@@ -21,7 +23,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
   bool _enviando = false;
   bool _verificando = false;
   bool _codigoEnviado = false;
-  int _segundosRestantes = 0;
+  final ValueNotifier<int> _segundosRestantesNotifier = ValueNotifier(0);
   Timer? _timer;
 
   @override
@@ -36,6 +38,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
     print('🗑️ [FRONTEND] VerificacaoTelefonePage sendo destruída');
     _telefoneController.dispose();
     _codigoController.dispose();
+    _segundosRestantesNotifier.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -58,13 +61,13 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
 
   void _iniciarContador() {
     print('⏰ [FRONTEND] Iniciando contador de 120 segundos');
-    setState(() => _segundosRestantes = 120); // 2 minutos
+    _segundosRestantesNotifier.value = 120; // 2 minutos
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_segundosRestantes > 0) {
-        setState(() => _segundosRestantes--);
-        if (_segundosRestantes % 30 == 0) { // Log a cada 30 segundos
-          print('⏰ [FRONTEND] Contador: $_segundosRestantes segundos restantes');
+      if (_segundosRestantesNotifier.value > 0) {
+        _segundosRestantesNotifier.value--;
+        if (_segundosRestantesNotifier.value % 30 == 0) { // Log a cada 30 segundos
+          print('⏰ [FRONTEND] Contador: ${_segundosRestantesNotifier.value} segundos restantes');
         }
       } else {
         print('⏰ [FRONTEND] Contador finalizado');
@@ -117,7 +120,6 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
       }
 
       await ref.read(verificacaoTelefoneProvider.notifier).enviarCodigoSMS(
-        usuarioId: usuario.id,
         telefone: telefoneFormatado,
       );
 
@@ -147,7 +149,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
     }
   }
 
-  Future<void> _verificarCodigo() async {
+  Future<void> _verificarCodigo(String telefone) async {
     final codigo = _codigoController.text.trim();
 
     print('🔍 [FRONTEND] Iniciando verificação de código');
@@ -171,6 +173,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
       await ref.read(verificacaoTelefoneProvider.notifier).verificarCodigoSMS(
         usuarioId: usuario.id,
         codigo: codigo,
+        telefone: telefone
       );
 
       print('✅ [FRONTEND] Código verificado com sucesso!');
@@ -180,7 +183,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
           'Telefone verificado com sucesso! ✅',
         );
         ref.invalidate(usuarioAtualStreamProvider);
-        Navigator.of(context).pop();
+        context.push(AppRoutes.verificacaoResidencia);
       }
     } catch (e) {
       print('❌ [FRONTEND] Erro na verificação: $e');
@@ -197,22 +200,20 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
 
   Future<void> _reenviarCodigo() async {
     print('🔄 [FRONTEND] Tentando reenviar código...');
-    print('🔄 [FRONTEND] Segundos restantes: $_segundosRestantes');
-
-    if (_segundosRestantes > 0) {
+    print('🔄 [FRONTEND] Segundos restantes: ${_segundosRestantesNotifier.value}');
+    
+    if (_segundosRestantesNotifier.value > 0) {
       print('⏳ [FRONTEND] Ainda em cooldown, mostrando mensagem');
       SnackBarUtils.mostrarInfo(
         context,
-        'Aguarde $_segundosRestantes segundos para reenviar',
+        'Aguarde ${_segundosRestantesNotifier.value} segundos para reenviar',
       );
       return;
     }
 
     print('✅ [FRONTEND] Cooldown terminado, chamando _enviarCodigo()');
     await _enviarCodigo();
-  }
-
-  String _formatarTelefoneDisplay(String telefone) {
+  }  String _formatarTelefoneDisplay(String telefone) {
     telefone = telefone.replaceAll(RegExp(r'[^\d]'), '');
     if (telefone.length == 11) {
       return '(${telefone.substring(0, 2)}) ${telefone.substring(2, 7)}-${telefone.substring(7)}';
@@ -309,7 +310,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
                   hintText: '(XX) XXXXX-XXXX',
                   prefixIcon: const Icon(Icons.phone),
                   border: const OutlineInputBorder(),
-                  suffixIcon: usuario?.telefoneVerificado == true
+                  suffixIcon: usuario?.telefone != null && usuario!.telefone!.isNotEmpty
                       ? Icon(Icons.verified, color: theme.colorScheme.primary)
                       : null,
                 ),
@@ -365,7 +366,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: _verificando ? null : _verificarCodigo,
+                onPressed: _verificando ? null : () => _verificarCodigo(_telefoneController.text),
                 icon: _verificando
                     ? const SizedBox(
                         width: 20,
@@ -381,14 +382,19 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
                 ),
               ),
               const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: _segundosRestantes > 0 ? null : _reenviarCodigo,
-                icon: const Icon(Icons.refresh),
-                label: Text(
-                  _segundosRestantes > 0
-                      ? 'Reenviar em $_segundosRestantes s'
-                      : 'Reenviar Código',
-                ),
+              ValueListenableBuilder<int>(
+                valueListenable: _segundosRestantesNotifier,
+                builder: (context, segundos, child) {
+                  return TextButton.icon(
+                    onPressed: segundos > 0 ? null : _reenviarCodigo,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(
+                      segundos > 0
+                          ? 'Reenviar em $segundos s'
+                          : 'Reenviar Código',
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
               TextButton(
@@ -396,6 +402,7 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
                   setState(() {
                     _codigoEnviado = false;
                     _codigoController.clear();
+                    _segundosRestantesNotifier.value = 0;
                   });
                 },
                 child: const Text('Alterar telefone'),

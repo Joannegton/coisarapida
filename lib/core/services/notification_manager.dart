@@ -14,7 +14,10 @@ enum TipoNotificacao {
   devolucaoSolicitada('devolucao_solicitada', 'Devolução solicitada'),
   devolucaoAprovada('devolucao_aprovada', 'Devolução aprovada'),
   avaliacaoPendente('avaliacao_pendente', 'Avaliação pendente'),
-  mensagemChat('mensagem_chat', 'Nova mensagem');
+  mensagemChat('mensagem_chat', 'Nova mensagem'),
+  aprovacaoResidencia('aprovacao_residencia', 'Verificação de residência aprovada'),
+  rejeicaoResidencia('rejeicao_residencia', 'Verificação de residência rejeitada'),
+  aprovacaoConta('aprovacao_conta', 'Conta aprovada');
 
   final String value;
   final String label;

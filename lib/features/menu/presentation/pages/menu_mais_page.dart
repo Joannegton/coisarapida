@@ -1,4 +1,5 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/cabecalho_perfil_widget.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/configuracoes_rapidas.dart';
@@ -77,23 +78,23 @@ class MenuMaisPage extends ConsumerWidget {
               ),
               MenuListTile(
                 icone: Icons.phone_android,
-                texto: usuario.telefoneVerificado ? 'Telefone Verificado ✓' : 'Verificar Telefone',
+                texto: usuario.telefone != null && usuario.telefone!.isNotEmpty ? 'Telefone Verificado ✓' : 'Verificar Telefone',
                 onTap: () => context.push(AppRoutes.verificacaoTelefone),
                 iconeAcao: Icon(
-                  usuario.telefoneVerificado ? Icons.check_circle : Icons.arrow_forward_ios,
+                  usuario.telefone != null && usuario.telefone!.isNotEmpty ? Icons.check_circle : Icons.arrow_forward_ios,
                   size: 20,
-                  color: usuario.telefoneVerificado ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: usuario.telefone != null && usuario.telefone!.isNotEmpty ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
               ),
               const Divider(height: 1),
               MenuListTile(
                 icone: Icons.home,
-                texto: usuario.enderecoVerificado ? 'Residência Verificada ✓' : 'Verificar Residência',
+                texto: usuario.statusEndereco == StatusEndereco.aprovado ? 'Residência Verificada ✓' : 'Verificar Residência',
                 onTap: () => context.push(AppRoutes.verificacaoResidencia),
                 iconeAcao: Icon(
-                  usuario.enderecoVerificado ? Icons.check_circle : Icons.arrow_forward_ios,
+                  usuario.statusEndereco == StatusEndereco.aprovado ? Icons.check_circle : Icons.arrow_forward_ios,
                   size: 20,
-                  color: usuario.enderecoVerificado ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: usuario.statusEndereco == StatusEndereco.aprovado ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
               ),
               const Divider(height: 1),

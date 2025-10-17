@@ -258,7 +258,7 @@ function switchView(view) {
 }
 
 // Carregar verificações pendentes
-async function loadVerificacoes() {
+async function loadVerificacoes(limite) {
     const list = document.getElementById('verificacoesList');
     const loading = document.getElementById('loadingSpinner');
     const empty = document.getElementById('emptyState');
@@ -271,15 +271,24 @@ async function loadVerificacoes() {
 
     try {
         // Buscar verificações pendentes do Firestore
-        let query = db.collection('verificacoes_residencia')
-            .where('status', '==', 'pendente')
-            .orderBy('dataSolicitacao', 'desc');
+        const url = new URL('http://localhost:3000/seguranca/verificacao-residencia/pendentes');
+        if (limite) {
+            url.searchParams.append('limite', limite);
+        }
 
-        const snapshot = await query.get();
+        let response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+        console.log('Verificações pendentes carregadas:', result);
         
         loading.style.display = 'none';
 
-        if (snapshot.empty) {
+        if (!result.success || !result.data || result.data.length === 0) {
             empty.style.display = 'block';
             updateBadges(0, 0, 0);
             return;
@@ -287,17 +296,15 @@ async function loadVerificacoes() {
 
         // Processar verificações
         const verificacoes = [];
-        for (const doc of snapshot.docs) {
-            const data = doc.data();
-            
-            // Buscar dados do usuário
-            const userDoc = await db.collection('usuarios').doc(data.usuarioId).get();
-            const userData = userDoc.data();
-
+        for (const item of result.data) {
             verificacoes.push({
-                id: doc.id,
-                ...data,
-                usuario: userData
+                id: item.id,
+                comprovanteUrl: item.comprovanteUrl,
+                tipoDocumento: item.tipoComprovante,
+                observacoesUsuario: item.observacoesUsuario,
+                dataSolicitacao: new Date(item.dataSubmissao),
+                usuarioId: item.usuario.id,
+                usuario: item.usuario
             });
         }
 
@@ -348,7 +355,7 @@ function createVerificacaoCard(verificacao) {
     const icon = tipo === 'residencia' ? 'fa-home' : 'fa-phone';
     const tipoLabel = tipo === 'residencia' ? 'Residência' : 'Telefone';
     
-    const dataSolicitacao = verificacao.dataSolicitacao?.toDate();
+    const dataSolicitacao = verificacao.dataSolicitacao;
     const dataFormatada = dataSolicitacao ? 
         new Intl.DateTimeFormat('pt-BR', {
             day: '2-digit',
@@ -387,7 +394,7 @@ function createVerificacaoCard(verificacao) {
     `;
 
     card.querySelector('.btn-view').addEventListener('click', () => {
-        openModal(verificacao);
+        openDetalhesPage(verificacao);
     });
 
     return card;
@@ -414,7 +421,7 @@ async function openModal(verificacao) {
     const tipo = verificacao.tipoDocumento ? 'Verificação de Residência' : 'Verificação de Telefone';
     document.getElementById('detailTipo').textContent = tipo;
     
-    const dataSolicitacao = verificacao.dataSolicitacao?.toDate();
+    const dataSolicitacao = verificacao.dataSolicitacao;
     document.getElementById('detailDataSolicitacao').textContent = dataSolicitacao ?
         new Intl.DateTimeFormat('pt-BR', {
             day: '2-digit',
@@ -655,4 +662,11 @@ function showToast(message, type = 'info') {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// Abrir página de detalhes
+function openDetalhesPage(verificacao) {
+    // Converter a verificação para JSON e passar via URL
+    const verificationData = encodeURIComponent(JSON.stringify(verificacao));
+    window.location.href = `detalhes.html?data=${verificationData}`;
 }

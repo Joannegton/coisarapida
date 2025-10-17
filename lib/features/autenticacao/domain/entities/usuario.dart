@@ -1,4 +1,5 @@
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
 
 class Usuario {
   final String id;
@@ -19,8 +20,7 @@ class Usuario {
   final Endereco? endereco;
   
   // Campos de verificação
-  final bool telefoneVerificado;
-  final bool enderecoVerificado;
+  final StatusEndereco? statusEndereco;
 
   const Usuario({
     required this.id,
@@ -37,8 +37,7 @@ class Usuario {
     this.verificado = false,
     this.cpf,
     this.endereco,
-    this.telefoneVerificado = false,
-    this.enderecoVerificado = false,
+    this.statusEndereco,
   });
 
   Usuario copyWith({
@@ -56,8 +55,7 @@ class Usuario {
     bool? verificado,
     String? cpf,
     Endereco? endereco,
-    bool? telefoneVerificado,
-    bool? enderecoVerificado,
+    StatusEndereco? statusEndereco,
   }) {
     return Usuario(
       id: id ?? this.id,
@@ -74,8 +72,7 @@ class Usuario {
       verificado: verificado ?? this.verificado,
       cpf: cpf ?? this.cpf,
       endereco: endereco ?? this.endereco,
-      telefoneVerificado: telefoneVerificado ?? this.telefoneVerificado,
-      enderecoVerificado: enderecoVerificado ?? this.enderecoVerificado,
+      statusEndereco: statusEndereco ?? this.statusEndereco,
     );
   }
 

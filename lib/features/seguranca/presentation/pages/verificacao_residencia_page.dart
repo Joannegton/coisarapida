@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
+import 'package:coisarapida/core/errors/exceptions.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
 import '../providers/seguranca_provider.dart';
 import '../../domain/entities/verificacao_residencia.dart';
 
@@ -243,30 +245,10 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
     setState(() => _enviando = true);
 
     try {
-      final endereco = EnderecoVerificacao(
-        cep: usuario.endereco!.cep,
-        rua: usuario.endereco!.rua,
-        numero: usuario.endereco!.numero,
-        complemento: usuario.endereco!.complemento,
-        bairro: usuario.endereco!.bairro,
-        cidade: usuario.endereco!.cidade,
-        estado: usuario.endereco!.estado,
-      );
-
       await ref.read(verificacaoResidenciaProvider.notifier).solicitarVerificacao(
         usuarioId: usuario.id,
-        endereco: endereco,
         comprovante: _comprovanteImagem!,
       );
-
-      if (mounted) {
-        // Mostrar diálogo de sucesso com instrução para ir para home
-        _mostrarDialogoSucesso();
-      }
-    } catch (e) {
-      if (mounted) {
-        SnackBarUtils.mostrarErro(context, 'Erro ao enviar comprovante: $e');
-      }
     } finally {
       if (mounted) {
         setState(() => _enviando = false);
@@ -278,6 +260,17 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final usuarioAsync = ref.watch(usuarioAtualStreamProvider);
+
+    // Observar mudanças no estado da verificação
+    ref.listen<AsyncValue<VerificacaoResidencia?>>(verificacaoResidenciaProvider, (previous, next) {
+      if (next.hasError) {
+        final errorMessage = next.error is AppException ? (next.error as AppException).message : next.error.toString();
+        SnackBarUtils.mostrarErro(context, errorMessage);
+      } else if (next.hasValue && previous?.isLoading == true) {
+        // Sucesso - transição de loading para data
+        _mostrarDialogoSucesso();
+      }
+    });
 
     // Adicionar estado de loading para evitar rebuilds desnecessários
     if (usuarioAsync.isLoading) {
@@ -308,31 +301,114 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Banner informativo
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Esta verificação é opcional, mas aumenta sua confiabilidade na plataforma.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue.shade900,
-                        fontWeight: FontWeight.w500,
+            // Banner de aviso se endereço reprovado
+            if (usuario?.statusEndereco == StatusEndereco.rejeitado) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade300, width: 2),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Solicitação Recusada',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.red.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Sua solicitação de verificação foi recusada. Por favor, envie um novo comprovante de residência.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.red.shade800,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+            ],
+            
+            // Banner informativo
+            if (usuario?.statusEndereco != StatusEndereco.emAnalise)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Esta verificação é opcional, mas aumenta sua confiabilidade na plataforma.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.blue.shade900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Banner de em análise
+            if (usuario?.statusEndereco == StatusEndereco.emAnalise)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade300, width: 2),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.hourglass_empty, color: Colors.orange.shade700, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Em Análise',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.orange.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Seu comprovante está sendo analisado. Você já pode acessar a plataforma, mas algumas ações estarão limitadas até a aprovação.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 20),
             usuario?.endereco == null ? _buildFormularioEndereco() : _buildFormularioComprovante(usuario!),
           ],

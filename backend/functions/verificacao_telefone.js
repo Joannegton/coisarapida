@@ -169,9 +169,7 @@ exports.verificarCodigoSMS = onCall(
       const db = admin.firestore();
       await db.collection('usuarios').doc(userId).set(
         {
-          telefoneVerificado: true,
           telefone: telefoneInternacional,
-          telefoneVerificadoEm: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );

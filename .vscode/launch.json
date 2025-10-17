@@ -20,6 +20,13 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
+        },
+        {
+            "name": "Attach to NestJS",
+            "type": "node",
+            "request": "attach",
+            "port": 9229,
+            "restart": true
         }
     ]
 }

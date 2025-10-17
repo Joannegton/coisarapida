@@ -1,3 +1,4 @@
+import 'package:coisarapida/core/utils/verificacao_helper.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/chat/domain/entities/chat.dart';
 import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
@@ -208,6 +209,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }
 
   void _enviarMensagem() async {
+    // Verificar se usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(
+        context,
+        ref,
+        mensagemCustomizada: 'Para enviar mensagens, você precisa completar as verificações de segurança.',
+      );
+      return;
+    }
+
     final conteudo = _mensagemController.text.trim();
     if (conteudo.isEmpty) return;
     
