@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
+import '../../../autenticacao/domain/entities/status_endereco.dart';
 import '../providers/perfil_publico_provider.dart'; 
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
@@ -18,19 +20,14 @@ class MenuPage extends ConsumerWidget {
     final meuPerfilState = ref.watch(meuPerfilProviderApagar);
     
     return Scaffold(
-      // appBar: AppBar(
-      //   systemOverlayStyle: SystemUiOverlayStyle(
-      //     statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
-      //     statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
-      //   ),
-      //   title: const Text('Ajustar titulo'),
-      //   actions: [
-      //     IconButton(
-      //       icon: const Icon(Icons.edit),
-      //       onPressed: () => _editarPerfil(context),
-      //     ),
-      //   ],
-      // ),
+      appBar: AppBar(systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.dark : Brightness.light,
+          statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.dark : Brightness.light,
+        ),
+        title: const Text('Perfil'),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
       body: meuPerfilState.when(
         data: (usuario) {
           
@@ -42,30 +39,17 @@ class MenuPage extends ConsumerWidget {
                   // Foto e informações básicas
                   _buildCabecalhoPerfil(context, theme, usuario),
                   
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 10),
                   
                   // Informações pessoais
                   _buildSecaoInformacoes(context, theme, usuario, ref),
                   
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 10),
                   
-                  // Botão para Solicitações Recebidas
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.inbox_outlined),
-                    label: const Text('Solicitações de Aluguel Recebidas'),
-                    onPressed: () => context.push(AppRoutes.solicitacoesAluguel),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Estatísticas
-                  _buildSecaoEstatisticas(context, theme, usuario),
+                  // Seção de verificações
+                  _buildSecaoVerificacoes(context, theme, usuario, ref),
                   
                   const SizedBox(height: 24),
-                  
-                  // Configurações rápidas
-                  _buildSecaoConfiguracoes(context, theme),
-                  
-                  const SizedBox(height: 32),
                   
                   // Botão de logout
                   _buildBotaoLogout(context, theme, ref),
@@ -97,6 +81,9 @@ class MenuPage extends ConsumerWidget {
   }
 
   Widget _buildCabecalhoPerfil(BuildContext context, ThemeData theme, Usuario usuario) {
+    final usuarioVerificado = usuario.cpf != null && usuario.cpf!.isNotEmpty && usuario.emailVerificado &&
+      usuario.telefone != null && usuario.telefone!.isNotEmpty && usuario.statusEndereco == StatusEndereco.aprovado;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -172,13 +159,14 @@ class MenuPage extends ConsumerWidget {
                       ? Colors.green 
                       : Colors.orange,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 10),
+                
                 Text(
-                  usuario.emailVerificado 
-                      ? 'Email verificado' 
-                      : 'Email não verificado',
+                  usuarioVerificado
+                      ? 'Usuario verificado' 
+                      : 'Usuario não verificado',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: usuario.emailVerificado 
+                    color: usuarioVerificado 
                         ? Colors.green 
                         : Colors.orange,
                   ),
@@ -229,6 +217,15 @@ class MenuPage extends ConsumerWidget {
               () => _editarCampoTexto(context, ref, 'Telefone', usuario.telefone ?? '', (novoTelefone) async {
                 await ref.read(authControllerProvider.notifier).atualizarPerfil(telefone: novoTelefone);
               }, keyboardType: TextInputType.phone),
+            ),
+            
+            _buildItemInformacao(
+              'CPF',
+              usuario.cpf ?? 'Não informado',
+              Icons.badge,
+              usuario.cpf != null && usuario.cpf!.isNotEmpty ? null : () => _editarCampoTexto(context, ref, 'CPF', usuario.cpf ?? '', (novoCpf) async {
+                await ref.read(authControllerProvider.notifier).atualizarPerfil(cpf: novoCpf);
+              }, keyboardType: TextInputType.number),
             ),
             
             _buildItemInformacao(
@@ -287,6 +284,10 @@ class MenuPage extends ConsumerWidget {
   }
 
   Widget _buildSecaoEstatisticas(BuildContext context, ThemeData theme, Usuario usuario) {
+    // Determinar se é mais locador ou locatário baseado nas atividades
+    final ehLocador = usuario.totalItensAlugados > usuario.totalAlugueis;
+    final tituloSecao = ehLocador ? 'Estatísticas como Locador' : 'Estatísticas como Locatário';
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -294,48 +295,104 @@ class MenuPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Minhas Estatísticas',
+              tituloSecao,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
             
-            Row(
-              children: [
-                Expanded(
-                  child: _buildEstatistica(
-                    'Itens Anunciados', // Ajustado para usar dados reais
-                    usuario.totalItensAlugados.toString(), // Usando campo da entidade Usuario
-                    Icons.inventory,
-                    theme.colorScheme.primary,
+            if (ehLocador) ...[
+              // Estatísticas para locador
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Itens Disponíveis',
+                      usuario.totalItensAlugados.toString(),
+                      Icons.inventory,
+                      theme.colorScheme.primary,
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: _buildEstatistica(
-                    'Aluguéis Realizados', // Ajustado
-                    usuario.totalAlugueis.toString(), // Usando campo da entidade Usuario
-                    Icons.handshake,
-                    theme.colorScheme.secondary,
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Aluguéis Concluídos',
+                      usuario.totalAlugueis.toString(),
+                      Icons.check_circle,
+                      theme.colorScheme.secondary,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildEstatistica(
-                    'Avaliação',
-                    '${usuario.reputacao.toStringAsFixed(1)} ⭐', // Usando campo da entidade Usuario
-                    Icons.star,
-                    Colors.orange,
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Avaliação Média',
+                      '${usuario.reputacao.toStringAsFixed(1)} ⭐',
+                      Icons.star,
+                      Colors.orange,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Taxa de Sucesso',
+                      '95%', // Placeholder - seria calculado baseado em dados reais
+                      Icons.trending_up,
+                      Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              // Estatísticas para locatário
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Aluguéis Realizados',
+                      usuario.totalAlugueis.toString(),
+                      Icons.handshake,
+                      theme.colorScheme.primary,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Itens Alugados',
+                      usuario.totalItensAlugados.toString(),
+                      Icons.inventory_2,
+                      theme.colorScheme.secondary,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Avaliação como Locatário',
+                      '${usuario.reputacao.toStringAsFixed(1)} ⭐',
+                      Icons.star,
+                      Colors.orange,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildEstatistica(
+                      'Economia Total',
+                      'R\$ 0', // Placeholder - seria calculado baseado em dados reais
+                      Icons.savings,
+                      Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -457,8 +514,141 @@ class MenuPage extends ConsumerWidget {
     return '${data.day} ${meses[data.month - 1]} ${data.year}';
   }
 
-  void _editarPerfil(BuildContext context) {
-    SnackBarUtils.mostrarInfo(context, 'Edição de perfil em desenvolvimento');
+  Widget _buildSecaoVerificacoes(BuildContext context, ThemeData theme, Usuario usuario, WidgetRef ref) {
+    final telefoneVerificado = usuario.telefone != null && usuario.telefone!.isNotEmpty;
+    final enderecoVerificado = usuario.statusEndereco == StatusEndereco.aprovado;
+    final cpfVerificado = usuario.cpf != null && usuario.cpf!.isNotEmpty;
+    
+    // Se tudo verificado, não mostra seção
+    if (telefoneVerificado && enderecoVerificado && cpfVerificado) return const SizedBox.shrink();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.verified_user_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Segurança',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Complete suas verificações para desbloquear todas as funcionalidades.',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            
+            // Verificação de telefone
+            _buildItemVerificacao(
+              context,
+              titulo: 'Telefone',
+              descricao: telefoneVerificado ? 'Verificado' : 'Não verificado',
+              icone: Icons.phone_android,
+              verificado: telefoneVerificado,
+              onTap: telefoneVerificado ? null : () => context.push(AppRoutes.verificacaoTelefone),
+            ),
+            
+            // Verificação de endereço
+            _buildItemVerificacao(
+              context,
+              titulo: 'Endereço',
+              descricao: enderecoVerificado ? 'Verificado' : 'Não verificado',
+              icone: Icons.home_outlined,
+              verificado: enderecoVerificado,
+              onTap: enderecoVerificado ? null : () => context.push(AppRoutes.verificacaoResidencia),
+            ),
+
+            // Verificação de CPF
+            if (!cpfVerificado) _buildItemVerificacao(
+              context,
+              titulo: 'CPF',
+              descricao: 'Não informado',
+              icone: Icons.badge,
+              verificado: false,
+              onTap: () => _editarCampoTexto(context, ref, 'CPF', usuario.cpf ?? '', (novoCpf) async {
+                await ref.read(authControllerProvider.notifier).atualizarPerfil(cpf: novoCpf);
+              }, keyboardType: TextInputType.number),
+            ),
+
+            _buildItemVerificacao(
+              context, 
+              titulo: 'E-mail', 
+              descricao: usuario.emailVerificado ? 'Verificado' : 'Não verificado',
+              icone: Icons.mail_outlined,
+              verificado: usuario.emailVerificado,
+              onTap: usuario.emailVerificado ? null : () => _abrirGmail(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemVerificacao(
+    BuildContext context, {
+    required String titulo,
+    required String descricao,
+    required IconData icone,
+    required bool verificado,
+    VoidCallback? onTap,
+  }) {
+    final theme = Theme.of(context);
+    
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              verificado ? Icons.check_circle : icone,
+              color: verificado ? Colors.green : theme.colorScheme.primary,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    descricao,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: verificado ? Colors.green : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!verificado && onTap != null)
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: theme.colorScheme.primary,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _alterarFoto(BuildContext context) {
@@ -599,5 +789,20 @@ class MenuPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _abrirGmail(BuildContext context) async {
+    try {
+      final Uri gmailUri = Uri.parse('googlegmail://');
+      await launchUrl(gmailUri);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível abrir o Gmail'),
+          ),
+        );
+      }
+    }
   }
 }

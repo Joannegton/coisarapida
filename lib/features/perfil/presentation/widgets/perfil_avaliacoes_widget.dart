@@ -23,11 +23,12 @@ class PerfilAvaliacoesWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(Icons.star_border, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Avaliações Recebidas (${avaliacoes.length})',
+                  'O que dizem (${avaliacoes.length})',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

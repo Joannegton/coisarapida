@@ -1,4 +1,5 @@
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
+import 'package:coisarapida/shared/widgets/scrolling_text.dart';
 import 'package:flutter/material.dart';
 
 class PerfilBotoesAcaoWidget extends StatelessWidget {
@@ -27,7 +28,7 @@ class PerfilBotoesAcaoWidget extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.chat),
-            label: const Text('Enviar Mensagem'),
+            label: ScrollingText('Enviar Mensagem'),
           ),
         ),
         const SizedBox(width: 12),

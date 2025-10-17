@@ -1,10 +1,9 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
-import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/cabecalho_perfil_widget.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/configuracoes_rapidas.dart';
 import 'package:coisarapida/features/menu/presentation/widgets/menu_list_tile_widget.dart';
-import 'package:coisarapida/features/menu/presentation/widgets/minhas_estatistica_widget.dart';
+import 'package:coisarapida/features/perfil/presentation/widgets/minhas_estatistica_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -59,48 +58,7 @@ class MenuMaisPage extends ConsumerWidget {
               ),
               const Divider(height: 1),
               
-              // Seção de Verificações Opcionais
-              Padding(
-                padding: EdgeInsets.fromLTRB(screenWidth * 0.04, screenWidth * 0.06, screenWidth * 0.04, screenWidth * 0.02),
-                child: Row(
-                  children: [
-                    Icon(Icons.verified_user, size: 18, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Verificações Opcionais',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              MenuListTile(
-                icone: Icons.phone_android,
-                texto: usuario.telefone != null && usuario.telefone!.isNotEmpty ? 'Telefone Verificado ✓' : 'Verificar Telefone',
-                onTap: () => context.push(AppRoutes.verificacaoTelefone),
-                iconeAcao: Icon(
-                  usuario.telefone != null && usuario.telefone!.isNotEmpty ? Icons.check_circle : Icons.arrow_forward_ios,
-                  size: 20,
-                  color: usuario.telefone != null && usuario.telefone!.isNotEmpty ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
-                ),
-              ),
-              const Divider(height: 1),
-              MenuListTile(
-                icone: Icons.home,
-                texto: usuario.statusEndereco == StatusEndereco.aprovado ? 'Residência Verificada ✓' : 'Verificar Residência',
-                onTap: () => context.push(AppRoutes.verificacaoResidencia),
-                iconeAcao: Icon(
-                  usuario.statusEndereco == StatusEndereco.aprovado ? Icons.check_circle : Icons.arrow_forward_ios,
-                  size: 20,
-                  color: usuario.statusEndereco == StatusEndereco.aprovado ? Colors.green : theme.colorScheme.onSurface.withOpacity(0.5),
-                ),
-              ),
-              const Divider(height: 1),
-              
               SizedBox(height: screenWidth * 0.04),
-              MinhasEstatisticaWidget(usuario: usuario),
               const ConfiguracoesRapidas()
             ]),
           ),

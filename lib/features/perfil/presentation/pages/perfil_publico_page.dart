@@ -27,6 +27,7 @@ class PerfilPublicoPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final screenSize = MediaQuery.of(context).size;
     final perfilDetalhadoState = ref.watch(perfilPublicoDetalhadoProvider(usuarioId));
 
     return Scaffold(
@@ -38,7 +39,7 @@ class PerfilPublicoPage extends ConsumerWidget {
             slivers: [
               // AppBar com foto de capa
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: screenSize.height * 0.29,
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
@@ -61,17 +62,17 @@ class PerfilPublicoPage extends ConsumerWidget {
                           Stack(
                             children: [
                               CircleAvatar(
-                                radius: 50,
+                                radius: screenSize.width * 0.12,
                                 backgroundColor: Colors.white,
                                 child: CircleAvatar(
-                                  radius: 47,
+                                  radius: screenSize.width * 0.115,
                                   backgroundImage: foto != null && foto.isNotEmpty
                                       ? NetworkImage(foto)
                                       : null,
                                   child: (foto == null || foto.isEmpty)
                                       ? Icon(
                                           Icons.person,
-                                          size: 50,
+                                          size: screenSize.width * 0.12,
                                           color: theme.colorScheme.primary,
                                         )
                                       : null,
@@ -105,14 +106,6 @@ class PerfilPublicoPage extends ConsumerWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          // Localização
-                          if (usuario.endereco?.cidade != null && usuario.endereco!.cidade.isNotEmpty)
-                            Text(
-                              '${usuario.endereco!.cidade}, ${usuario.endereco!.estado}',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                            ),
                         ],
                       ),
                     ),
@@ -160,7 +153,10 @@ class PerfilPublicoPage extends ConsumerWidget {
               // Conteúdo do perfil
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenSize.width * 0.05,
+                    vertical: 16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -269,15 +265,15 @@ class PerfilPublicoPage extends ConsumerWidget {
       return;
     }
 
-    // Simular criação/abertura de chat
-    context.push('${AppRoutes.chat}/chat_${usuario.id}'); // Usar o ID real do usuário
+    context.push('${AppRoutes.chat}/chat_${usuario.id}');
   }
 
   void _verItensUsuario(BuildContext context, Usuario usuario) {
-    context.push('${AppRoutes.buscar}?usuarioId=${usuario.id}'); // Passar usuarioId como query param
+    context.push('${AppRoutes.buscar}?usuarioId=${usuario.id}');
   }
 
   void _verTodasAvaliacoes(BuildContext context, List<Avaliacao> avaliacoes) {
+    final screenSize = MediaQuery.of(context).size;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -286,7 +282,7 @@ class PerfilPublicoPage extends ConsumerWidget {
         maxChildSize: 0.9,
         minChildSize: 0.5,
         builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(screenSize.width * 0.05),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

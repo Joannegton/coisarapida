@@ -14,20 +14,18 @@ class PerfilEstatisticasWidget extends StatelessWidget {
   Widget _buildEstatistica(String titulo, String valor, IconData icone, Color cor) {
     return Column(
       children: [
-        Icon(icone, color: cor, size: 24),
+        Icon(icone, color: cor, size: 28),
         const SizedBox(height: 8),
         Text(
           valor,
-          style: TextStyle(
-            fontSize: 18,
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: cor,
           ),
         ),
         Text(
           titulo,
-          style: const TextStyle(
-            fontSize: 12,
+          style: theme.textTheme.bodyMedium?.copyWith(
             color: Colors.grey,
           ),
           textAlign: TextAlign.center,
@@ -40,42 +38,29 @@ class PerfilEstatisticasWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        padding: const EdgeInsets.all(20),
+        child: Wrap(
+          spacing: 20,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
           children: [
-            Expanded(
-              child: _buildEstatistica(
-                'Itens Anunciados', // TODO: Ajustar para o campo correto em Usuario, se existir
-                '${usuario.totalItensAlugados}', // Exemplo, ajuste conforme seus campos
-                Icons.inventory,
-                theme.colorScheme.primary,
-              ),
+            _buildEstatistica(
+              'Anúncios', // TODO: Ajustar para o campo correto em Usuario, se existir
+              '${usuario.totalItensAlugados}', // Exemplo, ajuste conforme seus campos
+              Icons.inventory,
+              theme.colorScheme.primary,
             ),
-            Container(
-              width: 1,
-              height: 40,
-              color: Colors.grey.shade300,
+            _buildEstatistica(
+              'Alugados',
+              '${usuario.totalAlugueis}',
+              Icons.handshake,
+              theme.colorScheme.secondary,
             ),
-            Expanded(
-              child: _buildEstatistica(
-                'Aluguéis Realizados',
-                '${usuario.totalAlugueis}',
-                Icons.handshake,
-                theme.colorScheme.secondary,
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 40,
-              color: Colors.grey.shade300,
-            ),
-            Expanded(
-              child: _buildEstatistica(
-                'Avaliação',
-                '${usuario.reputacao.toStringAsFixed(1)} ⭐',
-                Icons.star,
-                Colors.orange,
-              ),
+            _buildEstatistica(
+              'Avaliação',
+              usuario.reputacao.toStringAsFixed(1),
+              Icons.star,
+              Colors.orange,
             ),
           ],
         ),

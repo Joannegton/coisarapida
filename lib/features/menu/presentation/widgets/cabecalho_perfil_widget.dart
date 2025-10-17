@@ -1,4 +1,5 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +16,9 @@ class CabecalhoPerfilWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    
+    final usuarioVerificado = usuario.cpf != null && usuario.cpf!.isNotEmpty && usuario.emailVerificado &&
+      usuario.telefone != null && usuario.telefone!.isNotEmpty && usuario.statusEndereco == StatusEndereco.aprovado;
+
     return ListTile(
       contentPadding: EdgeInsets.only(left: screenWidth * 0.025, bottom: screenWidth * 0.025),
       tileColor: theme.colorScheme.primary,
@@ -33,27 +36,29 @@ class CabecalhoPerfilWidget extends StatelessWidget {
               )
             : null,
       ),
-      title: Text(
-        usuario.nome,
-        style: theme.textTheme.titleLarge?.copyWith(
-          color: theme.colorScheme.onPrimary,
-          fontWeight: FontWeight.bold
+      title: Align(
+        alignment: usuarioVerificado ? Alignment.center : Alignment.centerLeft,
+        child: Text(
+          usuario.nome,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: theme.colorScheme.onPrimary,
+            fontWeight: FontWeight.bold
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
       ),
-      subtitle: Row(
+      subtitle: !usuarioVerificado ? Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text( //TODO adicionar perfil incompleto também, caso o email esteja verificado e o perfil incompleto
-            usuario.emailVerificado == true
-                ? 'Email verificado'
-                : 'Email não verificado',
+          Text(
+            'Perfil não verificado',
             style: theme.textTheme.bodyMedium?.copyWith(
-            color: usuario.emailVerificado ? Colors.greenAccent : Colors.orangeAccent),
+              color: Colors.orangeAccent,
+            ),
           ),
-        ]
-      ),
+        ],
+      ) : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

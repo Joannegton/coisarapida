@@ -156,43 +156,46 @@ class VerificacaoHelper {
     IconData icone = Icons.warning_amber_rounded;
     Color cor = Colors.orange;
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cor),
-      ),
-      child: Row(
-        children: [
-          Icon(icone, color: cor),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mensagem,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: cor.withOpacity(0.9),
-                    fontWeight: FontWeight.w500,
+    return InkWell(
+      onTap: () => context.push(AppRoutes.editarPerfil),
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cor),
+        ),
+        child: Row(
+          children: [
+            Icon(icone, color: cor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mensagem,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: cor.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Toque para verificar agora',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: cor.withOpacity(0.7),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Toque para verificar agora',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cor.withOpacity(0.7),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(Icons.arrow_forward_ios, color: cor, size: 16),
-        ],
+            Icon(Icons.arrow_forward_ios, color: cor, size: 16),
+          ],
+        ),
       ),
     );
   }
