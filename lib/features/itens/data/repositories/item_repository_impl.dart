@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/core/services/api_client.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:coisarapida/core/errors/exceptions.dart';
 import '../models/item_model.dart';
@@ -8,17 +9,23 @@ import '../../domain/repositories/item_repository.dart';
 class ItemRepositoryImpl implements ItemRepository {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
+  final ApiClient _apiClient;
 
   ItemRepositoryImpl({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+    ApiClient? apiClient,
+  })  : _apiClient = apiClient ?? ApiClient(),
+        _firestore = firestore ?? FirebaseFirestore.instance,
         _storage = storage ?? FirebaseStorage.instance;
 
   @override
   Future<void> publicarItem(ItemModel item) async {
     try {
-      await _firestore.collection('itens').doc(item.id).set(item.toMap());
+      
+      final itemMap = item.toMap();
+
+      await _firestore.collection('itens').doc(item.id).set(itemMap);
     } catch (e) {
       throw ServerException('Erro ao publicar item: ${e.toString()}');
     }
@@ -27,18 +34,19 @@ class ItemRepositoryImpl implements ItemRepository {
   @override
   Future<List<String>> uploadFotos(List<File> fotos, String itemId) async {
     try {
-      final List<String> downloadUrls = [];
-      for (int i = 0; i < fotos.length; i++) {
-        final file = fotos[i];
-        // Usar timestamp para gerar nomes únicos e evitar sobrescrever fotos
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final fileName = 'item_${itemId}_foto_${timestamp}_$i.jpg';
-        final ref = _storage.ref().child('itens/$itemId/$fileName');
-        final uploadTask = ref.putFile(file);
-        final snapshot = await uploadTask.whenComplete(() => {});
-        final downloadUrl = await snapshot.ref.getDownloadURL();
-        downloadUrls.add(downloadUrl);
-      }
+      final response = await _apiClient.postMultipart(
+        '/imagem/upload',
+        fields: {
+          'pasta': 'itens',
+          'subPasta': itemId,
+        },
+        files: fotos,
+        fileFieldName: 'imagens'
+      );
+
+      // O backend retorna uma lista de URLs
+      final List<String> downloadUrls = List<String>.from(response['data'] ?? []);
+
       return downloadUrls;
     } catch (e) {
       throw ServerException('Erro ao fazer upload das fotos: ${e.toString()}');

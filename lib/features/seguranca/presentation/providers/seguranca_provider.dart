@@ -9,7 +9,6 @@ import '../../domain/entities/contrato.dart';
 import '../../domain/entities/denuncia.dart';
 import '../../domain/entities/verificacao_fotos.dart';
 import '../../domain/entities/problema.dart';
-import '../../domain/entities/verificacao_telefone.dart';
 import '../../domain/entities/verificacao_residencia.dart';
 import 'package:coisarapida/core/services/api_client.dart';
 

@@ -14,9 +14,10 @@ class ApiClient {
 
   ApiClient({
     http.Client? client,
-    this.baseUrl = Config.apiBaseUrl,
+    String? baseUrl,
     FirebaseAuth? auth,
   })  : _client = client ?? http.Client(),
+        baseUrl = baseUrl ?? Config.apiBaseUrl,
         _auth = auth ?? FirebaseAuth.instance;
 
   /// Obter token de autenticação do Firebase
@@ -109,11 +110,10 @@ class ApiClient {
     }
   }
 
-  /// Fazer requisição POST com multipart (upload de arquivos)
   Future<Map<String, dynamic>> postMultipart(
     String endpoint, {
     required Map<String, String> fields,
-    File? file,
+    List<File>? files,
     String fileFieldName = 'file',
     bool requireAuth = true,
   }) async {
@@ -131,13 +131,16 @@ class ApiClient {
 
       request.fields.addAll(fields);
 
-      if (file != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            fileFieldName,
-            file.path,
-          ),
-        );
+      if (files != null && files.isNotEmpty) {
+        for (int i = 0; i < files.length; i++) {
+          final file = files[i];
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              fileFieldName,
+              file.path,
+            ),
+          );
+        }
       }
 
       final streamedResponse = await request.send();

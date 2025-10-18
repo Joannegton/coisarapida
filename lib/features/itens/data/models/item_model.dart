@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import '../../domain/entities/item.dart';
 
 class ItemModel extends Item {
@@ -95,7 +96,7 @@ class ItemModel extends Item {
       proprietarioNome: data['proprietarioNome'] as String? ?? '',
       proprietarioReputacao:
           (data['proprietarioReputacao'] as num?)?.toDouble(),
-      localizacao: Localizacao.fromMap(
+      localizacao: Endereco.fromMap(
           data['localizacao'] as Map<String, dynamic>? ?? {}),
       criadoEm: (data['criadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
       atualizadoEm: (data['atualizadoEm'] as Timestamp?)?.toDate(),
@@ -124,7 +125,7 @@ class ItemModel extends Item {
       proprietarioId: map['proprietarioId'] ?? '',
       proprietarioNome: map['proprietarioNome'] ?? '',
       proprietarioReputacao: (map['proprietarioReputacao'] as num?)?.toDouble(),
-      localizacao: Localizacao.fromMap(map['localizacao'] ?? {}),
+      localizacao: Endereco.fromMap(map['localizacao'] ?? {}),
       criadoEm: (map['criadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
       atualizadoEm: (map['atualizadoEm'] as Timestamp?)?.toDate(),
       avaliacao: (map['avaliacao'] as num?)?.toDouble() ?? 0.0,

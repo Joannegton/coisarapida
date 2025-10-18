@@ -8,6 +8,8 @@ import 'package:coisarapida/features/autenticacao/presentation/providers/auth_pr
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/status_endereco.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../providers/seguranca_provider.dart';
 import '../../domain/entities/verificacao_residencia.dart';
 
@@ -35,7 +37,9 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
 
   bool _salvandoEndereco = false;
 
-  bool _camposPreenchidos = false; // Flag para evitar rebuilds desnecessários
+  bool _camposPreenchidos = false;
+
+  bool _obtendoLocalizacao = false;
 
   @override
   void initState() {
@@ -109,6 +113,60 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
     } finally {
       if (mounted) {
         setState(() => _salvandoEndereco = false);
+      }
+    }
+  }
+
+  Future<void> _preencherComLocalizacaoAtual() async {
+    setState(() => _obtendoLocalizacao = true);
+
+    try {
+      // Verificar permissões
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+          SnackBarUtils.mostrarErro(context, 'Permissão de localização negada');
+          return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        SnackBarUtils.mostrarErro(context, 'Permissão de localização negada permanentemente. Habilite nas configurações.');
+        return;
+      }
+
+      // Obter posição atual
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      // Reverse geocoding
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+
+        setState(() {
+          _cepController.text = place.postalCode ?? '';
+          _ruaController.text = place.street ?? '';
+          _numeroController.text = '';
+          _complementoController.text = '';
+          _bairroController.text = place.subLocality ?? place.locality ?? '';
+          _cidadeController.text = place.locality ?? '';
+          _estadoController.text = place.administrativeArea ?? '';
+        });
+
+      } else {
+        SnackBarUtils.mostrarErro(context, 'Não foi possível obter o endereço da localização');
+      }
+    } catch (e) {
+      SnackBarUtils.mostrarErro(context, 'Erro ao obter localização');
+    } finally {
+      if (mounted) {
+        setState(() => _obtendoLocalizacao = false);
       }
     }
   }
@@ -452,6 +510,22 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
             ),
           ),
           const SizedBox(height: 24),
+          // Botão para preencher com localização atual
+          OutlinedButton.icon(
+            onPressed: _obtendoLocalizacao ? null : _preencherComLocalizacaoAtual,
+            icon: _obtendoLocalizacao
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.my_location),
+            label: Text(_obtendoLocalizacao ? 'Obtendo localização...' : 'Preencher com minha localização'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
+            ),
+          ),
+          const SizedBox(height: 16),
           // Campos de endereço
           TextFormField(
             controller: _cepController,

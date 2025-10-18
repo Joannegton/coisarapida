@@ -729,7 +729,7 @@ class SegurancaRepositoryImpl implements SegurancaRepository {
           'tipoComprovante': tipoComprovante ?? 'mock_front',
           if (observacoes != null) 'observacoes': observacoes,
         },
-        file: comprovante,
+        files: [comprovante],
         fileFieldName: 'comprovante',
       );
       

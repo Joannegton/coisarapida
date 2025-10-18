@@ -1,12 +1,17 @@
 import 'dart:io';
+import 'package:coisarapida/core/services/api_client.dart';
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart'
     as auth_user;
 import 'package:coisarapida/features/itens/data/models/item_model.dart';
+import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../../domain/entities/item.dart';
 import '../../domain/repositories/item_repository.dart';
@@ -14,9 +19,11 @@ import '../../data/repositories/item_repository_impl.dart';
 
 // Provider para ItemRepository
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
   return ItemRepositoryImpl(
     firestore: FirebaseFirestore.instance,
     storage: FirebaseStorage.instance,
+    apiClient: apiClient,
   );
 });
 
@@ -40,11 +47,15 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
   ItemController(this._itemRepository, this._ref)
       : super(const AsyncValue.data(null));
 
+  String _formatAddress(Endereco endereco) {
+    return '${endereco.rua}, ${endereco.numero}, ${endereco.bairro}, ${endereco.cidade}, ${endereco.estado}, ${endereco.cep}, Brasil';
+  }
+
   Future<void> publicarItem({
     required String nome,
     required String descricao,
     required String categoria,
-    required List<String> fotosPaths, // Caminhos locais ou URLs existentes
+    required List<String> fotosPaths,
     required double precoPorDia,
     double? precoVenda,
     required TipoItem tipo,
@@ -53,9 +64,7 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
     double? caucao,
     String? regrasUso,
     required bool aprovacaoAutomatica,
-    // Para Localizacao, obter esses dados de alguma forma
-    // através de um seletor de mapa ou entrada de endereço + geocodificação
-    required Localizacao localizacao,
+    required Endereco localizacao,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -65,6 +74,24 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
 
       if (currentUser == null) {
         throw Exception('Usuário não autenticado para publicar item.');
+      }
+
+      // Geocodificar endereço se latitude ou longitude não estiverem definidas
+      Endereco localizacaoAtualizada = localizacao;
+      if (localizacao.latitude == null || localizacao.longitude == null
+        || localizacao.latitude == 0.0 || localizacao.longitude == 0.0
+      ) {
+        final addressString = _formatAddress(localizacao);
+        final locations = await locationFromAddress(addressString);
+        if (locations.isNotEmpty) {
+          final location = locations.first;
+          localizacaoAtualizada = localizacao.copyWith(
+            latitude: location.latitude,
+            longitude: location.longitude,
+          );
+        } else {
+          throw Exception('Não foi possível geocodificar o endereço: $addressString');
+        }
       }
 
       final itemId = FirebaseFirestore.instance.collection('itens').doc().id;
@@ -96,15 +123,15 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
         precoPorHora: precoPorHora,
         valorCaucao: caucao,
         regrasUso: regrasUso,
-        disponivel: true, // Novo item é sempre disponível inicialmente
+        disponivel: true,
         aprovacaoAutomatica: aprovacaoAutomatica,
         proprietarioId: currentUser.id,
         proprietarioNome: currentUser.nome,
         proprietarioReputacao: currentUser.reputacao,
         localizacao:
-            localizacao, // Certifique-se de que este objeto está preenchido
+            localizacaoAtualizada,
         criadoEm: DateTime
-            .now(), // Firestore usará FieldValue.serverTimestamp() no toMap
+            .now(),
         avaliacao: 0.0,
         totalAlugueis: 0,
         visualizacoes: 0,

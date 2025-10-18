@@ -110,7 +110,6 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
       return;
     }
 
-    print('✅ [FRONTEND] Telefone válido, iniciando envio...');
     setState(() => _enviando = true);
 
     try {
@@ -123,7 +122,6 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
         telefone: telefoneFormatado,
       );
 
-      print('✅ [FRONTEND] Código enviado com sucesso!');
       setState(() {
         _codigoEnviado = true;
         _codigoController.clear();
@@ -137,13 +135,11 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
         );
       }
     } catch (e) {
-      print('❌ [FRONTEND] Erro ao enviar código: $e');
       if (mounted) {
         SnackBarUtils.mostrarErro(context, 'Erro ao enviar código: $e');
       }
     } finally {
       if (mounted) {
-        print('🔄 [FRONTEND] Finalizando estado de envio');
         setState(() => _enviando = false);
       }
     }
@@ -152,16 +148,12 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
   Future<void> _verificarCodigo(String telefone) async {
     final codigo = _codigoController.text.trim();
 
-    print('🔍 [FRONTEND] Iniciando verificação de código');
-    print('🔍 [FRONTEND] Código digitado: $codigo');
-
+    
     if (codigo.isEmpty || codigo.length != 6) {
-      print('❌ [FRONTEND] Código vazio ou com tamanho incorreto');
       SnackBarUtils.mostrarErro(context, 'Digite o código de 6 dígitos');
       return;
     }
 
-    print('✅ [FRONTEND] Código válido, iniciando verificação...');
     setState(() => _verificando = true);
 
     try {
@@ -176,7 +168,6 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
         telefone: telefone
       );
 
-      print('✅ [FRONTEND] Código verificado com sucesso!');
       if (mounted) {
         SnackBarUtils.mostrarSucesso(
           context,
@@ -186,24 +177,18 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
         context.push(AppRoutes.verificacaoResidencia);
       }
     } catch (e) {
-      print('❌ [FRONTEND] Erro na verificação: $e');
       if (mounted) {
         SnackBarUtils.mostrarErro(context, 'Erro ao verificar código: $e');
       }
     } finally {
       if (mounted) {
-        print('🔄 [FRONTEND] Finalizando estado de verificação');
         setState(() => _verificando = false);
       }
     }
   }
 
   Future<void> _reenviarCodigo() async {
-    print('🔄 [FRONTEND] Tentando reenviar código...');
-    print('🔄 [FRONTEND] Segundos restantes: ${_segundosRestantesNotifier.value}');
-    
     if (_segundosRestantesNotifier.value > 0) {
-      print('⏳ [FRONTEND] Ainda em cooldown, mostrando mensagem');
       SnackBarUtils.mostrarInfo(
         context,
         'Aguarde ${_segundosRestantesNotifier.value} segundos para reenviar',
@@ -211,7 +196,6 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
       return;
     }
 
-    print('✅ [FRONTEND] Cooldown terminado, chamando _enviarCodigo()');
     await _enviarCodigo();
   }  String _formatarTelefoneDisplay(String telefone) {
     telefone = telefone.replaceAll(RegExp(r'[^\d]'), '');

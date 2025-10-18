@@ -1,4 +1,5 @@
-/// Entidade que representa um item disponível para aluguel
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
+
 class Item {
   final String id;
   final String nome;
@@ -7,9 +8,9 @@ class Item {
   final List<String> fotos;
   final double precoPorDia;
   final double? precoPorHora;
-  final double? precoVenda; // NOVO: Preço para venda
-  final TipoItem tipo; // NOVO: Aluguel ou Venda
-  final EstadoItem estado; // NOVO: Novo, Usado, etc.
+  final double? precoVenda;
+  final TipoItem tipo;
+  final EstadoItem estado;
   final double? valorCaucao;
   final String? regrasUso;
   final bool disponivel;
@@ -17,7 +18,7 @@ class Item {
   final String proprietarioId;
   final String proprietarioNome;
   final double? proprietarioReputacao;
-  final Localizacao localizacao;
+  final Endereco localizacao;
   final DateTime criadoEm;
   final DateTime? atualizadoEm;
 
@@ -36,9 +37,9 @@ class Item {
     this.precoPorHora,
     this.valorCaucao,
     this.regrasUso,
-    this.precoVenda, // NOVO: Preço para venda
-    this.tipo = TipoItem.aluguel, // NOVO: Aluguel por padrão
-    this.estado = EstadoItem.usado, // NOVO: Usado por padrão
+    this.precoVenda,
+    this.tipo = TipoItem.aluguel,
+    this.estado = EstadoItem.usado,
     required this.disponivel,
     required this.aprovacaoAutomatica,
     required this.proprietarioId,
@@ -70,10 +71,10 @@ class Item {
     String? proprietarioId,
     String? proprietarioNome,
     double? proprietarioReputacao,
-    Localizacao? localizacao,
     DateTime? criadoEm,
     DateTime? atualizadoEm,
     double? avaliacao,
+    Endereco? localizacao,
     int? totalAlugueis,
     int? visualizacoes,
   }) {
@@ -130,44 +131,3 @@ enum EstadoItem {
   precisaReparo,
 }
 
-/// Entidade para localização do item
-class Localizacao {
-  final double latitude;
-  final double longitude;
-  final String endereco;
-  final String bairro;
-  final String cidade;
-  final String estado;
-
-  const Localizacao({
-    required this.latitude,
-    required this.longitude,
-    required this.endereco,
-    required this.bairro,
-    required this.cidade,
-    required this.estado,
-  });
-
-  // Add toMap and fromMap for Localizacao if it's to be a nested object
-  Map<String, dynamic> toMap() {
-    return {
-      'latitude': latitude,
-      'longitude': longitude,
-      'endereco': endereco,
-      'bairro': bairro,
-      'cidade': cidade,
-      'estado': estado,
-    };
-  }
-
-  factory Localizacao.fromMap(Map<String, dynamic> map) {
-    return Localizacao(
-      latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
-      endereco: map['endereco'] as String? ?? '',
-      bairro: map['bairro'] as String? ?? '',
-      cidade: map['cidade'] as String? ?? '',
-      estado: map['estado'] as String? ?? '',
-    );
-  }
-}

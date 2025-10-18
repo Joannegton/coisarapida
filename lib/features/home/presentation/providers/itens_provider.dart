@@ -46,8 +46,8 @@ final itensComDistanciaProvider = Provider<List<Map<String, dynamic>>>((ref) {
     final distancia = locationService.calcularDistancia(
       userPosition.latitude,
       userPosition.longitude,
-      item.localizacao.latitude,
-      item.localizacao.longitude,
+      item.localizacao.latitude!,
+      item.localizacao.longitude!,
     );
     return {
       'item': item,

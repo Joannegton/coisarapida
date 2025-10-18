@@ -73,4 +73,33 @@ class Endereco {
         latitude.hashCode ^
         longitude.hashCode;
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'cep': cep,
+      'rua': rua,
+      'numero': numero,
+      'complemento': complemento,
+      'bairro': bairro,
+      'cidade': cidade,
+      'estado': estado,
+      'latitude': latitude,
+      'longitude': longitude,
+      'endereco': '$rua, $numero${complemento != null ? ', $complemento' : ''}, $bairro, $cidade, $estado, $cep, Brasil',
+    };
+  }
+
+  factory Endereco.fromMap(Map<String, dynamic> map) {
+    return Endereco(
+      cep: map['cep'] ?? '',
+      rua: map['rua'] ?? '',
+      numero: map['numero'] ?? '',
+      complemento: map['complemento'],
+      bairro: map['bairro'] ?? '',
+      cidade: map['cidade'] ?? '',
+      estado: map['estado'] ?? '',
+      latitude: map['latitude']?.toDouble(),
+      longitude: map['longitude']?.toDouble(),
+    );
+  }
 }

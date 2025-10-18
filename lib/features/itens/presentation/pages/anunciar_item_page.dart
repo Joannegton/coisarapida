@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:coisarapida/features/itens/presentation/widgets/categorias.dart';
 import 'package:coisarapida/features/itens/presentation/widgets/sessao_informacoes.dart';
 import 'package:coisarapida/features/itens/presentation/widgets/sessao_fotos.dart';
@@ -337,39 +338,22 @@ class _AnunciarItemPageState extends ConsumerState<AnunciarItemPage> {
       ),
     );
 
-    Localizacao localizacao;
+    Endereco localizacao;
     final currentUser = ref.read(usuarioAtualStreamProvider).asData?.value;
 
-    if (currentUser?.endereco != null) {
-      final enderecoUsuario = currentUser!.endereco!;
-      String enderecoCompleto = enderecoUsuario.rua;
-      if (enderecoUsuario.numero.isNotEmpty) {
-        enderecoCompleto += ", ${enderecoUsuario.numero}";
-      }
-      if (enderecoUsuario.complemento != null &&
-          enderecoUsuario.complemento!.isNotEmpty) {
-        enderecoCompleto += " - ${enderecoUsuario.complemento}";
-      }
+    final enderecoUsuario = currentUser!.endereco!;
 
-      localizacao = Localizacao(
-        latitude: enderecoUsuario.latitude ?? 0.0,
-        longitude: enderecoUsuario.longitude ?? 0.0,
-        endereco: enderecoCompleto.trim(),
-        bairro: enderecoUsuario.bairro,
-        cidade: enderecoUsuario.cidade,
-        estado: enderecoUsuario.estado,
-      );
-    } else {
-      // TODO: Integrar a SessaoLocalizacao para coletar estes dados se o usuário não tiver endereço ou quiser um local diferente
-      localizacao = const Localizacao(
-        latitude: -23.550520, // Exemplo: São Paulo
-        longitude: -46.633308,
-        endereco: "Rua Exemplo, 123",
-        bairro: "Bairro Exemplo",
-        cidade: "Cidade Exemplo",
-        estado: "EX",
-      );
-    }
+    localizacao = Endereco(
+      latitude: enderecoUsuario.latitude ?? 0.0,
+      longitude: enderecoUsuario.longitude ?? 0.0,
+      bairro: enderecoUsuario.bairro,
+      cidade: enderecoUsuario.cidade,
+      estado: enderecoUsuario.estado,
+      rua: enderecoUsuario.rua,
+      numero: enderecoUsuario.numero,
+      complemento: enderecoUsuario.complemento,
+      cep: enderecoUsuario.cep,
+    );
 
     ref
         .read(itemControllerProvider.notifier)
