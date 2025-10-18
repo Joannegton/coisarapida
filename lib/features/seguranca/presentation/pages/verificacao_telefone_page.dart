@@ -29,13 +29,11 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
   @override
   void initState() {
     super.initState();
-    print('🚀 [FRONTEND] VerificacaoTelefonePage inicializada');
     _carregarTelefone();
   }
 
   @override
   void dispose() {
-    print('🗑️ [FRONTEND] VerificacaoTelefonePage sendo destruída');
     _telefoneController.dispose();
     _codigoController.dispose();
     _segundosRestantesNotifier.dispose();
@@ -216,10 +214,6 @@ class _VerificacaoTelefonePageState extends ConsumerState<VerificacaoTelefonePag
         title: const Text('Verificação de Telefone'),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

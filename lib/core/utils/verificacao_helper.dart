@@ -40,7 +40,7 @@ class VerificacaoHelper {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 12),
-            const Text('Verificação Necessária'),
+            const Text('Em Análise'),
           ],
         ),
         content: Column(
@@ -48,47 +48,24 @@ class VerificacaoHelper {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(mensagemCustomizada ??
-                'Para realizar esta ação, você precisa completar as verificações de segurança.'),
-            const SizedBox(height: 16),
-            const Text(
-              'Verificações pendentes:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            if (!telefoneVerificado)
-              _buildVerificacaoItem(
-                context,
-                icon: Icons.phone_android,
-                titulo: 'Verificar Telefone',
-                descricao: 'Confirme seu número de celular',
-                concluido: false,
-              ),
-            if (!enderecoVerificado)
-              _buildVerificacaoItem(
-                context,
-                icon: Icons.home_outlined,
-                titulo: 'Verificar Endereço',
-                descricao: 'Confirme seu endereço residencial',
-                concluido: false,
-              ),
+                'A análise de suas informações está em andamento.\nEnquanto isso, complete seu perfil para continuar.'),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                AppRoutes.editarPerfil,
+                (route) => false,
+              );
+            },
             child: const Text('Agora Não'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              // Redirecionar para a próxima verificação pendente
-              if (!telefoneVerificado) {
-                context.push(AppRoutes.verificacaoTelefone);
-              } else if (!enderecoVerificado) {
-                context.push(AppRoutes.verificacaoResidencia);
-              }
+              context.push(AppRoutes.editarPerfil);
             },
-            child: const Text('Verificar Agora'),
+            child: const Text('Completar Perfil'),
           ),
         ],
       ),

@@ -96,11 +96,15 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     
     try {
-      await _authRepository.cadastrarComEmail(
+      final usuario = await _authRepository.cadastrarComEmail(
         nome: nome,
         email: email,
         senha: senha,
       );
+      
+      // Inicializar e salvar FCM token após cadastro
+      await _setupNotifications(userId: usuario.id);
+      
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
@@ -144,15 +148,15 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Configura notificações após login
-  Future<void> _setupNotifications() async {
+  Future<void> _setupNotifications({String? userId}) async {
     try {
       final notificationService = _ref.read(notificationServiceProvider);
       await notificationService.initialize();
       
-      final usuarioAtual = _ref.read(usuarioAtualStreamProvider).value;
-      if (usuarioAtual != null) {
-        await notificationService.saveFCMTokenForUser(usuarioAtual.id);
+      final usuarioAtual = userId != null ? null : _ref.read(usuarioAtualStreamProvider).value;
+      final uid = userId ?? usuarioAtual?.id;
+      if (uid != null) {
+        await notificationService.saveFCMTokenForUser(uid);
       }
     } catch (e) {
       // Não falhar o login se houver erro nas notificações

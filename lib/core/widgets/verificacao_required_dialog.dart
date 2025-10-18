@@ -27,7 +27,7 @@ class VerificacaoRequiredDialog extends StatelessWidget {
             color: theme.colorScheme.primary,
           ),
           const SizedBox(width: 12),
-          const Text('Verificação Necessária'),
+          const Text('Aviso'),
         ],
       ),
       content: Column(

@@ -63,7 +63,7 @@ class CabecalhoPerfilWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(onPressed: () => context.push('${AppRoutes.perfilPublico}/${usuario.id}'), icon: Icon(Icons.visibility_outlined, color: theme.colorScheme.onPrimary, size: screenWidth * 0.06)),
-          IconButton(onPressed: () => context.push(AppRoutes.editarPerfil), icon: Icon(Icons.edit_outlined, color: theme.colorScheme.onPrimary, size: screenWidth * 0.06)),
+          IconButton(onPressed: () => context.push(AppRoutes.editarPerfil, extra: {'from': 'menu_mais'}), icon: Icon(Icons.edit_outlined, color: theme.colorScheme.onPrimary, size: screenWidth * 0.06)),
         ],
       ),
 

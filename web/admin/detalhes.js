@@ -162,7 +162,16 @@ function updateImageTransform() {
 // Aprovar verificação
 async function aprovarVerificacao(verificacao) {
     try {
-        const token = await firebase.auth().currentUser.getIdToken();
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            showToast('Usuário não autenticado. Faça login novamente.', 'error');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            return;
+        }
+
+        const token = await currentUser.getIdToken();
 
         const response = await fetch(`${API_URL}/verificacao-residencia/${verificacao.id}/processar`, {
             method: 'PUT',
@@ -198,7 +207,16 @@ async function aprovarVerificacao(verificacao) {
 // Rejeitar verificação
 async function rejeitarVerificacao(verificacao, motivo) {
     try {
-        const token = await firebase.auth().currentUser.getIdToken();
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            showToast('Usuário não autenticado. Faça login novamente.', 'error');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            return;
+        }
+
+        const token = await currentUser.getIdToken();
 
         const response = await fetch(`${API_URL}/verificacao-residencia/${verificacao.id}/processar`, {
             method: 'POST',

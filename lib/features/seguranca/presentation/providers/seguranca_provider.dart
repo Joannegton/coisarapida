@@ -504,7 +504,7 @@ class VerificacaoTelefoneNotifier extends StateNotifier<AsyncValue<Object?>> {
         telefone: telefone
       );
 
-      state = AsyncValue.data(verificacao);
+      state = AsyncValue.data(verificacao); 
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }

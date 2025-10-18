@@ -18,6 +18,7 @@ class MenuPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final meuPerfilState = ref.watch(meuPerfilProviderApagar);
+    final state = GoRouterState.of(context);
     
     return Scaffold(
       appBar: AppBar(systemOverlayStyle: SystemUiOverlayStyle(
@@ -27,6 +28,14 @@ class MenuPage extends ConsumerWidget {
         title: const Text('Perfil'),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
+        leading: IconButton(onPressed: () {
+          final fromMenuMais = state.extra is Map && (state.extra as Map)['from'] == 'menu_mais';
+          if (fromMenuMais) {
+            context.pop();
+          } else {
+            context.go(AppRoutes.home);
+          }
+        }, icon: const Icon(Icons.arrow_back)),
       ),
       body: meuPerfilState.when(
         data: (usuario) {

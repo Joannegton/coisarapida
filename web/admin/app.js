@@ -17,17 +17,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Inicializar autenticação
 function initializeAuth() {
+    console.log('initializeAuth chamado');
     firebase.auth().onAuthStateChanged(async (user) => {
+        console.log('onAuthStateChanged chamado, user:', user ? user.uid : 'null');
         if (user) {
+            console.log('Usuário logado, verificando se é admin...');
             // Verificar se é admin
             try {
                 const userDoc = await db.collection('usuarios').doc(user.uid).get();
                 const userData = userDoc.data();
+                console.log('Dados do usuário:', userData);
 
                 if (userData && userData.isAdmin) {
+                    console.log('Usuário é admin, mostrando painel');
                     currentUser = user;
                     showAdminPanel(userData);
                 } else {
+                    console.log('Usuário não é admin, mostrando login');
                     showLoginPage();
                     showToast('Acesso negado. Você não tem permissões de administrador.', 'error');
                     await firebase.auth().signOut();
@@ -36,9 +42,11 @@ function initializeAuth() {
                 console.error('Erro ao verificar permissões:', error);
                 showLoginPage();
                 showToast('Erro ao verificar permissões.', 'error');
-                await firebase.auth().signOut();
+                // Removido signOut para evitar loop
+                // await firebase.auth().signOut();
             }
         } else {
+            console.log('Nenhum usuário logado, mostrando login');
             currentUser = null;
             showLoginPage();
         }

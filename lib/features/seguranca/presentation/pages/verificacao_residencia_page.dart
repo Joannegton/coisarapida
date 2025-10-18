@@ -1,3 +1,4 @@
+import 'package:coisarapida/core/constants/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -239,8 +240,10 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Fecha diálogo
-              Navigator.of(context).pop(); // Volta para home
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                AppRoutes.home,
+                (route) => false,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -349,10 +352,6 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
         title: const Text('Comprovante de Residência'),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
