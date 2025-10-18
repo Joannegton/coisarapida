@@ -102,6 +102,7 @@ class SessaoPrecos extends StatelessWidget {
             DropdownButtonFormField<EstadoItem>(
               value: estadoItem,
               onChanged: onEstadoItemChanged,
+              isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Estado do Item',
                 border: OutlineInputBorder(),

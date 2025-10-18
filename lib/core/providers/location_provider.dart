@@ -7,7 +7,7 @@ final locationServiceProvider = Provider<LocationService>((ref) {
   return LocationService();
 });
 
-final userLocationProvider = FutureProvider<Position>((ref) async {
+final localizacaoUsuarioProvider = FutureProvider<Position>((ref) async {
   final usuarioAsync = ref.watch(usuarioAtualStreamProvider);
   final usuario = usuarioAsync.value;
 

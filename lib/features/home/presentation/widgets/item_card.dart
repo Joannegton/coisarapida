@@ -218,17 +218,15 @@ class ItemCard extends StatelessWidget {
   }
 
   String _getPrecoDisplay(Item item, ThemeData theme) {
-    // Prioriza o preço de venda se o item for para venda ou ambos
-    if ((item.tipo == TipoItem.venda || item.tipo == TipoItem.ambos) &&
-        item.precoVenda != null) {
+    // Se é só venda, mostra preço de venda
+    if (item.tipo == TipoItem.venda && item.precoVenda != null) {
       return 'R\$ ${item.precoVenda!.toStringAsFixed(2)}';
     }
-    // Caso contrário, mostra o preço de aluguel por dia
+    // Se é ambos ou aluguel, mostra preço de aluguel por dia
     if (item.tipo == TipoItem.aluguel || item.tipo == TipoItem.ambos) {
       return 'R\$ ${item.precoPorDia.toStringAsFixed(2)}/dia';
     }
     // Fallback para o preço de aluguel caso algo não esteja configurado
-    // (ex: um item de 'venda' sem precoVenda)
     return 'R\$ ${item.precoPorDia.toStringAsFixed(2)}/dia';
   }
 

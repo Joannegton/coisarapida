@@ -1,3 +1,5 @@
+import 'package:coisarapida/features/buscar/presentation/controllers/buscarPage_controller.dart';
+import 'package:coisarapida/features/buscar/presentation/providers/buscar_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,12 +20,6 @@ class BuscarPage extends ConsumerStatefulWidget {
 class _BuscarPageState extends ConsumerState<BuscarPage> {
   final _buscaController = TextEditingController();
   final _focusNode = FocusNode();
-  String _categoriaSelecionada = 'todos';
-  double _distanciaMaxima = 10.0;
-  RangeValues _faixaPreco = const RangeValues(0, 100);
-  double _avaliacaoMinima = 0.0;
-  bool _apenasDisponiveis = true;
-  String _ordenarPor = 'distancia';
 
   @override
   void initState() {
@@ -35,6 +31,10 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
       if (fromHome) {
         _focusNode.requestFocus();
       }
+    });
+    
+    _buscaController.addListener(() {
+      ref.read(buscarPageControllerProvider.notifier).setTermoBusca(_buscaController.text);
     });
   }
 
@@ -48,8 +48,9 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final itensAsync = ref.watch(itensProximosProvider);
-    final itensComDistancia = ref.watch(itensComDistanciaProvider);
+    final itensAsyncValue = ref.watch(todosItensStreamProvider);
+    final itensFiltrados = ref.watch(itensFiltradosBuscaProvider);
+    final filtros = ref.watch(buscarPageControllerProvider);
     
     return Scaffold(
       appBar: AppBar(
@@ -91,7 +92,6 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                           icon: const Icon(Icons.clear),
                           onPressed: () {
                             _buscaController.clear();
-                            _buscarItens('');
                           },
                         ),
                         IconButton(
@@ -104,7 +104,6 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onChanged: _buscarItens,
                 ),
                 
                 const SizedBox(height: 12),
@@ -114,20 +113,20 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFiltroRapido('Todos', _categoriaSelecionada == 'todos', () {
-                        setState(() => _categoriaSelecionada = 'todos');
+                      _buildFiltroRapido('Todos', filtros.categoriaSelecionada == 'todos', () {
+                        ref.read(buscarPageControllerProvider.notifier).setCategoria('todos');
                       }),
-                      _buildFiltroRapido('Ferramentas', _categoriaSelecionada == 'ferramentas', () {
-                        setState(() => _categoriaSelecionada = 'ferramentas');
+                      _buildFiltroRapido('Ferramentas', filtros.categoriaSelecionada == 'ferramentas', () {
+                        ref.read(buscarPageControllerProvider.notifier).setCategoria('ferramentas');
                       }),
-                      _buildFiltroRapido('Eletrônicos', _categoriaSelecionada == 'eletronicos', () {
-                        setState(() => _categoriaSelecionada = 'eletronicos');
+                      _buildFiltroRapido('Eletrônicos', filtros.categoriaSelecionada == 'eletronicos', () {
+                        ref.read(buscarPageControllerProvider.notifier).setCategoria('eletronicos');
                       }),
-                      _buildFiltroRapido('Esportes', _categoriaSelecionada == 'esportes', () {
-                        setState(() => _categoriaSelecionada = 'esportes');
+                      _buildFiltroRapido('Esportes', filtros.categoriaSelecionada == 'esportes', () {
+                        ref.read(buscarPageControllerProvider.notifier).setCategoria('esportes');
                       }),
-                      _buildFiltroRapido('Casa', _categoriaSelecionada == 'casa', () {
-                        setState(() => _categoriaSelecionada = 'casa');
+                      _buildFiltroRapido('Casa', filtros.categoriaSelecionada == 'casa', () {
+                        ref.read(buscarPageControllerProvider.notifier).setCategoria('casa');
                       }),
                     ],
                   ),
@@ -157,7 +156,6 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                         _buildChipOrdenacao('Menor Preço', 'preco_menor'),
                         _buildChipOrdenacao('Maior Preço', 'preco_maior'),
                         _buildChipOrdenacao('Melhor Avaliado', 'avaliacao'),
-                        _buildChipOrdenacao('Mais Recente', 'recente'),
                       ],
                     ),
                   ),
@@ -168,32 +166,24 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
           
           // Lista de resultados
           Expanded(
-            child: itensAsync.when(
-              data: (itens) {
-                final itensFiltrados = _filtrarItens(itensComDistancia);
-                
+            child: itensAsyncValue.when(
+              data: (_) {
                 if (itensFiltrados.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey.shade400,
-                        ),
+                        const Icon(Icons.search_off, size: 64, color: Colors.grey),
                         const SizedBox(height: 16),
                         Text(
                           'Nenhum item encontrado',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
+                          style: theme.textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Tente ajustar os filtros ou buscar por outros termos',
+                          'Tente ajustar os filtros ou buscar por outro termo',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade500,
+                            color: Colors.grey.shade600,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -222,7 +212,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                     Text('Erro ao carregar itens: $error'),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.refresh(itensProximosProvider),
+                      onPressed: () => ref.refresh(todosItensStreamProvider),
                       child: const Text('Tentar Novamente'),
                     ),
                   ],
@@ -255,7 +245,8 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
   }
 
   Widget _buildChipOrdenacao(String label, String valor) {
-    final isSelected = _ordenarPor == valor;
+    final filtros = ref.watch(buscarPageControllerProvider);
+    final isSelected = filtros.ordenarPor == valor;
     final theme = Theme.of(context);
     
     return Padding(
@@ -263,7 +254,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
       child: ChoiceChip(
         selected: isSelected,
         onSelected: (_) {
-          setState(() => _ordenarPor = valor);
+          ref.read(buscarPageControllerProvider.notifier).setOrdenarPor(valor);
         },
         label: Text(label),
         backgroundColor: isSelected ? theme.colorScheme.secondary : null,
@@ -351,7 +342,7 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
-                            distancia != null ? '${distancia.toStringAsFixed(1)} km • ${item.localizacao.cidade}' : item.localizacao.cidade,
+                            distancia != null ? '${distancia.toStringAsFixed(1)} km' : item.localizacao.cidade,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.grey.shade600,
                             ),
@@ -384,16 +375,10 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'R\$ ${item.precoPorDia.toStringAsFixed(2)}',
+                    _getPrecoDisplay(item),
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'por dia',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -422,6 +407,8 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
   }
 
   void _mostrarFiltrosAvancados() {
+    final filtros = ref.read(buscarPageControllerProvider);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -447,42 +434,42 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                   controller: scrollController,
                   children: [
                     // Distância
-                    Text('Distância máxima: ${_distanciaMaxima.toInt()} km'),
+                    Text('Distância máxima: ${filtros.distanciaMaxima.toInt()} km'),
                     Slider(
-                      value: _distanciaMaxima,
+                      value: filtros.distanciaMaxima,
                       min: 1,
-                      max: 50,
-                      divisions: 49,
+                      max: 100,
+                      divisions: 99,
                       onChanged: (value) {
-                        setState(() => _distanciaMaxima = value);
+                        ref.read(buscarPageControllerProvider.notifier).setDistanciaMaxima(value);
                       },
                     ),
                     
                     const SizedBox(height: 20),
                     
                     // Faixa de preço
-                    Text('Faixa de preço: R\$ ${_faixaPreco.start.toInt()} - R\$ ${_faixaPreco.end.toInt()}'),
+                    Text('Faixa de preço: R\$ ${filtros.faixaPreco.start.toInt()} - R\$ ${filtros.faixaPreco.end.toInt()}'),
                     RangeSlider(
-                      values: _faixaPreco,
+                      values: filtros.faixaPreco,
                       min: 0,
-                      max: 500,
-                      divisions: 50,
+                      max: 1000,
+                      divisions: 100,
                       onChanged: (values) {
-                        setState(() => _faixaPreco = values);
+                        ref.read(buscarPageControllerProvider.notifier).setFaixaPreco(values);
                       },
                     ),
                     
                     const SizedBox(height: 20),
                     
                     // Avaliação mínima
-                    Text('Avaliação mínima: ${_avaliacaoMinima.toStringAsFixed(1)} estrelas'),
+                    Text('Avaliação mínima: ${filtros.avaliacaoMinima.toStringAsFixed(1)} estrelas'),
                     Slider(
-                      value: _avaliacaoMinima,
+                      value: filtros.avaliacaoMinima,
                       min: 0,
                       max: 5,
                       divisions: 10,
                       onChanged: (value) {
-                        setState(() => _avaliacaoMinima = value);
+                        ref.read(buscarPageControllerProvider.notifier).setAvaliacaoMinima(value);
                       },
                     ),
                     
@@ -491,9 +478,9 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                     // Apenas disponíveis
                     SwitchListTile(
                       title: const Text('Apenas itens disponíveis'),
-                      value: _apenasDisponiveis,
+                      value: filtros.apenasDisponiveis,
                       onChanged: (value) {
-                        setState(() => _apenasDisponiveis = value);
+                        ref.read(buscarPageControllerProvider.notifier).setApenasDisponiveis(value);
                       },
                     ),
                   ],
@@ -529,106 +516,29 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     );
   }
 
-  List<Map<String, dynamic>> _filtrarItens(List<Map<String, dynamic>> itens) {
-    var itensFiltrados = itens.where((map) {
-      final item = map['item'] as Item;
-      // Filtro por categoria
-      if (_categoriaSelecionada != 'todos' && item.categoria != _categoriaSelecionada) {
-        return false;
-      }
-      
-      // Filtro por disponibilidade
-      if (_apenasDisponiveis && !item.disponivel) {
-        return false;
-      }
-      
-      // Filtro por distância
-      final distancia = map['distancia'] as double?;
-      if (distancia != null && distancia > _distanciaMaxima) {
-        return false;
-      }
-      
-      // Filtro por preço
-      final preco = item.precoPorDia;
-      if (preco < _faixaPreco.start || preco > _faixaPreco.end) {
-        return false;
-      }
-      
-      // Filtro por avaliação
-      if (item.avaliacao < _avaliacaoMinima) {
-        return false;
-      }
-      
-      // Filtro por busca
-      if (_buscaController.text.isNotEmpty) {
-        final termo = _buscaController.text.toLowerCase();
-        final nome = item.nome.toLowerCase();
-        final descricao = item.descricao.toLowerCase();
-        
-        if (!nome.contains(termo) && !descricao.contains(termo)) {
-          return false;
-        }
-      }
-      
-      return true;
-    }).toList();
-
-    // Ordenação
-    switch (_ordenarPor) {
-      case 'distancia':
-        itensFiltrados.sort((a, b) {
-          final distA = a['distancia'] as double?;
-          final distB = b['distancia'] as double?;
-          if (distA == null && distB == null) return 0;
-          if (distA == null) return 1;
-          if (distB == null) return -1;
-          return distA.compareTo(distB);
-        });
-        break;
-      case 'preco_menor':
-        itensFiltrados.sort((a, b) {
-          final itemA = a['item'] as Item;
-          final itemB = b['item'] as Item;
-          return itemA.precoPorDia.compareTo(itemB.precoPorDia);
-        });
-        break;
-      case 'preco_maior':
-        itensFiltrados.sort((a, b) {
-          final itemA = a['item'] as Item;
-          final itemB = b['item'] as Item;
-          return itemB.precoPorDia.compareTo(itemA.precoPorDia);
-        });
-        break;
-      case 'avaliacao':
-        itensFiltrados.sort((a, b) {
-          final itemA = a['item'] as Item;
-          final itemB = b['item'] as Item;
-          return itemB.avaliacao.compareTo(itemA.avaliacao);
-        });
-        break;
-    }
-    
-    return itensFiltrados;
-  }
-
-  void _buscarItens(String termo) {
-    setState(() {}); // Trigger rebuild para aplicar filtro
-  }
-
   void _aplicarFiltros() {
-    setState(() {}); // Trigger rebuild para aplicar filtros
+    // Trigger rebuild para aplicar filtros
     SnackBarUtils.mostrarSucesso(context, 'Filtros aplicados!');
+    Navigator.pop(context);
   }
 
   void _limparFiltros() {
-    setState(() {
-      _categoriaSelecionada = 'todos';
-      _distanciaMaxima = 10.0;
-      _faixaPreco = const RangeValues(0, 100);
-      _avaliacaoMinima = 0.0;
-      _apenasDisponiveis = true;
-      _ordenarPor = 'distancia';
-      _buscaController.clear();
-    });
+    // Limpa todos os filtros usando o controller
+    ref.read(buscarPageControllerProvider.notifier).limparFiltros();
+    _buscaController.clear();
+    SnackBarUtils.mostrarSucesso(context, 'Filtros limpos!');
+  }
+
+  String _getPrecoDisplay(Item item) {
+    // Se é só venda, mostra preço de venda
+    if (item.tipo == TipoItem.venda && item.precoVenda != null) {
+      return 'R\$ ${item.precoVenda!.toStringAsFixed(2)}';
+    }
+    // Se é ambos ou aluguel, mostra preço de aluguel por dia
+    if (item.tipo == TipoItem.aluguel || item.tipo == TipoItem.ambos) {
+      return 'R\$ ${item.precoPorDia.toStringAsFixed(2)}/dia';
+    }
+    // Fallback para o preço de aluguel caso algo não esteja configurado
+    return 'R\$ ${item.precoPorDia.toStringAsFixed(2)}/dia';
   }
 }

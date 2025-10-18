@@ -138,7 +138,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       _ref.invalidate(chatsProvider);
       _ref.invalidate(numeroChatsNaoLidosProvider);
       _ref.invalidate(meusAlugueisProvider);
-      _ref.invalidate(itensProximosProvider);
+      _ref.invalidate(todosItensStreamProvider);
       _ref.invalidate(usuarioProvider);
       
       await _authRepository.logout();

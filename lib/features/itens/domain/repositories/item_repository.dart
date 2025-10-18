@@ -7,6 +7,7 @@ abstract class ItemRepository {
   Future<List<String>> uploadFotos(List<File> fotos, String itemId);
   Future<void> deletarFoto(String fotoUrl);
   Future<List<ItemModel>> getTodosItens();
+  Stream<List<ItemModel>> getTodosItensStream();
   Future<List<ItemModel>> getItensPorUsuario(String proprietarioId, {int limite = 10});
   Future<ItemModel?> getDetalhesItem(String itemId);
 }

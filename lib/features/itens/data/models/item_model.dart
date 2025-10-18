@@ -22,8 +22,8 @@ class ItemModel extends Item {
     required super.proprietarioNome,
     super.proprietarioReputacao,
     required super.localizacao,
-    required super.criadoEm, // Expect DateTime for entity
-    super.atualizadoEm, // Expect DateTime? for entity
+    required super.criadoEm,
+    super.atualizadoEm,
     super.avaliacao,
     super.totalAlugueis,
     super.visualizacoes,

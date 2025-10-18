@@ -1,11 +1,9 @@
 import 'dart:io';
-import 'package:coisarapida/core/services/api_client.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/endereco.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart'
     as auth_user;
 import 'package:coisarapida/features/itens/data/models/item_model.dart';
 import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -33,7 +31,7 @@ final itemControllerProvider =
   return ItemController(ref.watch(itemRepositoryProvider), ref);
 });
 
-// Provider para buscar detalhes de um item específico
+// Provider para buscar detalhes de um item específico 
 final detalhesItemProvider =
     FutureProvider.family<Item?, String>((ref, itemId) async {
   final repository = ref.watch(itemRepositoryProvider);

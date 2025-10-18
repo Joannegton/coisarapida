@@ -52,8 +52,10 @@ class _HomePageState extends ConsumerState<HomePage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tipoFiltro = ref.watch(homeTabFilterProvider);
-    final itensAsyncValue = ref.watch(itensProximosProvider);
-    final itensFiltrados = ref.watch(itensFiltradosProvider(tipoFiltro));
+    final itensAsyncValue = ref.watch(todosItensStreamProvider);
+    final itensFiltrados = tipoFiltro == null 
+        ? ref.watch(todosItensProximosProvider)
+        : ref.watch(itensPeloTipoItemProvider(tipoFiltro));
 
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -198,12 +200,11 @@ class _HomePageState extends ConsumerState<HomePage>
           // Grid de itens
           itensAsyncValue.when(
             data: (_) => SliverPadding(
-              // Usamos a lista filtrada abaixo, o `_` ignora a lista completa
               padding: const EdgeInsets.all(16),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.7, // Ajuste para caber melhor os badges
+                  childAspectRatio: 0.7,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
@@ -237,7 +238,7 @@ class _HomePageState extends ConsumerState<HomePage>
                       Text('Erro ao carregar itens: $error'),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () => ref.refresh(itensProximosProvider),
+                        onPressed: () => ref.refresh(todosItensStreamProvider),
                         child: const Text('Tentar Novamente'),
                       ),
                     ],

@@ -503,7 +503,7 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
       ref.invalidate(detalhesItemProvider(widget.itemId));
       
       // Invalidar também os providers de listagem para atualizar a home e busca
-      ref.invalidate(itensProximosProvider);
+      ref.invalidate(todosItensStreamProvider);
       
       // Invalidar o perfil para atualizar os itens do usuário
       ref.invalidate(perfilPublicoDetalhadoProvider(usuarioAtual.id));

@@ -48,16 +48,13 @@ service cloud.firestore {
                      request.resource.data.proprietarioNome is string && request.resource.data.proprietarioNome.size() > 0 &&
                      request.resource.data.proprietarioReputacao is number &&
                      request.resource.data.tipo is string && (request.resource.data.tipo == "aluguel" || request.resource.data.tipo == "venda" || request.resource.data.tipo == "ambos") &&
-                     request.resource.data.estado is string && (request.resource.data.estado == "novo" || request.resource.data.estado == "usado" || request.resource.data.estado == "seminovo") &&
+                     request.resource.data.estado is string && (request.resource.data.estado == "novo" || request.resource.data.estado == "usado" || request.resource.data.estado == "seminovo" || request.resource.data.estado == "precisaReparo") &&
                      request.resource.data.localizacao is map &&
                      request.resource.data.localizacao.latitude is number &&
                      request.resource.data.localizacao.longitude is number &&
-                     request.resource.data.localizacao.endereco is string && request.resource.data.localizacao.endereco.size() > 0 &&
-                     (request.resource.data.localizacao.bairro == null || request.resource.data.localizacao.bairro is string) &&
+                     request.resource.data.localizacao.bairro is string && request.resource.data.localizacao.bairro.size() > 0 &&
                      request.resource.data.localizacao.cidade is string && request.resource.data.localizacao.cidade.size() > 0 &&
                      request.resource.data.localizacao.estado is string && request.resource.data.localizacao.estado.size() > 0 &&
-                     request.resource.data.criadoEm == request.time &&
-                     request.resource.data.atualizadoEm == request.time &&
                      request.resource.data.avaliacao is number && request.resource.data.avaliacao == 0.0 &&
                      request.resource.data.totalAlugueis is number && request.resource.data.totalAlugueis == 0 &&
                      request.resource.data.visualizacoes is number && request.resource.data.visualizacoes == 0;
@@ -84,12 +81,11 @@ service cloud.firestore {
                        request.resource.data.disponivel is bool &&
                        request.resource.data.aprovacaoAutomatica is bool &&
                        request.resource.data.tipo is string && (request.resource.data.tipo == "aluguel" || request.resource.data.tipo == "venda" || request.resource.data.tipo == "ambos") &&
-                       request.resource.data.estado is string && (request.resource.data.estado == "novo" || request.resource.data.estado == "usado" || request.resource.data.estado == "seminovo") &&
+                       request.resource.data.estado is string && (request.resource.data.estado == "novo" || request.resource.data.estado == "usado" || request.resource.data.estado == "seminovo" || request.resource.data.estado == "precisaReparo") &&
                        request.resource.data.localizacao is map &&
                        request.resource.data.localizacao.latitude is number &&
                        request.resource.data.localizacao.longitude is number &&
-                       request.resource.data.localizacao.endereco is string && request.resource.data.localizacao.endereco.size() > 0 &&
-                       (request.resource.data.localizacao.bairro == null || request.resource.data.localizacao.bairro is string) &&
+                       request.resource.data.localizacao.bairro is string &&
                        request.resource.data.localizacao.cidade is string && request.resource.data.localizacao.cidade.size() > 0 &&
                        request.resource.data.localizacao.estado is string && request.resource.data.localizacao.estado.size() > 0 &&
                        request.resource.data.atualizadoEm == request.time) ||

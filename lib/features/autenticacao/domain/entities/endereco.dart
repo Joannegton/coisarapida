@@ -85,7 +85,6 @@ class Endereco {
       'estado': estado,
       'latitude': latitude,
       'longitude': longitude,
-      'endereco': '$rua, $numero${complemento != null ? ', $complemento' : ''}, $bairro, $cidade, $estado, $cep, Brasil',
     };
   }
 

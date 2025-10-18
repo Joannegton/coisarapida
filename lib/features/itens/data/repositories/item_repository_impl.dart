@@ -71,6 +71,20 @@ class ItemRepositoryImpl implements ItemRepository {
   }
 
   @override
+  Stream<List<ItemModel>> getTodosItensStream() {
+    return _firestore.collection('itens').orderBy('criadoEm', descending: true).snapshots().map((querySnapshot) {
+      return querySnapshot.docs.map((doc) {
+        try {
+          return ItemModel.fromFirestore(doc);
+        } catch (e) {
+          print("Erro ao converter item ${doc.id}: $e");
+          rethrow;
+        }
+      }).toList();
+    });
+  }
+
+  @override
   Future<List<ItemModel>> getItensPorUsuario(String proprietarioId, {int limite = 10}) async {
     try {
       final querySnapshot = await _firestore
