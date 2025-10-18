@@ -179,7 +179,7 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Seletor de Fotos
-              SeletorFotos(
+              SeletorFotosWidget(
                 fotosIniciais: _fotosUrls,
                 onFotosChanged: (fotos) {
                   setState(() => _fotosUrls = fotos);

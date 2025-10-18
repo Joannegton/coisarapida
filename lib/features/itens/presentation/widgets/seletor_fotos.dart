@@ -5,23 +5,25 @@ import 'dart:io';
 import '../../../../core/utils/snackbar_utils.dart';
 
 /// Widget para seleção e gerenciamento de fotos do item
-class SeletorFotos extends StatefulWidget {
+class SeletorFotosWidget extends StatefulWidget {
   final List<String> fotosIniciais;
   final Function(List<String>) onFotosChanged;
   final int maxFotos;
+  final bool ehComprovante;
   
-  const SeletorFotos({
+  const SeletorFotosWidget({
     super.key,
     required this.fotosIniciais,
     required this.onFotosChanged,
     this.maxFotos = 5,
+    this.ehComprovante = false,
   });
 
   @override
-  State<SeletorFotos> createState() => _SeletorFotosState();
+  State<SeletorFotosWidget> createState() => _SeletorFotosWidgetState();
 }
 
-class _SeletorFotosState extends State<SeletorFotos> {
+class _SeletorFotosWidgetState extends State<SeletorFotosWidget> {
   final ImagePicker _picker = ImagePicker();
   List<String> _fotos = [];
 
@@ -38,85 +40,87 @@ class _SeletorFotosState extends State<SeletorFotos> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Fotos do Item',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+        if (!widget.ehComprovante) ... [
+          Text(
+            'Fotos do Item',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Adicione fotos para mostrar seu item (mínimo 1, máximo ${widget.maxFotos})',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: Colors.grey[600],
+          const SizedBox(height: 8),
+          Text(
+            'Adicione fotos para mostrar seu item (mínimo 1, máximo ${widget.maxFotos})',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: Colors.grey[600],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Dicas para boas fotos
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.lightbulb, color: Colors.blue.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Dicas para boas fotos:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
+          const SizedBox(height: 16),
+  
+          // Dicas para boas fotos
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.lightbulb, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Dicas para boas fotos:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '• Use boa iluminação natural\n'
+                  '• Mostre o item de diferentes ângulos\n'
+                  '• Inclua acessórios e manuais\n'
+                  '• Evite fundos bagunçados',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+        
+        // Botões de ação
+        if (_fotos.isEmpty) ... [
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _fotos.length >= widget.maxFotos ? null : () => _adicionarFoto(ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Tirar Foto'),
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '• Use boa iluminação natural\n'
-                '• Mostre o item de diferentes ângulos\n'
-                '• Inclua acessórios e manuais\n'
-                '• Evite fundos bagunçados',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.blue.shade700,
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _fotos.length >= widget.maxFotos ? null : () => _adicionarFoto(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Galeria'),
                 ),
               ),
             ],
           ),
-        ),
         
-        const SizedBox(height: 24),
-        
-        // Botões de ação
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _fotos.length >= widget.maxFotos ? null : () => _adicionarFoto(ImageSource.camera),
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Tirar Foto'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _fotos.length >= widget.maxFotos ? null : () => _adicionarFoto(ImageSource.gallery),
-                icon: const Icon(Icons.photo_library),
-                label: const Text('Galeria'),
-              ),
-            ),
-          ],
-        ),
-        
-        const SizedBox(height: 24),
-        
+          const SizedBox(height: 24),        
+        ],
         // Grid de fotos
         if (_fotos.isNotEmpty) ...[
           Text(
@@ -128,7 +132,7 @@ class _SeletorFotosState extends State<SeletorFotos> {
           const SizedBox(height: 12),
           _buildGridFotos(),
         ] else
-          _buildEstadoVazio(),
+          if (!widget.ehComprovante) _buildEstadoVazio(),
       ],
     );
   }
@@ -293,14 +297,9 @@ class _SeletorFotosState extends State<SeletorFotos> {
           _fotos.add(image.path);
         });
         widget.onFotosChanged(_fotos);
-        
-        SnackBarUtils.mostrarSucesso(
-          context, 
-          'Foto adicionada! ${_fotos.length}/${widget.maxFotos}',
-        );
       }
     } catch (e) {
-      SnackBarUtils.mostrarErro(context, 'Erro ao adicionar foto: $e');
+      SnackBarUtils.mostrarErro(context, 'Erro ao adicionar foto');
     }
   }
 
@@ -322,7 +321,6 @@ class _SeletorFotosState extends State<SeletorFotos> {
                 _fotos.removeAt(index);
               });
               widget.onFotosChanged(_fotos);
-              SnackBarUtils.mostrarInfo(context, 'Foto removida');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -341,6 +339,5 @@ class _SeletorFotosState extends State<SeletorFotos> {
       _fotos.insert(0, foto);
     });
     widget.onFotosChanged(_fotos);
-    SnackBarUtils.mostrarSucesso(context, 'Foto definida como principal!');
   }
 }

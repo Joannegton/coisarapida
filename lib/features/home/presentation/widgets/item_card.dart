@@ -182,7 +182,7 @@ class ItemCard extends StatelessWidget {
                       const SizedBox(width: 3),
                       Expanded(
                         child: Text(
-                          distancia != null ? '${distancia!.toStringAsFixed(1)} km • ${item.localizacao.cidade}' : '${item.localizacao.cidade}',
+                          distancia != null ? '${distancia!.toStringAsFixed(1)} km' : item.localizacao.bairro,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 11,

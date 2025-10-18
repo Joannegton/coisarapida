@@ -18,9 +18,6 @@ final itensProximosProvider = FutureProvider<List<Item>>((ref) async {
     return itensModel
         .cast<Item>(); // ItemModel estende Item, então o cast é seguro.
   } catch (e) {
-    // O FutureProvider lida com o estado de erro automaticamente,
-    // mas você pode logar o erro aqui se desejar.
-    print("Erro ao carregar itens no itensProximosProvider: $e");
     rethrow; // Importante para que o FutureProvider saiba do erro.
   }
 });
@@ -35,7 +32,6 @@ final itensComDistanciaProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final itens = itensAsync.value!;
 
   if (!locationAsync.hasValue) {
-    // Retorna itens sem distância
     return itens.map((item) => {'item': item, 'distancia': null}).toList();
   }
 

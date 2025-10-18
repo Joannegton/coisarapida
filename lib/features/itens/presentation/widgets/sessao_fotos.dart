@@ -17,7 +17,7 @@ class SessaoFotos extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: SeletorFotos(
+      child: SeletorFotosWidget(
         fotosIniciais: fotosUrls, 
         onFotosChanged: onFotosChanged,
         maxFotos: maxFotos,

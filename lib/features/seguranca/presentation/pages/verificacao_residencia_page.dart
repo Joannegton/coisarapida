@@ -1,7 +1,8 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
+import 'package:coisarapida/features/itens/presentation/widgets/seletor_fotos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
 import 'package:coisarapida/core/errors/exceptions.dart';
@@ -23,7 +24,7 @@ class VerificacaoResidenciaPage extends ConsumerStatefulWidget {
 }
 
 class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenciaPage> {
-  File? _comprovanteImagem;
+  List<String> _fotosComprovante = [];
   bool _enviando = false;
 
   // Controllers para endereço
@@ -42,19 +43,27 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
 
   bool _obtendoLocalizacao = false;
 
+  bool _mostrarBotaoLocalizacao = true;
+  bool _tentouPreencherLocalizacao = false;
+
+  double? latitude;
+  double? longitude;
+
   @override
   void initState() {
     super.initState();
-    // Removido: _preencherCamposEndereco() - será chamado em didChangeDependencies
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Preencher campos apenas uma vez quando o widget for montado
     if (!_camposPreenchidos) {
       _preencherCamposEndereco();
       _camposPreenchidos = true;
+    }
+    if (!_tentouPreencherLocalizacao) {
+      _tentarPreencherComLocalizacao();
+      _tentouPreencherLocalizacao = true;
     }
   }
 
@@ -89,16 +98,18 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _salvandoEndereco = true);
-
+    final cepFormatado = _cepController.text.trim().replaceAll(RegExp(r'[^0-9]'), ''); 
     try {
       final endereco = Endereco(
-        cep: _cepController.text.trim(),
+        cep: cepFormatado,
         rua: _ruaController.text.trim(),
         numero: _numeroController.text.trim(),
         complemento: _complementoController.text.trim().isEmpty ? null : _complementoController.text.trim(),
         bairro: _bairroController.text.trim(),
         cidade: _cidadeController.text.trim(),
         estado: _estadoController.text.trim(),
+        latitude: latitude,
+        longitude: longitude,
       );
 
       await ref.read(authControllerProvider.notifier).atualizarPerfil(endereco: endereco);
@@ -115,6 +126,70 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
       if (mounted) {
         setState(() => _salvandoEndereco = false);
       }
+    }
+  }
+
+  String? _obterSiglaEstado(String? administrativeArea) {
+    if (administrativeArea == null) return null;
+
+    const mapaEstados = {
+      'Acre': 'AC',
+      'Alagoas': 'AL',
+      'Amapá': 'AP',
+      'Amazonas': 'AM',
+      'Bahia': 'BA',
+      'Ceará': 'CE',
+      'Distrito Federal': 'DF',
+      'Espírito Santo': 'ES',
+      'Goiás': 'GO',
+      'Maranhão': 'MA',
+      'Mato Grosso': 'MT',
+      'Mato Grosso do Sul': 'MS',
+      'Minas Gerais': 'MG',
+      'Pará': 'PA',
+      'Paraíba': 'PB',
+      'Paraná': 'PR',
+      'Pernambuco': 'PE',
+      'Piauí': 'PI',
+      'Rio de Janeiro': 'RJ',
+      'Rio Grande do Norte': 'RN',
+      'Rio Grande do Sul': 'RS',
+      'Rondônia': 'RO',
+      'Roraima': 'RR',
+      'Santa Catarina': 'SC',
+      'São Paulo': 'SP',
+      'Sergipe': 'SE',
+      'Tocantins': 'TO',
+    };
+
+    // Tentar encontrar pelo nome exato
+    if (mapaEstados.containsKey(administrativeArea)) {
+      return mapaEstados[administrativeArea];
+    }
+
+    // Tentar encontrar por nome parcial (para casos onde o geocoding retorna variações)
+    for (final entry in mapaEstados.entries) {
+      if (administrativeArea.toLowerCase().contains(entry.key.toLowerCase()) ||
+          entry.key.toLowerCase().contains(administrativeArea.toLowerCase())) {
+        return entry.value;
+      }
+    }
+
+    // Se não encontrar, retornar o valor original (pode ser que já seja sigla)
+    return administrativeArea.length == 2 ? administrativeArea.toUpperCase() : null;
+  }
+
+  Future<void> _tentarPreencherComLocalizacao() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        await _preencherComLocalizacaoAtual();
+        setState(() => _mostrarBotaoLocalizacao = false);
+      } else {
+        setState(() => _mostrarBotaoLocalizacao = true);
+      }
+    } catch (e) {
+      setState(() => _mostrarBotaoLocalizacao = true);
     }
   }
 
@@ -140,6 +215,8 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
           accuracy: LocationAccuracy.high,
         ),
       );
+      latitude = position.latitude;
+      longitude = position.longitude;
 
       // Reverse geocoding
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -150,14 +227,20 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
 
+        final sigla = place.administrativeArea != null
+            ? _obterSiglaEstado(place.administrativeArea)
+            : null;
+
+        final isPlusCode = RegExp(r'^[A-Z0-9]{4}\+[A-Z0-9]{4}').hasMatch(place.street ?? '');
+
         setState(() {
           _cepController.text = place.postalCode ?? '';
-          _ruaController.text = place.street ?? '';
+          _ruaController.text = isPlusCode ? '' : place.street ?? '';
           _numeroController.text = '';
           _complementoController.text = '';
           _bairroController.text = place.subLocality ?? place.locality ?? '';
-          _cidadeController.text = place.locality ?? '';
-          _estadoController.text = place.administrativeArea ?? '';
+          _cidadeController.text = place.subAdministrativeArea ?? '';
+          _estadoController.text = sigla ?? '';
         });
 
       } else {
@@ -240,10 +323,7 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                AppRoutes.home,
-                (route) => false,
-              );
+              context.go(AppRoutes.home);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -257,40 +337,8 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
     );
   }
 
-  Future<void> _selecionarComprovante() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? imagem = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-
-    if (imagem != null) {
-      setState(() {
-        _comprovanteImagem = File(imagem.path);
-      });
-    }
-  }
-
-  Future<void> _tirarFotoComprovante() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? imagem = await picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-
-    if (imagem != null) {
-      setState(() {
-        _comprovanteImagem = File(imagem.path);
-      });
-    }
-  }
-
   Future<void> _enviarComprovante() async {
-    if (_comprovanteImagem == null) {
+    if (_fotosComprovante.isEmpty) {
       SnackBarUtils.mostrarErro(context, 'Selecione um comprovante de residência');
       return;
     }
@@ -308,7 +356,7 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
     try {
       await ref.read(verificacaoResidenciaProvider.notifier).solicitarVerificacao(
         usuarioId: usuario.id,
-        comprovante: _comprovanteImagem!,
+        comprovante: File(_fotosComprovante.first),
       );
     } finally {
       if (mounted) {
@@ -385,7 +433,7 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Sua solicitação de verificação foi recusada. Por favor, envie um novo comprovante de residência.',
+                            'Sua verificação foi recusada. Por favor, envie um novo comprovante.',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.red.shade800,
@@ -397,35 +445,7 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
             ],
-            
-            // Banner informativo
-            if (usuario?.statusEndereco != StatusEndereco.emAnalise)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade700),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Esta verificação é opcional, mas aumenta sua confiabilidade na plataforma.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.blue.shade900,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             
             // Banner de em análise
             if (usuario?.statusEndereco == StatusEndereco.emAnalise)
@@ -510,20 +530,21 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
           ),
           const SizedBox(height: 24),
           // Botão para preencher com localização atual
-          OutlinedButton.icon(
-            onPressed: _obtendoLocalizacao ? null : _preencherComLocalizacaoAtual,
-            icon: _obtendoLocalizacao
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.my_location),
-            label: Text(_obtendoLocalizacao ? 'Obtendo localização...' : 'Preencher com minha localização'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
+          if (_mostrarBotaoLocalizacao)
+            OutlinedButton.icon(
+              onPressed: _obtendoLocalizacao ? null : _preencherComLocalizacaoAtual,
+              icon: _obtendoLocalizacao
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location),
+              label: Text(_obtendoLocalizacao ? 'Obtendo localização...' : 'Preencher com minha localização'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+              ),
             ),
-          ),
           const SizedBox(height: 16),
           // Campos de endereço
           TextFormField(
@@ -703,135 +724,35 @@ class _VerificacaoResidenciaPageState extends ConsumerState<VerificacaoResidenci
 
         const SizedBox(height: 24),
 
-        // Endereço a ser verificado
-        Card(
-          color: theme.colorScheme.surfaceContainerHighest,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Endereço cadastrado:',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${usuario.endereco!.rua}, ${usuario.endereco!.numero}',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                if (usuario.endereco!.complemento != null) ...[
-                  Text(
-                    usuario.endereco!.complemento!,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-                Text(
-                  '${usuario.endereco!.bairro} - ${usuario.endereco!.cidade}/${usuario.endereco!.estado}',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                Text(
-                  'CEP: ${usuario.endereco!.cep}',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
+        // Seletor de fotos do comprovante
+        SeletorFotosWidget(
+          fotosIniciais: _fotosComprovante,
+          onFotosChanged: (fotos) {
+            setState(() {
+              _fotosComprovante = fotos;
+            });
+          },
+          maxFotos: 1,
+          ehComprovante: true,
         ),
 
-        // Preview do comprovante
-        if (_comprovanteImagem != null) ...[
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                Image.file(
-                  _comprovanteImagem!,
-                  fit: BoxFit.cover,
-                  height: 300,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() => _comprovanteImagem = null);
-                        },
-                        icon: const Icon(Icons.close),
-                        label: const Text('Remover'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
+        if (_fotosComprovante.isNotEmpty) const SizedBox(height: 20),
 
-        // Botões de ação
-        if (_comprovanteImagem == null) ...[
-          ElevatedButton.icon(
-            onPressed: _selecionarComprovante,
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Selecionar da Galeria'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-            ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _tirarFotoComprovante,
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Tirar Foto'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-            ),
-          ),
-        ] else ...[
-          ElevatedButton.icon(
-            onPressed: _enviando ? null : _enviarComprovante,
-            icon: _enviando
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
-            label: Text(_enviando ? 'Enviando...' : 'Enviar para Análise'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 24),
-
-        // Aviso
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.amber.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.schedule, color: Colors.amber, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'A análise do comprovante pode levar até 48 horas. Você será notificado assim que for aprovado.',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
+        // Botão de enviar
+        ElevatedButton.icon(
+          onPressed: (_enviando || _fotosComprovante.isEmpty) ? null : _enviarComprovante,
+          icon: _enviando
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.send),
+          label: Text(_enviando ? 'Enviando...' : 'Enviar para Análise'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.all(16),
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
           ),
         ),
       ],
