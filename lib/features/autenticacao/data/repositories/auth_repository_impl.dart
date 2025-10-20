@@ -284,4 +284,16 @@ class AuthRepositoryImpl implements AuthRepository {
         .doc(user.uid)
         .set(usuarioModel.toMap());
   }
+
+  @override
+  Future<void> incrementarTotalAlugueis(String usuarioId) async {
+    try {
+      await _firestore.collection('usuarios').doc(usuarioId).update({
+        'totalAlugueis': FieldValue.increment(1),
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Erro ao incrementar total de aluguéis: ${e.toString()}');
+    }
+  }
 }

@@ -248,7 +248,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Avaliação
       GoRoute(
         path: AppRoutes.avaliacao,
-        name: AppRoutes.avaliacao,
+        name: 'avaliacao',
         builder: (context, state) {
           final avaliadoId = state.uri.queryParameters['avaliadoId'];
           final avaliadoNome = state.uri.queryParameters['avaliadoNome'] ?? 'Usuário';

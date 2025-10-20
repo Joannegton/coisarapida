@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../controllers/avaliacao_controller.dart';
 import '../providers/avaliacao_providers.dart';
+import '../../../itens/presentation/providers/item_provider.dart';
+import '../../../itens/domain/entities/item.dart';
 
 class AvaliacaoPage extends ConsumerStatefulWidget {
   final String avaliadoId;
@@ -175,55 +177,50 @@ class _AvaliacaoPageState extends ConsumerState<AvaliacaoPage> with SingleTicker
   }
 
   Widget _buildStarRating() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(5, (index) {
-        final starNumber = index + 1;
-        final isSelected = _notaSelecionada != null && starNumber <= _notaSelecionada!;
-        
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _notaSelecionada = starNumber;
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                isSelected ? Icons.star_rounded : Icons.star_border_rounded,
-                size: 48,
-                color: isSelected ? Colors.amber : Colors.grey[400],
+    final screenWidth = MediaQuery.of(context).size.width;
+    final starSize = screenWidth < 400 ? 36.0 : 40.0;
+    final starPadding = screenWidth < 400 ? 2.0 : 4.0;
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(5, (index) {
+          final starNumber = index + 1;
+          final isSelected = _notaSelecionada != null && starNumber <= _notaSelecionada!;
+
+          return Flexible(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _notaSelecionada = starNumber;
+                });
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: starPadding),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    isSelected ? Icons.star_rounded : Icons.star_border_rounded,
+                    size: starSize,
+                    color: isSelected ? Colors.amber : Colors.grey[400],
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
-  }
-
-  String _getNotaDescricao() {
-    switch (_notaSelecionada) {
-      case 1:
-        return 'Muito Insatisfeito';
-      case 2:
-        return 'Insatisfeito';
-      case 3:
-        return 'Neutro';
-      case 4:
-        return 'Satisfeito';
-      case 5:
-        return 'Muito Satisfeito';
-      default:
-        return 'Selecione uma nota';
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final avaliacaoState = ref.watch(avaliacaoControllerProvider);
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 400 ? 16.0 : 20.0;
 
     return WillPopScope(
       onWillPop: () async {
@@ -249,196 +246,239 @@ class _AvaliacaoPageState extends ConsumerState<AvaliacaoPage> with SingleTicker
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          elevation: 0,
-          backgroundColor: theme.scaffoldBackgroundColor,
-          title: Text(
-            widget.isObrigatoria ? 'Avaliação Obrigatória' : 'Avaliar Experiência',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          backgroundColor: theme.colorScheme.primary,
+          title: Text('Avaliar Experiência',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimary,
+            ),
           ),
-          automaticallyImplyLeading: !widget.isObrigatoria,
           centerTitle: true,
+          automaticallyImplyLeading: false,
         ),
         body: FadeTransition(
           opacity: _fadeAnimation,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Banner de avaliação obrigatória
-                  if (widget.isObrigatoria) ...[
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.orange.shade400,
-                            Colors.orange.shade600,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orange.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.priority_high_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Avaliação Necessária',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Complete esta avaliação para continuar usando o app',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-
-                  // Card do usuário avaliado
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: theme.cardColor,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.orange.shade400,
+                          Colors.orange.shade600,
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.orange.withOpacity(0.3),
                           blurRadius: 10,
-                          offset: const Offset(0, 2),
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: Column(
+                    child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundImage: widget.avaliadoFoto != null && widget.avaliadoFoto!.isNotEmpty
-                              ? NetworkImage(widget.avaliadoFoto!)
-                              : null,
-                          child: widget.avaliadoFoto == null || widget.avaliadoFoto!.isEmpty
-                              ? Text(
-                                  widget.avaliadoNome[0].toUpperCase(),
-                                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          widget.avaliadoNome,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
                           ),
-                          textAlign: TextAlign.center,
+                          child: const Icon(
+                            Icons.priority_high_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
-                        if (widget.itemNome != null) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.shopping_bag_outlined,
-                                  size: 16,
-                                  color: theme.primaryColor,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Avaliação Necessária',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    widget.itemNome!,
-                                    style: TextStyle(
-                                      color: theme.primaryColor,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Complete esta avaliação para continuar usando o app',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Informações do item e usuário
+                  Column(
+                    children: [
+                      // Item: foto + nome lado a lado (se disponível)
+                      if (widget.itemId != null) ...[
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final itemAsync = ref.watch(detalhesItemProvider(widget.itemId!));
+                            return itemAsync.when(
+                              data: (item) {
+                                if (item == null) return const SizedBox.shrink();
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.grey[200],
+                                      ),
+                                      child: item.fotos.isNotEmpty
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: Image.network(
+                                                item.fotos.first,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      color: Colors.grey[300],
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.image_not_supported,
+                                                      color: Colors.grey,
+                                                      size: 20,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                          : Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(8),
+                                                color: Colors.grey[300],
+                                              ),
+                                              child: const Icon(
+                                                Icons.inventory_2_outlined,
+                                                color: Colors.grey,
+                                                size: 20,
+                                              ),
+                                            ),
                                     ),
-                                    overflow: TextOverflow.ellipsis,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            item.nome,
+                                            style: theme.textTheme.titleSmall?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: theme.primaryColor.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              item.tipo == TipoItem.aluguel ? 'Para Alugar' : 'Para Vender',
+                                              style: TextStyle(
+                                                color: theme.primaryColor,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                              loading: () => const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 48,
+                                    height: 48,
+                                    child: CircularProgressIndicator(),
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 12),
+                                  Text('Carregando item...'),
+                                ],
+                              ),
+                              error: (error, stack) => const SizedBox.shrink(),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Usuário: foto + nome lado a lado
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundImage: widget.avaliadoFoto != null && widget.avaliadoFoto!.isNotEmpty
+                                ? NetworkImage(widget.avaliadoFoto!)
+                                : null,
+                            child: widget.avaliadoFoto == null || widget.avaliadoFoto!.isEmpty
+                                ? Text(
+                                    widget.avaliadoNome[0].toUpperCase(),
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              widget.avaliadoNome,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
                   // Título da avaliação
-                  Text(
-                    'Como foi sua experiência?',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 24),
 
                   // Sistema de estrelas
                   _buildStarRating(),
 
-                  const SizedBox(height: 16),
-
-                  // Descrição da nota
-                  Center(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: Text(
-                        _getNotaDescricao(),
-                        key: ValueKey(_notaSelecionada),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: _notaSelecionada != null 
-                              ? theme.primaryColor 
-                              : Colors.grey,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 35),
 
                   // Campo de comentário
                   Text(
@@ -479,7 +519,7 @@ class _AvaliacaoPageState extends ConsumerState<AvaliacaoPage> with SingleTicker
                     },
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 35),
 
                   // Botão de enviar
                   SizedBox(
@@ -487,13 +527,12 @@ class _AvaliacaoPageState extends ConsumerState<AvaliacaoPage> with SingleTicker
                     child: ElevatedButton(
                       onPressed: avaliacaoState.isLoading ? null : _submeterAvaliacao,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.isObrigatoria 
-                            ? Colors.green 
-                            : theme.primaryColor,
+                        backgroundColor: theme.colorScheme.secondary,
+                        foregroundColor: theme.colorScheme.onSecondary,
+                        elevation: 4.0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16.0),
                         ),
-                        elevation: 0,
                       ),
                       child: avaliacaoState.isLoading
                           ? const SizedBox(

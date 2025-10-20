@@ -12,7 +12,8 @@ class ContratoModel extends ContratoDigital {
     required super.itemId,
     required super.conteudoHtml,
     required super.criadoEm,
-    super.aceite,
+    super.aceiteLocatario,
+    super.aceiteLocador,
     required super.versaoContrato,
   });
 
@@ -26,7 +27,8 @@ class ContratoModel extends ContratoDigital {
       itemId: entity.itemId,
       conteudoHtml: entity.conteudoHtml,
       criadoEm: entity.criadoEm,
-      aceite: entity.aceite,
+      aceiteLocatario: entity.aceiteLocatario,
+      aceiteLocador: entity.aceiteLocador,
       versaoContrato: entity.versaoContrato,
     );
   }
@@ -46,8 +48,13 @@ class ContratoModel extends ContratoDigital {
       itemId: data['itemId'] as String? ?? '',
       conteudoHtml: data['conteudoHtml'] as String? ?? '',
       criadoEm: (data['criadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      aceite: data['aceite'] != null 
-          ? AceiteContrato.fromMap(data['aceite'] as Map<String, dynamic>)
+      aceiteLocatario: data['aceiteLocatario'] != null 
+          ? AceiteContrato.fromMap(data['aceiteLocatario'] as Map<String, dynamic>)
+          : (data['aceite'] != null 
+              ? AceiteContrato.fromMap(data['aceite'] as Map<String, dynamic>)
+              : null),
+      aceiteLocador: data['aceiteLocador'] != null 
+          ? AceiteContrato.fromMap(data['aceiteLocador'] as Map<String, dynamic>)
           : null,
       versaoContrato: data['versaoContrato'] as String? ?? '1.0',
     );
@@ -62,7 +69,8 @@ class ContratoModel extends ContratoDigital {
       'itemId': itemId,
       'conteudoHtml': conteudoHtml,
       'criadoEm': FieldValue.serverTimestamp(),
-      'aceite': aceite?.toMap(),
+      'aceiteLocatario': aceiteLocatario?.toMap(),
+      'aceiteLocador': aceiteLocador?.toMap(),
       'versaoContrato': versaoContrato,
     };
   }
@@ -75,7 +83,8 @@ class ContratoModel extends ContratoDigital {
       'locadorId': locadorId,
       'itemId': itemId,
       'conteudoHtml': conteudoHtml,
-      'aceite': aceite?.toMap(),
+      'aceiteLocatario': aceiteLocatario?.toMap(),
+      'aceiteLocador': aceiteLocador?.toMap(),
       'versaoContrato': versaoContrato,
     };
   }

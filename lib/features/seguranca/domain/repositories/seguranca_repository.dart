@@ -4,7 +4,6 @@ import '../entities/denuncia.dart';
 import '../entities/problema.dart';
 import '../entities/verificacao_fotos.dart';
 import '../entities/verificacao_telefone.dart';
-import '../entities/verificacao_residencia.dart';
 
 /// Interface abstrata do repositório de segurança
 /// Define os contratos que a implementação deve seguir

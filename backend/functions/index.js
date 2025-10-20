@@ -33,6 +33,13 @@ exports.enviarCodigoSMS = verificacaoTelefoneFunctions.enviarCodigoSMS;
 exports.verificarCodigoSMS = verificacaoTelefoneFunctions.verificarCodigoSMS;
 exports.reenviarCodigoSMS = verificacaoTelefoneFunctions.reenviarCodigoSMS;
 
+// Importar e exportar funções de avaliações
+const avaliacoesFunctions = require('./avaliacoes');
+
+exports.calcularReputacaoUsuario = avaliacoesFunctions.calcularReputacaoUsuario;
+exports.recalcularTodasReputacoes = avaliacoesFunctions.recalcularTodasReputacoes;
+exports.obterEstatisticasAvaliacoes = avaliacoesFunctions.obterEstatisticasAvaliacoes;
+
 // Função para limpar notificações antigas (chamada via HTTP)
 exports.limparNotificacoesAntigas = functions.https.onRequest(async (req, res) => {
   // Verificar se é uma requisição POST (para segurança)

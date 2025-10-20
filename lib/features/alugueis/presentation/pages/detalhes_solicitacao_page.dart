@@ -9,6 +9,7 @@ import '../../../chat/presentation/controllers/chat_controller.dart';
 import '../../../itens/presentation/providers/item_provider.dart';
 import '../../domain/entities/aluguel.dart';
 import '../helpers/solicitacao_helpers.dart';
+import '../providers/aluguel_providers.dart';
 import '../widgets/detalhes_solicitacao/header_section.dart';
 import '../widgets/detalhes_solicitacao/item_info_section.dart';
 import '../widgets/detalhes_solicitacao/locador_info_section.dart';
@@ -69,6 +70,76 @@ class _DetalhesSolicitacaoPageState
     }
   }
 
+  Future<void> _handleAprovarDevolucao() async {
+    await SolicitacaoHelpers.aprovarDevolucao(
+      context,
+      ref,
+      widget.aluguel.id,
+      navegarParaAlugueis: false,
+    );
+  }
+
+  Future<void> _handleRejeitarDevolucao() async {
+    setState(() => _isLoading = true);
+    try {
+      // Mostrar dialog para motivo da rejeição
+      final motivo = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Rejeitar Devolução'),
+          content: const TextField(
+            decoration: InputDecoration(
+              hintText: 'Motivo da rejeição...',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Pegar o texto do TextField
+                final textController = TextEditingController();
+                Navigator.of(context).pop(textController.text);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Rejeitar'),
+            ),
+          ],
+        ),
+      );
+
+      if (motivo != null && motivo.isNotEmpty) {
+        // Lógica para rejeitar devolução
+        final aluguelController = ref.read(aluguelControllerProvider.notifier);
+        await aluguelController.atualizarStatusAluguel(widget.aluguel.id, StatusAluguel.emAndamento);
+        
+        if (mounted) {
+          SnackBarUtils.mostrarInfo(
+            context,
+            'Devolução rejeitada. O locatário será notificado.',
+          );
+          // Fechar página após rejeição
+          Navigator.of(context).pop();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(context, 'Erro ao rejeitar devolução: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Widget _buildStatusButton(ThemeData theme, bool isLocador, bool isLocatario) {
     final dadosParaStatus = {
       'itemId': widget.aluguel.itemId,
@@ -82,7 +153,7 @@ class _DetalhesSolicitacaoPageState
     };
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         boxShadow: [
@@ -170,6 +241,89 @@ class _DetalhesSolicitacaoPageState
     );
   }
 
+  Widget _buildDevolucaoButtons(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Botões para aprovar/rejeitar devolução
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _handleAprovarDevolucao,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check_circle),
+                    label: Text(_isLoading ? 'Processando...' : 'Aprovar Devolução'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleRejeitarDevolucao,
+                    icon: const Icon(Icons.cancel),
+                    label: const Text('Rejeitar'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Colors.red),
+                      foregroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _getBottomPadding() {
+    final usuarioAsync = ref.watch(usuarioAtualStreamProvider);
+    final usuario = usuarioAsync.value;
+    final isLocador = usuario?.id == widget.aluguel.locadorId;
+    final isLocatario = usuario?.id == widget.aluguel.locatarioId;
+
+    if (widget.aluguel.status == StatusAluguel.solicitado && isLocador) {
+      return 120; // Espaço para ActionButtonsSection
+    } else if (widget.aluguel.status == StatusAluguel.aprovado) {
+      // Para aprovado, espaço maior se for locatário (dois botões)
+      return isLocatario ? 155 : 120;
+    } else if (widget.aluguel.status == StatusAluguel.devolucaoPendente) {
+      return isLocatario ? 20 : 1;
+    }
+
+    return 0; // Sem espaço para outros status
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -187,18 +341,19 @@ class _DetalhesSolicitacaoPageState
       body: Stack(
         children: [
           SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: _getBottomPadding()),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header com status
                 HeaderSection(aluguel: widget.aluguel, isLocador: isLocador),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
 
                 // Informações do item
                 ItemInfoSection(aluguel: widget.aluguel),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // Informações do usuário relevante
                 if (isLocatario)
@@ -206,27 +361,25 @@ class _DetalhesSolicitacaoPageState
                 else
                   LocatarioInfoSection(aluguel: widget.aluguel),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // Informações do período
                 PeriodoInfoSection(aluguel: widget.aluguel),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // Informações de valor
                 ValorInfoSection(aluguel: widget.aluguel, isLocador: isLocador),
 
-                const SizedBox(height: 16),
 
                 // Observações do locatário
                 if (widget.aluguel.observacoesLocatario != null &&
-                    widget.aluguel.observacoesLocatario!.isNotEmpty)
+                    widget.aluguel.observacoesLocatario!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
                   ObservacoesSection(
                     observacoes: widget.aluguel.observacoesLocatario!,
                   ),
-
-                // Espaço para os botões fixos - maior quando aprovado para evitar sobreposição
-                SizedBox(height: widget.aluguel.status == StatusAluguel.aprovado ? 180 : 100),
+                ]
               ],
             ),
           ),
@@ -242,6 +395,13 @@ class _DetalhesSolicitacaoPageState
                 onAprovar: _handleAprovarSolicitacao,
                 onRecusar: _handleRecusarSolicitacao,
               ),
+            )
+          else if (widget.aluguel.status == StatusAluguel.devolucaoPendente && isLocador)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildDevolucaoButtons(theme),
             )
           else if (widget.aluguel.status == StatusAluguel.aprovado)
             Positioned(

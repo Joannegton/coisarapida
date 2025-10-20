@@ -55,18 +55,28 @@ class ProprietarioCardWidget extends StatelessWidget {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          item.proprietarioReputacao?.toStringAsFixed(1) ?? 'N/A',
+                          item.proprietarioReputacao != null && item.proprietarioReputacao! > 0
+                              ? item.proprietarioReputacao!.toStringAsFixed(1)
+                              : 'Novo usuário',
                           overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: item.proprietarioReputacao != null && item.proprietarioReputacao! > 0
+                                ? Colors.orange.shade700
+                                : Colors.grey.shade600,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       const Icon(Icons.handshake, color: Colors.grey, size: 16),
                       const SizedBox(width: 4),
-                      // TODO: Adicionar total de alugueis do proprietario
                       Flexible(
                         child: Text(
-                          '0 aluguéis',
+                          '${item.totalAlugueis} ${item.totalAlugueis == 1 ? 'aluguel' : 'aluguéis'}',
                           overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                          ),
                         ),
                       ),
                     ],

@@ -15,8 +15,8 @@ class UsuarioModel extends Usuario {
     required super.email,
     super.telefone,
     super.fotoUrl,
-    required dynamic criadoEm, // Parâmetro do construtor UsuarioModel
-    dynamic atualizadoEm,    // Parâmetro do construtor UsuarioModel
+    required dynamic criadoEm,
+    dynamic atualizadoEm,   
     required super.emailVerificado,
     super.reputacao,
     super.totalAlugueis,

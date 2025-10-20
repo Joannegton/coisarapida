@@ -17,39 +17,21 @@ class PerfilItensUsuarioWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.inventory_2_outlined, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Itens Anunciados (${itens.length})',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (itens.isEmpty)
+          const Center(child: Text('Nenhum item anunciado por este usuário.')),
+        if (itens.isNotEmpty)
+          SizedBox(
+            height: 175,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: itens.length,
+              itemBuilder: (context, index) => ItemFotoWidget(item: itens[index], theme: theme),
             ),
-            const SizedBox(height: 16),
-            if (itens.isEmpty)
-              const Text('Nenhum item anunciado por este usuário.'),
-            if (itens.isNotEmpty)
-              SizedBox(
-                height: 160, // Altura para a lista horizontal de itens
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: itens.length,
-                  itemBuilder: (context, index) => ItemFotoWidget(item: itens[index], theme: theme),
-                ),
-              ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

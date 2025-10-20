@@ -36,35 +36,30 @@ class PerfilEstatisticasWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Wrap(
-          spacing: 20,
-          runSpacing: 16,
-          alignment: WrapAlignment.center,
-          children: [
-            _buildEstatistica(
-              'Anúncios', // TODO: Ajustar para o campo correto em Usuario, se existir
-              '${usuario.totalItensAlugados}', // Exemplo, ajuste conforme seus campos
-              Icons.inventory,
-              theme.colorScheme.primary,
-            ),
-            _buildEstatistica(
-              'Alugados',
-              '${usuario.totalAlugueis}',
-              Icons.handshake,
-              theme.colorScheme.secondary,
-            ),
-            _buildEstatistica(
-              'Avaliação',
-              usuario.reputacao.toStringAsFixed(1),
-              Icons.star,
-              Colors.orange,
-            ),
-          ],
+    return Wrap(
+      spacing: 20,
+      runSpacing: 16,
+      alignment: WrapAlignment.center,
+      children: [
+        _buildEstatistica(
+          'Anúncios',
+          '${usuario.totalItensAlugados}',
+          Icons.inventory,
+          theme.colorScheme.primary,
         ),
-      ),
+        _buildEstatistica(
+          'Alugados',
+          '${usuario.totalAlugueis}',
+          Icons.handshake,
+          theme.colorScheme.secondary,
+        ),
+        _buildEstatistica(
+          'Avaliação',
+          usuario.reputacao.toStringAsFixed(1),
+          Icons.star,
+          Colors.orange,
+        ),
+      ],
     );
   }
 }

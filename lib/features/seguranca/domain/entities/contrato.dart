@@ -7,7 +7,8 @@ class ContratoDigital {
   final String itemId;
   final String conteudoHtml;
   final DateTime criadoEm;
-  final AceiteContrato? aceite;
+  final AceiteContrato? aceiteLocatario;
+  final AceiteContrato? aceiteLocador;
   final String versaoContrato;
 
   const ContratoDigital({
@@ -18,11 +19,12 @@ class ContratoDigital {
     required this.itemId,
     required this.conteudoHtml,
     required this.criadoEm,
-    this.aceite,
+    this.aceiteLocatario,
+    this.aceiteLocador,
     required this.versaoContrato,
   });
 
-  bool get foiAceito => aceite != null;
+  bool get foiAceito => aceiteLocatario != null && aceiteLocador != null;
 
   ContratoDigital copyWith({
     String? id,
@@ -32,7 +34,8 @@ class ContratoDigital {
     String? itemId,
     String? conteudoHtml,
     DateTime? criadoEm,
-    AceiteContrato? aceite,
+    AceiteContrato? aceiteLocatario,
+    AceiteContrato? aceiteLocador,
     String? versaoContrato,
   }) {
     return ContratoDigital(
@@ -43,7 +46,8 @@ class ContratoDigital {
       itemId: itemId ?? this.itemId,
       conteudoHtml: conteudoHtml ?? this.conteudoHtml,
       criadoEm: criadoEm ?? this.criadoEm,
-      aceite: aceite ?? this.aceite,
+      aceiteLocatario: aceiteLocatario ?? this.aceiteLocatario,
+      aceiteLocador: aceiteLocador ?? this.aceiteLocador,
       versaoContrato: versaoContrato ?? this.versaoContrato,
     );
   }

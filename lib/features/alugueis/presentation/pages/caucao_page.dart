@@ -35,17 +35,16 @@ class CaucaoConteudoWidget extends StatelessWidget {
         children: [
           // Cabeçalho explicativo
           _buildCabecalho(theme),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           // Detalhes da caução
           _buildDetalhesCaucao(theme, nomeItem, valorAluguel, diasAluguel, valorCaucao),
-          const SizedBox(height: 24),
+          const SizedBox(height: 5),
           // Métodos de pagamento
           // _buildMetodosPagamento(theme),
           _buildPagamentoMercadoPago(context, theme),
-          const SizedBox(height: 24),
+          const SizedBox(height: 5),
           // Termos e condições
           _buildTermosCondicoes(theme),
-          const SizedBox(height: 32),
         ],
       ),
     );

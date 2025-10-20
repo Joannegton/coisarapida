@@ -489,26 +489,26 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
               
               const SizedBox(height: 20),
               
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _limparFiltros,
-                      child: const Text('Limpar'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _aplicarFiltros();
-                      },
-                      child: const Text('Aplicar'),
-                    ),
-                  ),
-                ],
-              ),
+              // Row(
+              //   children: [
+              //     Expanded(
+              //       child: OutlinedButton(
+              //         onPressed: _limparFiltros,
+              //         child: const Text('Limpar'),
+              //       ),
+              //     ),
+              //     const SizedBox(width: 12),
+              //     Expanded(
+              //       child: ElevatedButton(
+              //         onPressed: () {
+              //           Navigator.of(context).pop();
+              //           _aplicarFiltros();
+              //         },
+              //         child: const Text('Aplicar'),
+              //       ),
+              //     ),
+              //   ],
+              // ),
             ],
           ),
         ),
@@ -516,11 +516,6 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
     );
   }
 
-  void _aplicarFiltros() {
-    // Trigger rebuild para aplicar filtros
-    SnackBarUtils.mostrarSucesso(context, 'Filtros aplicados!');
-    Navigator.pop(context);
-  }
 
   void _limparFiltros() {
     // Limpa todos os filtros usando o controller

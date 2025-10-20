@@ -5,6 +5,7 @@ import 'package:coisarapida/features/alugueis/presentation/helpers/solicitacao_h
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_routes.dart';
 
 export 'solicitacoes_aluguel_page.dart' show TipoVisualizacao;
@@ -328,8 +329,7 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                // Navegar para a página de busca de itens
-                Navigator.of(context).pushNamed(AppRoutes.buscar);
+                context.pushReplacement(AppRoutes.buscar);
               },
               icon: const Icon(Icons.search),
               label: const Text('Buscar Itens'),

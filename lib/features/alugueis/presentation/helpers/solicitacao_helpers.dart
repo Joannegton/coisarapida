@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/providers/notification_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/utils/verificacao_helper.dart';
+import '../../../../core/constants/app_routes.dart';
+import '../../../avaliacoes/presentation/providers/avaliacao_providers.dart';
+import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../../domain/entities/aluguel.dart';
-import '../controllers/aluguel_controller.dart';
+import '../providers/aluguel_providers.dart';
 
 /// Helper class com métodos reutilizáveis para gerenciar solicitações de aluguel
 class SolicitacaoHelpers {
@@ -272,6 +275,149 @@ class SolicitacaoHelpers {
           );
         }
       }
+    }
+  }
+
+  /// Processa a aprovação de devolução de um aluguel
+  /// 
+  /// Este método realiza as seguintes operações:
+  /// - Verifica se o usuário está totalmente verificado
+  /// - Atualiza o status do aluguel para concluído
+  /// - Libera a caução para o locatário
+  /// - Cria avaliações pendentes para ambos (locador e locatário)
+  /// - Atualiza estatísticas do locador (totalAlugueis + 1)
+  /// - Atualiza estatísticas do item (totalAlugueis + 1)
+  /// 
+  /// [context] - Contexto do Flutter para navegação e diálogos
+  /// [ref] - Referência do Riverpod para acessar providers
+  /// [aluguelId] - ID do aluguel a ser processado
+  /// [navegarParaAlugueis] - Se true, navega para a página de aluguéis após sucesso
+  static Future<void> aprovarDevolucao(
+    BuildContext context,
+    WidgetRef ref,
+    String aluguelId, {
+    bool navegarParaAlugueis = false,
+  }) async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
+    bool dialogAberto = false;
+
+    try {
+      // Mostrar diálogo de carregamento
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Processando aprovação...'),
+            ],
+          ),
+        ),
+      );
+      dialogAberto = true;
+
+      final aluguelRepository = ref.read(aluguelRepositoryProvider);
+      final aluguel = await aluguelRepository.getAluguelPorId(aluguelId);
+
+      if (aluguel == null) {
+        throw Exception('Aluguel não encontrado');
+      }
+
+      final aluguelController = ref.read(aluguelControllerProvider.notifier);
+      await aluguelController.atualizarStatusAluguel(
+        aluguelId,
+        StatusAluguel.concluido,
+      );
+
+      await aluguelController.liberarCaucaoAluguel(aluguelId);
+
+      final authController = ref.read(authControllerProvider.notifier);
+      await authController.incrementarTotalAlugueisUsuario(aluguel.locadorId);
+
+      await aluguelRepository.incrementarTotalAlugueisItem(aluguel.itemId);
+
+      await _criarAvaliacoesPendentes(ref, aluguel);
+
+      if (context.mounted && dialogAberto) {
+        dialogAberto = false;
+        Navigator.of(context).pop();
+
+        // Mostrar mensagem de sucesso
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Devolução aprovada! Caução liberada para o locatário. ✅',
+        );
+
+        // Navegar se solicitado
+        if (navegarParaAlugueis) {
+          context.go(AppRoutes.meusAlugueis);
+        } else {
+          Navigator.of(context).pop();
+        }
+      }
+    } catch (e) {
+      if (context.mounted && dialogAberto) {
+        dialogAberto = false;
+        Navigator.of(context).pop();
+        SnackBarUtils.mostrarErro(
+          context,
+          'Erro ao aprovar devolução: ${e.toString()}',
+        );
+      }
+    }
+  }
+
+  /// Cria avaliações pendentes para locador e locatário após conclusão do aluguel
+  static Future<void> _criarAvaliacoesPendentes(
+    WidgetRef ref,
+    Aluguel aluguel,
+  ) async {
+    try {
+      // Buscar fotos dos usuários
+      final authController = ref.read(authControllerProvider.notifier);
+      final locadorUser = await authController.buscarUsuario(aluguel.locadorId);
+      final locatarioUser = await authController.buscarUsuario(aluguel.locatarioId);
+
+      final locadorFoto = locadorUser?.fotoUrl;
+      final locatarioFoto = locatarioUser?.fotoUrl;
+
+      // Obter serviço de avaliações pendentes
+      final avaliacaoPendenteService = ref.read(avaliacaoPendenteServiceProvider);
+
+      // Criar avaliação pendente para o locatário avaliar o locador
+      await avaliacaoPendenteService.criarAvaliacaoPendente(
+        aluguelId: aluguel.id,
+        itemId: aluguel.itemId,
+        itemNome: aluguel.itemNome,
+        avaliadorId: aluguel.locatarioId,
+        avaliadoId: aluguel.locadorId,
+        avaliadoNome: aluguel.locadorNome,
+        avaliadoFoto: locadorFoto,
+        tipoUsuario: 'locatario',
+      );
+
+      // Criar avaliação pendente para o locador avaliar o locatário
+      await avaliacaoPendenteService.criarAvaliacaoPendente(
+        aluguelId: aluguel.id,
+        itemId: aluguel.itemId,
+        itemNome: aluguel.itemNome,
+        avaliadorId: aluguel.locadorId,
+        avaliadoId: aluguel.locatarioId,
+        avaliadoNome: aluguel.locatarioNome,
+        avaliadoFoto: locatarioFoto,
+        tipoUsuario: 'locador',
+      );
+    } catch (e) {
+      // Não mostrar erro para o usuário, pois isso é um processo em background
+      debugPrint('Erro ao criar avaliações pendentes: $e');
     }
   }
 }

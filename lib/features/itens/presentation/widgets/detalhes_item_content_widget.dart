@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/item.dart';
 import 'informacoes_adicionais_widget.dart';
-import 'localizacao_card_widget.dart';
 import 'preco_card_widget.dart';
 import 'proprietario_card_widget.dart';
 
@@ -28,6 +27,25 @@ class DetalhesItemContentWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                size: 16,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+              SizedBox(width: padding * 0.25),
+              Text(
+                '${item.localizacao.bairro}, ${item.localizacao.cidade} - ${item.localizacao.estado}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+          
+          SizedBox(height: 10),
+
           Text(
             item.nome,
             style: theme.textTheme.headlineSmall?.copyWith(
@@ -89,7 +107,7 @@ class DetalhesItemContentWidget extends StatelessWidget {
                 ),
             ],
           ),
-
+         
           SizedBox(height: padding * 1.25),
 
           ProprietarioCardWidget(item: item, onChatPressed: onChatPressed),
@@ -134,10 +152,6 @@ class DetalhesItemContentWidget extends StatelessWidget {
 
           // Informações adicionais
           InformacoesAdicionaisWidget(item: item, formatarData: formatarData),
-          SizedBox(height: padding * 1.25),
-
-          // Localização
-          LocalizacaoCardWidget(item: item),
         ],
       ),
     );

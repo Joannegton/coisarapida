@@ -52,3 +52,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Arquivos de ambiente com secrets
+.env
+.env.local
+.env.production
+
+
+# Arquivos de configuração com API keys
+**/secrets.json
+**/api_keys.json
+lib/core/config/secrets.dart
+lib/core/config/api_keys.dart
+
+# Chaves hardcoded (sempre ignore!)
+**/*api*key*.dart
+**/*secret*.dart
+**/*credential*.dart

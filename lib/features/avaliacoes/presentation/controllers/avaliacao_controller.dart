@@ -16,7 +16,7 @@ class AvaliacaoController extends StateNotifier<AsyncValue<void>> {
   Future<void> criarAvaliacao({
     required String avaliadoId,
     required String aluguelId,
-    required String? itemId, // Adicionado itemId
+    required String? itemId,
     required double nota,
     required String? comentario,
   }) async {

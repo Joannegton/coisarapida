@@ -13,8 +13,8 @@ import '../../../seguranca/domain/entities/denuncia.dart';
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../../../chat/presentation/controllers/chat_controller.dart';
 import '../../../itens/presentation/providers/item_provider.dart';
-import '../../../avaliacoes/presentation/providers/avaliacao_providers.dart';
 import '../providers/aluguel_providers.dart';
+import '../helpers/solicitacao_helpers.dart';
 import '../../domain/entities/aluguel.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
@@ -40,28 +40,13 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   double? _valorMulta;
   late Map<String, dynamic> _dadosAluguelAtuais;
   bool _isCreatingChat = false;
+  bool _carregando = true;
   
   @override
   void initState() {
     super.initState();
-    // Inicializar dados com valores padrão para campos que podem estar faltando
-    _dadosAluguelAtuais = {
-      'dataLimiteDevolucao': widget.dadosAluguel['dataLimiteDevolucao'] ?? DateTime.now().add(const Duration(days: 7)).toIso8601String(),
-      'locadorId': widget.dadosAluguel['locadorId'] ?? '',
-      'valorDiaria': widget.dadosAluguel['valorDiaria'] ?? 0.0,
-      'compradorId': widget.dadosAluguel['compradorId'] ?? '',
-      'status': widget.dadosAluguel['status'] ?? 'solicitado',
-      'nomeItem': widget.dadosAluguel['nomeItem'] ?? 'Item',
-      'itemId': widget.dadosAluguel['itemId'] ?? '',
-      'dataInicio': widget.dadosAluguel['dataInicio'] ?? DateTime.now().toIso8601String(),
-      'valorAluguel': widget.dadosAluguel['valorAluguel'] ?? 0.0,
-      'valorCaucao': widget.dadosAluguel['valorCaucao'] ?? 0.0,
-      'nomeLocador': widget.dadosAluguel['nomeLocador'] ?? 'Locador',
-      'nomeLocatario': widget.dadosAluguel['nomeLocatario'] ?? 'Locatário',
-      'telefoneLocatario': widget.dadosAluguel['telefoneLocatario'] ?? '',
-      'enderecoLocatario': widget.dadosAluguel['enderecoLocatario'] ?? '',
-      ...widget.dadosAluguel, // Sobrescrever com valores reais se existirem
-    };
+    // Inicializar com Map vazio, dados virão apenas do Firestore
+    _dadosAluguelAtuais = {};
     _iniciarTimer();
     _iniciarListenerAluguel();
   }
@@ -74,25 +59,31 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         .listen((snapshot) {
           if (mounted && snapshot.exists) {
             final data = snapshot.data() as Map<String, dynamic>;
-            // Mesclar dados do Firestore com valores padrão
+            debugPrint('Dados do aluguel atualizados: $data');
+            // Usar apenas dados do Firebase, convertendo campos numéricos
             setState(() {
               _dadosAluguelAtuais = {
-                'dataLimiteDevolucao': data['dataLimiteDevolucao'] ?? _dadosAluguelAtuais['dataLimiteDevolucao'],
-                'locadorId': data['locadorId'] ?? _dadosAluguelAtuais['locadorId'],
-                'valorDiaria': data['valorDiaria'] ?? _dadosAluguelAtuais['valorDiaria'],
-                'compradorId': data['compradorId'] ?? _dadosAluguelAtuais['compradorId'],
-                'status': data['status'] ?? _dadosAluguelAtuais['status'],
-                'nomeItem': data['nomeItem'] ?? _dadosAluguelAtuais['nomeItem'],
-                'itemId': data['itemId'] ?? _dadosAluguelAtuais['itemId'],
-                'dataInicio': data['dataInicio'] ?? _dadosAluguelAtuais['dataInicio'],
-                'valorAluguel': data['valorAluguel'] ?? _dadosAluguelAtuais['valorAluguel'],
-                'valorCaucao': data['valorCaucao'] ?? _dadosAluguelAtuais['valorCaucao'],
-                'nomeLocador': data['nomeLocador'] ?? _dadosAluguelAtuais['nomeLocador'],
-                'nomeLocatario': data['nomeLocatario'] ?? _dadosAluguelAtuais['nomeLocatario'],
-                'telefoneLocatario': data['telefoneLocatario'] ?? _dadosAluguelAtuais['telefoneLocatario'],
-                'enderecoLocatario': data['enderecoLocatario'] ?? _dadosAluguelAtuais['enderecoLocatario'],
-                ...data, // Sobrescrever com valores reais do Firestore
+                'itemNome': data['itemNome'] ?? '',
+                'locadorId': data['locadorId'] ?? '',
+                'compradorId': data['locatarioId'] ?? '',
+                'status': data['status'] ?? 'solicitado',
+                'nomeItem': data['itemNome'] ?? '',
+                'itemId': data['itemId'] ?? '',
+                'dataInicio': (data['dataInicio'] as Timestamp?)?.toDate().toIso8601String() ?? '',
+                'dataLimiteDevolucao': (data['dataFim'] as Timestamp?)?.toDate().toIso8601String() ?? '',
+                'valorAluguel': (data['precoTotal'] as num?)?.toDouble() ?? 0.0,
+                'valorCaucao': (data['caucao'] as Map<String, dynamic>?)?['valor']?.toDouble() ?? 0.0,
+                'valorDiaria': 0.0, // Calcular se necessário
+                'nomeLocador': data['locadorNome'] ?? '',
+                'nomeLocatario': data['locatarioNome'] ?? '',
+                'telefoneLocatario': data['telefoneLocatario'] ?? '',
+                'enderecoLocatario': data['enderecoLocatario'] ?? '',
+                'itemFotoUrl': data['itemFotoUrl'] ?? '',
+                'observacoesLocatario': data['observacoesLocatario'] ?? '',
+                'motivoRecusaLocador': data['motivoRecusaLocador'] ?? '',
+                'contratoId': data['contratoId'] ?? '',
               };
+              _carregando = false;
             });
           }
         });
@@ -130,6 +121,20 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    if (_carregando) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Status do Aluguel'),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.primary,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     final dataLimite = _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']);
     final agora = DateTime.now();
     final emAtraso = agora.isAfter(dataLimite);
@@ -152,13 +157,13 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   : (isLocador ? 'Gerenciar Aluguel' : 'Status do Aluguel'),
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
+                color: theme.colorScheme.onPrimary,
               ),
             ),
             Text(
               _dadosAluguelAtuais['nomeItem'] as String? ?? 'Item',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: theme.colorScheme.onPrimary.withOpacity(0.9),
                 fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
@@ -166,8 +171,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ),
           ],
         ),
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.onSurface,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
         elevation: 0,
         scrolledUnderElevation: 4,
         shadowColor: theme.shadowColor,
@@ -245,14 +250,14 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 // Se está solicitado, mostrar card de aguardando aprovação
                 if (isSolicitado) ...[
                   _buildAguardandoAprovacaoCard(theme, isLocador),
-                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
+                  SizedBox(height: 12),
                 ] else ...[
                   // Indicador de progresso do aluguel (só para aluguéis aprovados)
                   _buildProgressIndicator(theme, dataLimite),
-                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
+                  SizedBox(height: 12),
                   // Status do item
                   _buildStatusCard(theme, emAtraso, isLocador),
-                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
+                  SizedBox(height: 12),
                 ],
 
                 // Informações do aluguel (sempre visível)
@@ -260,7 +265,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
                 // Apenas mostrar contador, upload e algumas ações se NÃO estiver solicitado
                 if (!isSolicitado) ...[
-                  SizedBox(height: MediaQuery.of(context).size.width * 0.05),
+                  SizedBox(height: 12),
 
                   // Contador de tempo (só para locatário)
                   if (isLocatario) ...[
@@ -277,17 +282,14 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                       aluguelId: widget.aluguelId,
                       itemId: _dadosAluguelAtuais['itemId'] as String,
                     ),
-                    SizedBox(height: MediaQuery.of(context).size.width * 0.05),
                   ],
                 ],
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
 
                 // Botões de ação
-                _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario, isSolicitado),
+                _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario, isSolicitado, statusAluguel),
 
-                // Espaço extra para garantir que o último card não seja cortado
-                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -613,7 +615,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ],
               ),
             ),
-            SizedBox(height: screenWidth * 0.03),
+            SizedBox(height: 12),
           ],
 
           // Descrição do status
@@ -629,7 +631,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             child: Text(
               emAtraso
                   ? (isLocador ? 'O locatário está em atraso. Considere aplicar multa e notificar.' : 'Você está em atraso! Devolva o item o quanto antes para evitar multas adicionais.')
-                  : (isLocador ? 'Aluguel em andamento. Monitore a devolução e mantenha contato.' : 'Lembre-se de devolver no prazo combinado para manter sua reputação.'),
+                  : (isLocador ? 'Aluguel em andamento. Monitore a devolução e mantenha contato.' : 'Lembre-se de devolver no prazo combinado para evitar multas.'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: emAtraso ? Colors.red[700] : Colors.green[700],
                 height: 1.4,
@@ -697,27 +699,11 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           Row(
             children: [
               Expanded(
-                child: _buildInfoCard(
-                  theme,
-                  'Item Alugado',
-                  _dadosAluguelAtuais['nomeItem'] as String? ?? 'Item',
-                  Icons.inventory_2_rounded,
-                  theme.colorScheme.primary,
-                ),
-              ),
-              SizedBox(width: screenWidth * 0.03),
-              Expanded(
-                child: _buildInfoCard(
-                  theme,
-                  'Valor Total',
-                  'R\$ ${_dadosAluguelAtuais['valorAluguel'] ?? 0}',
-                  Icons.attach_money_rounded,
-                  Colors.green[600]!,
-                ),
+                child: _buildItemCard(theme),
               ),
             ],
           ),
-          SizedBox(height: screenWidth * 0.03),
+          SizedBox(height: 12),
 
           Row(
             children: [
@@ -725,108 +711,94 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 child: _buildInfoCard(
                   theme,
                   'Caução',
-                  'R\$ ${_dadosAluguelAtuais['valorCaucao'] ?? 0}',
+                  'R\$ ${(double.tryParse(_dadosAluguelAtuais['valorCaucao']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2)}',
                   Icons.security_rounded,
                   Colors.orange[600]!,
                 ),
               ),
-              SizedBox(width: screenWidth * 0.03),
+              SizedBox(width: 12),
+
               Expanded(
                 child: _buildInfoCard(
                   theme,
-                  'Data Limite',
-                  _formatarData(_parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao'])),
-                  Icons.calendar_today_rounded,
-                  Colors.blue[600]!,
+                  'Valor Total',
+                  'R\$ ${(double.tryParse(_dadosAluguelAtuais['valorAluguel']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2)}',
+                  Icons.attach_money_rounded,
+                  Colors.green[600]!,
                 ),
               ),
             ],
           ),
 
-          // Informações do locador (sempre visível)
-          SizedBox(height: screenWidth * 0.05),
-          Container(
-            padding: EdgeInsets.all(screenWidth * 0.04),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            // Informações da outra parte
+            SizedBox(height: 12),
+            if (isLocador) ...[
+              Container(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
                   children: [
-                    Icon(
-                      Icons.person_rounded,
-                      size: screenWidth * 0.045,
-                      color: theme.colorScheme.primary,
+                    Expanded(
+                      child: Text(
+                        _dadosAluguelAtuais['nomeLocatario'] ?? 'Locatário',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    SizedBox(width: screenWidth * 0.02),
-                    Text(
-                      'Locador',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
+                    GestureDetector(
+                      onTap: () {
+                        context.push('${AppRoutes.perfilPublico}/${_dadosAluguelAtuais['locatarioId'] ?? ''}');
+                      },
+                      child: Icon(
+                        Icons.remove_red_eye_outlined,
+                        color: theme.colorScheme.secondary,
+                        size: screenWidth * 0.05,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: screenWidth * 0.02),
-                Text(
-                  _dadosAluguelAtuais['nomeLocador'] as String? ?? 'Locador',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
+              ),
+            ] else ...[
+              Container(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withOpacity(0.2),
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // Informações do locatário (só para locador)
-          if (isLocador) ...[
-            SizedBox(height: screenWidth * 0.04),
-            Container(
-              padding: EdgeInsets.all(screenWidth * 0.04),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.people_rounded,
-                        size: screenWidth * 0.045,
-                        color: theme.colorScheme.secondary,
-                      ),
-                      SizedBox(width: screenWidth * 0.02),
-                      Text(
-                        'Locatário',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.secondary,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _dadosAluguelAtuais['nomeLocador'] as String? ?? 'Locador',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ],
-                  ),
-                  SizedBox(height: screenWidth * 0.03),
-                  _buildContatoRow(theme, Icons.person, _dadosAluguelAtuais['nomeLocatario'] ?? 'João Silva'),
-                  SizedBox(height: screenWidth * 0.02),
-                  _buildContatoRow(theme, Icons.phone, _dadosAluguelAtuais['telefoneLocatario'] ?? '(11) 99999-9999'),
-                  SizedBox(height: screenWidth * 0.02),
-                  _buildContatoRow(theme, Icons.location_on, _dadosAluguelAtuais['enderecoLocatario'] ?? 'Rua das Flores, 123'),
-                ],
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        context.push('${AppRoutes.perfilPublico}/${_dadosAluguelAtuais['locadorId'] ?? ''}');
+                      },
+                      child: Icon(
+                        Icons.remove_red_eye_outlined,
+                        color: theme.colorScheme.primary,
+                        size: screenWidth * 0.05,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
         ],
       ),
     );
@@ -878,33 +850,76 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     );
   }
 
-  Widget _buildContatoRow(ThemeData theme, IconData icone, String texto) {
+  Widget _buildItemCard(ThemeData theme) {
     final screenWidth = MediaQuery.of(context).size.width;
-    return Row(
-      children: [
-        Icon(
-          icone,
-          size: screenWidth * 0.04,
-          color: theme.colorScheme.onSurfaceVariant,
+    final cor = theme.colorScheme.primary;
+    return Container(
+      padding: EdgeInsets.all(screenWidth * 0.04),
+      constraints: BoxConstraints(minHeight: screenWidth * 0.15), // altura mínima para 2 linhas
+      decoration: BoxDecoration(
+        color: cor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cor.withOpacity(0.2),
         ),
-        SizedBox(width: screenWidth * 0.02),
-        Expanded(
-          child: Text(
-            texto,
-            style: theme.textTheme.bodyMedium?.copyWith(
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.inventory_2_rounded, size: screenWidth * 0.04, color: cor),
+              SizedBox(width: screenWidth * 0.015),
+              Expanded(
+                child: Text(
+                  'Item Alugado',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: cor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: screenWidth * 0.015),
+          Text(
+            _dadosAluguelAtuais['nomeItem'] as String? ?? 'Item',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
+          SizedBox(height: screenWidth * 0.01),
+          Row(
+            children: [
+              Icon(Icons.calendar_today_rounded, size: screenWidth * 0.035, color: Colors.blue[600]!),
+              SizedBox(width: screenWidth * 0.01),
+              Expanded(
+                child: Text(
+                  'Data Limite: ${_formatarData(_parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']))}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.blue[600]!,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario, bool isSolicitado) {
+  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario, bool isSolicitado, String? statusAluguel) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(bottom: screenWidth * 0.04),
       padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -950,7 +965,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
             ],
           ),
-          SizedBox(height: screenWidth * 0.05),
+          const SizedBox(height: 12),
 
           // Se está solicitado, mostrar ações específicas
           if (isSolicitado) ...[
@@ -974,9 +989,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 _aprovarSolicitacao,
                 isPrimary: true,
               ),
-              
-              SizedBox(height: screenWidth * 0.03),
-              
+
+              const SizedBox(height: 12),
+
               _buildActionButton(
                 theme,
                 'Recusar Solicitação',
@@ -994,7 +1009,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   color: Colors.orange[700],
                 ),
               ),
-              SizedBox(height: screenWidth * 0.03),
+              const SizedBox(height: 12),
               
               Container(
                 padding: EdgeInsets.all(screenWidth * 0.04),
@@ -1032,27 +1047,19 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ],
           ] else if (isLocatario) ...[
             // Seção para locatário
-            Text(
-              'Como Locatário',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
+            if (statusAluguel != 'devolucaoPendente') ...[
+              _buildActionButton(
+                theme,
+                'Confirmar Devolução',
+                'Confirme que devolveu o item',
+                Icons.check_circle_rounded,
+                Colors.green[600]!,
+                _confirmarDevolucao,
+                isPrimary: true,
               ),
-            ),
-            SizedBox(height: screenWidth * 0.03),
 
-            // Botão principal - Confirmar Devolução
-            _buildActionButton(
-              theme,
-              'Confirmar Devolução',
-              'Confirme que devolveu o item',
-              Icons.check_circle_rounded,
-              Colors.green[600]!,
-              _confirmarDevolucao,
-              isPrimary: true,
-            ),
-
-            SizedBox(height: screenWidth * 0.03),
+              const SizedBox(height: 10),
+            ],
 
             // Botões secundários em linha
             Row(
@@ -1084,16 +1091,6 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ),
           ] else if (isLocador) ...[
             // Seção para locador
-            Text(
-              'Como Locador',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            SizedBox(height: screenWidth * 0.03),
-
-            // Botão principal - Aprovar Devolução
             _buildActionButton(
               theme,
               'Aprovar Devolução',
@@ -1104,7 +1101,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               isPrimary: true,
             ),
 
-            SizedBox(height: screenWidth * 0.03),
+            const SizedBox(height: 10),
 
             // Botões secundários em linha
             Row(
@@ -1151,9 +1148,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     bool isCompact = false,
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      height: isCompact ? screenWidth * 0.2 : screenWidth * 0.25,
+      height: isCompact ? screenWidth * 0.18 : screenWidth * 0.22,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -1212,7 +1209,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                             ? Colors.white.withOpacity(0.9)
                             : theme.colorScheme.onSurfaceVariant,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -1562,7 +1559,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _processarAprovacao();
+              processarAprovacao();
             },
             child: const Text('Aprovar'),
           ),
@@ -1600,115 +1597,13 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     );
   }
 
-  void _processarAprovacao() async {
-    // Verificar se o usuário está totalmente verificado
-    if (!VerificacaoHelper.usuarioVerificado(ref)) {
-      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
-      return;
-    }
-
-    bool dialogAberto = false;
-    
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Processando aprovação...'),
-            ],
-          ),
-        ),
-      );
-      dialogAberto = true;
-
-      // Atualizar status do aluguel para concluído
-      final aluguelController = ref.read(aluguelControllerProvider.notifier);
-      await aluguelController.atualizarStatusAluguel(widget.aluguelId, StatusAluguel.concluido);
-
-      // Liberar a caução
-      await aluguelController.liberarCaucaoAluguel(widget.aluguelId);
-
-      // Criar avaliações pendentes
-      if (mounted) {
-        await _criarAvaliacoesPendentes();
-      }
-
-      if (mounted && dialogAberto) {
-        dialogAberto = false;
-        // Navegar para a página de aluguéis após sucesso
-        context.go(AppRoutes.meusAlugueis);
-        SnackBarUtils.mostrarSucesso(
-          context,
-          'Devolução aprovada! Caução liberada para o locatário. ✅',
-        );
-      }
-    } catch (e) {
-      if (mounted && dialogAberto) {
-        dialogAberto = false;
-        Navigator.of(context).pop();
-        SnackBarUtils.mostrarErro(context, 'Erro ao aprovar devolução: $e');
-      }
-    }
-  }
-
-  Future<void> _criarAvaliacoesPendentes() async {
-    try {
-      final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
-      if (usuarioAtual == null) {
-        return;
-      }
-
-      // Buscar dados completos do aluguel no Firestore
-      final aluguelRepository = ref.read(aluguelRepositoryProvider);
-      final aluguel = await aluguelRepository.getAluguelPorId(widget.aluguelId);
-      
-      if (aluguel == null) {
-        return;
-      }
-
-      // Buscar fotos dos usuários
-      final authController = ref.read(authControllerProvider.notifier);
-      final locadorUser = await authController.buscarUsuario(aluguel.locadorId);
-      final locatarioUser = await authController.buscarUsuario(aluguel.locatarioId);
-
-      final locadorFoto = locadorUser?.fotoUrl;
-      final locatarioFoto = locatarioUser?.fotoUrl;
-
-      // Importar o serviço de avaliações pendentes
-      final avaliacaoPendenteService = ref.read(avaliacaoPendenteServiceProvider);
-
-      // Criar avaliação pendente para o locatário avaliar o locador
-      await avaliacaoPendenteService.criarAvaliacaoPendente(
-        aluguelId: widget.aluguelId,
-        itemId: aluguel.itemId,
-        itemNome: aluguel.itemNome,
-        avaliadorId: aluguel.locatarioId,
-        avaliadoId: aluguel.locadorId,
-        avaliadoNome: aluguel.locadorNome,
-        avaliadoFoto: locadorFoto,
-        tipoUsuario: 'locatario',
-      );
-
-      // Criar avaliação pendente para o locador avaliar o locatário
-      await avaliacaoPendenteService.criarAvaliacaoPendente(
-        aluguelId: widget.aluguelId,
-        itemId: aluguel.itemId,
-        itemNome: aluguel.itemNome,
-        avaliadorId: aluguel.locadorId,
-        avaliadoId: aluguel.locatarioId,
-        avaliadoNome: aluguel.locatarioNome,
-        avaliadoFoto: locatarioFoto,
-        tipoUsuario: 'locador',
-      );
-
-    } catch (e) {
-      // Não mostrar erro para o usuário, pois isso é um processo em background
-    }
+  void processarAprovacao() async {
+    await SolicitacaoHelpers.aprovarDevolucao(
+      context,
+      ref,
+      widget.aluguelId,
+      navegarParaAlugueis: true,
+    );
   }
 
   void _processarRejeicao() async {
@@ -1882,9 +1777,10 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
       padding: const EdgeInsets.all(16),
       child: Form(
         key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Cabeçalho
             Row(
               children: [
@@ -1973,7 +1869,7 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
             const SizedBox(height: 8),
             
             Container(
-              height: 100,
+              height: MediaQuery.of(context).size.width * 0.25,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8),
@@ -2019,7 +1915,7 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
               label: const Text('Adicionar Foto'),
             ),
             
-            const Spacer(),
+            const SizedBox(height: 24),
             
             // Botões
             Row(
@@ -2044,6 +1940,7 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

@@ -75,7 +75,6 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
               Expanded(
                 child: SingleChildScrollView(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -118,19 +117,72 @@ class _AceiteContratoPageState extends ConsumerState<AceiteContratoPage> {
                       // Conteúdo HTML do contrato
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: theme.colorScheme.outline),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Html(
                           data: contrato.conteudoHtml,
                           style: {
                             "body": Style(
+                              fontFamily: 'Arial',
+                              margin: Margins.all(30.0),
+                              lineHeight: const LineHeight(1.6),
+                              color: theme.colorScheme.onSurface,
                               fontSize: FontSize(14),
-                              lineHeight: const LineHeight(1.5),
+                            ),
+                            ".header": Style(
+                              textAlign: TextAlign.center,
+                              margin: Margins.only(bottom: 30.0),
+                            ),
+                            "h2": Style(
+                              color: theme.colorScheme.error,
+                              margin: Margins.only(bottom: 5.0),
+                            ),
+                            "h3": Style(
+                              color: theme.colorScheme.error,
+                              margin: Margins.only(bottom: 5.0),
+                            ),
+                            "h4": Style(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              margin: Margins.only(bottom: 10.0),
+                              border: Border(bottom: BorderSide(color: theme.colorScheme.outline, width: 1.0)),
+                              padding: HtmlPaddings.only(bottom: 5.0),
+                            ),
+                            "ul": Style(
+                              margin: Margins.only(left: 20.0),
                             ),
                             ".destaque": Style(
-                              color: Colors.red,
                               fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.error,
+                            ),
+                            ".assinaturas": Style(
+                              margin: Margins.only(top: 40.0),
+                              textAlign: TextAlign.center,
+                            ),
+                            ".assinaturas div": Style(
+                              display: Display.inlineBlock,
+                              margin: Margins.symmetric(horizontal: 40.0),
+                            ),
+                            ".assinaturas p": Style(
+                              margin: Margins.only(top: 5.0),
+                              border: Border(top: BorderSide(color: theme.colorScheme.onSurface, width: 1.0)),
+                              padding: HtmlPaddings.only(top: 5.0),
+                            ),
+                            ".footer": Style(
+                              margin: Margins.only(top: 30.0),
+                              fontSize: FontSize(12),
+                              color: theme.colorScheme.onSurfaceVariant,
+                              textAlign: TextAlign.center,
+                              border: Border(top: BorderSide(color: theme.colorScheme.outline, width: 1.0)),
+                              padding: HtmlPaddings.only(top: 10.0),
+                            ),
+                            ".section": Style(
+                              margin: Margins.only(bottom: 20.0),
+                            ),
+                            ".metadata": Style(
+                              fontSize: FontSize(11),
+                              color: theme.colorScheme.onSurfaceVariant,
+                              margin: Margins.only(top: 5.0),
                             ),
                           },
                         ),

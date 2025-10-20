@@ -25,4 +25,6 @@ abstract class AluguelRepository {
     String? motivoRetencao,
     double? valorRetido,
   });
+
+  Future<void> incrementarTotalAlugueisItem(String itemId);
 }

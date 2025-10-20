@@ -34,6 +34,7 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
     final verificacaoState = ref.watch(verificacaoFotosProvider(widget.aluguelId));
 
     // Atualizar estado local quando os dados do provider mudarem
@@ -62,35 +63,54 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
       }
     });
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.camera_alt, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(screenWidth * 0.05),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header com ícone
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(screenWidth * 0.02),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.camera_alt_rounded,
+                  color: theme.colorScheme.primary,
+                  size: screenWidth * 0.05,
+                ),
+              ),
+              SizedBox(width: screenWidth * 0.03),
+              Expanded(
+                child: Text(
                   'Verificação do Item',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
-              ],
-            ),
-            
-            const SizedBox(height: 8),
-            
-            Text(
-              'Tire fotos do item antes e depois do uso para sua proteção',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
               ),
-            ),
-            
-            const SizedBox(height: 16),
+            ],
+          ),
+          SizedBox(height: screenWidth * 0.05),
             
             // Fotos ANTES do uso
             _buildSecaoFotos(
@@ -130,8 +150,7 @@ class _UploadFotosVerificacaoState extends ConsumerState<UploadFotosVerificacao>
             ],
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildSecaoFotos({

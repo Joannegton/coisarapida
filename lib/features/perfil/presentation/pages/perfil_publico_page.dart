@@ -28,6 +28,7 @@ class PerfilPublicoPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
     final perfilDetalhadoState = ref.watch(perfilPublicoDetalhadoProvider(usuarioId));
 
     return Scaffold(
@@ -39,8 +40,10 @@ class PerfilPublicoPage extends ConsumerWidget {
             slivers: [
               // AppBar com foto de capa
               SliverAppBar(
-                expandedHeight: screenSize.height * 0.29,
+                expandedHeight: screenSize.height * 0.25,
                 pinned: true,
+                backgroundColor: theme.colorScheme.primary,
+                surfaceTintColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     decoration: BoxDecoration(
@@ -57,22 +60,22 @@ class PerfilPublicoPage extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 20),
                           // Avatar
                           Stack(
                             children: [
                               CircleAvatar(
-                                radius: screenSize.width * 0.12,
+                                radius: screenWidth * 0.12,
                                 backgroundColor: Colors.white,
                                 child: CircleAvatar(
-                                  radius: screenSize.width * 0.115,
+                                  radius: screenWidth * 0.115,
                                   backgroundImage: foto != null && foto.isNotEmpty
                                       ? NetworkImage(foto)
                                       : null,
                                   child: (foto == null || foto.isEmpty)
                                       ? Icon(
                                           Icons.person,
-                                          size: screenSize.width * 0.12,
+                                          size: screenWidth * 0.12,
                                           color: theme.colorScheme.primary,
                                         )
                                       : null,
@@ -153,62 +156,58 @@ class PerfilPublicoPage extends ConsumerWidget {
               // Conteúdo do perfil
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenSize.width * 0.05,
-                    vertical: 16,
-                  ),
+                  padding: EdgeInsets.all(screenWidth * 0.05),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Estatísticas
-                      PerfilEstatisticasWidget(usuario: usuario, theme: theme),
-                      
-                      const SizedBox(height: 24),
-                      /* TODO: Adicionar campo 'sobre' à entidade Usuario e exibir aqui
-                      // Sobre
-                      if (usuario['sobre'] != null) ...[
-                        _buildSecao(
-                          context,
-                          theme,
-                          'Sobre',
-                          Icons.info_outline,
-                          [
-                            Text(
-                              usuario['sobre'],
-                              style: theme.textTheme.bodyLarge,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                      */
-                      // Avaliações
-                      PerfilAvaliacoesWidget(
-                        avaliacoes: perfilDetalhado.avaliacoesRecebidas,
-                        theme: theme,
-                        onVerTodasPressed: _verTodasAvaliacoes,
+                      _buildCard(
+                        theme,
+                        screenWidth,
+                        'Estatísticas',
+                        Icons.bar_chart_rounded,
+                        PerfilEstatisticasWidget(usuario: usuario, theme: theme),
                       ),
 
+                      SizedBox(height: screenWidth * 0.05),
 
-                      const SizedBox(height: 24),
+                      // Avaliações
+                      _buildCard(
+                        theme,
+                        screenWidth,
+                        'Avaliações (${perfilDetalhado.avaliacoesRecebidas.length})',
+                        Icons.star_border_rounded,
+                        PerfilAvaliacoesWidget(
+                          avaliacoes: perfilDetalhado.avaliacoesRecebidas,
+                          theme: theme,
+                          onVerTodasPressed: _verTodasAvaliacoes,
+                        ),
+                      ),
+
+                      SizedBox(height: screenWidth * 0.05),
 
                       // Itens do usuário
-                      PerfilItensUsuarioWidget(
-                        itens: perfilDetalhado.itensAnunciados,
-                        usuario: usuario,
-                        theme: theme,
+                      _buildCard(
+                        theme,
+                        screenWidth,
+                        'Itens Anunciados (${perfilDetalhado.itensAnunciados.length})',
+                        Icons.inventory_2_rounded,
+                        PerfilItensUsuarioWidget(
+                          itens: perfilDetalhado.itensAnunciados,
+                          usuario: usuario,
+                          theme: theme,
+                        ),
                       ),
 
-                      const SizedBox(height: 24),
+                      SizedBox(height: screenWidth * 0.05),
 
-                      // Botões de ação
                       PerfilBotoesAcaoWidget(
-                        usuario: usuario,
-                        theme: theme,
-                        onIniciarChat: () => _iniciarChat(context, usuario, ref),
-                        onVerItensUsuario: () => _verItensUsuario(context, usuario),
-                      ),
-                    ],
+                          usuario: usuario,
+                          theme: theme,
+                          onIniciarChat: () => _iniciarChat(context, usuario, ref),
+                          onVerItensUsuario: () => _verItensUsuario(context, usuario),
+                        ),
+                     ],
                   ),
                 ),
               ),
@@ -236,6 +235,70 @@ class PerfilPublicoPage extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCard(ThemeData theme, double screenWidth, String titulo, IconData icone, Widget child) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header com ícone
+          Padding(
+            padding: EdgeInsets.all(screenWidth * 0.05),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(screenWidth * 0.02),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icone,
+                    color: theme.colorScheme.primary,
+                    size: screenWidth * 0.05,
+                  ),
+                ),
+                SizedBox(width: screenWidth * 0.03),
+                Text(
+                  titulo,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Conteúdo
+          Padding(
+            padding: EdgeInsets.only(
+              left: screenWidth * 0.05,
+              right: screenWidth * 0.05,
+              bottom: screenWidth * 0.05,
+            ),
+            child: Center(
+              child: child,
+            ),
+          ),
+        ],
       ),
     );
   }

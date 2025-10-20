@@ -198,4 +198,17 @@ class AluguelRepositoryImpl implements AluguelRepository {
           'Erro ao liberar caução do aluguel: ${e.toString()}');
     }
   }
+
+  @override
+  Future<void> incrementarTotalAlugueisItem(String itemId) async {
+    try {
+      await _firestore.collection('itens').doc(itemId).update({
+        'totalAlugueis': FieldValue.increment(1),
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw ServerException(
+          'Erro ao incrementar total de aluguéis do item: ${e.toString()}');
+    }
+  }
 }

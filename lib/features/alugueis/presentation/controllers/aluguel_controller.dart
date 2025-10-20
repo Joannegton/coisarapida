@@ -6,6 +6,7 @@ import 'package:coisarapida/features/alugueis/domain/repositories/aluguel_reposi
 import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_providers.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart'; // Para pegar dados do item
+import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -109,8 +110,37 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
       {String? motivo}) async {
     state = const AsyncValue.loading();
     try {
+      // Buscar o aluguel para validações
+      final aluguel = await _aluguelRepository.getAluguelPorId(aluguelId);
+      if (aluguel == null) {
+        throw Exception('Aluguel não encontrado.');
+      }
+
+      // Obter o usuário atual
+      final usuarioAsyncValue = _ref.read(usuarioAtualStreamProvider);
+      final usuarioAtual = usuarioAsyncValue.value;
+      if (usuarioAtual == null) {
+        throw Exception('Usuário não autenticado.');
+      }
+
+      // Validação: apenas o locador pode aprovar a solicitação
+      if (novoStatus == StatusAluguel.aprovado && aluguel.locadorId != usuarioAtual.id) {
+        throw Exception('Apenas o locador pode aprovar a solicitação de aluguel.');
+      }
+
+      // Validação: apenas o locador pode recusar a solicitação
+      if (novoStatus == StatusAluguel.recusado && aluguel.locadorId != usuarioAtual.id) {
+        throw Exception('Apenas o locador pode recusar a solicitação de aluguel.');
+      }
+
       await _aluguelRepository.atualizarStatusAluguel(aluguelId, novoStatus,
           motivo: motivo);
+
+      // Se aprovado e há contrato, o locador assina o contrato
+      if (novoStatus == StatusAluguel.aprovado && aluguel.contratoId != null) {
+        await _ref.read(contratoProvider(aluguelId).notifier).aceitarContrato(aluguel.contratoId!);
+      }
+
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);

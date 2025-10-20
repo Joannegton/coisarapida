@@ -1,6 +1,6 @@
 import 'package:coisarapida/features/avaliacoes/domain/entities/avaliacao.dart';
 import 'package:flutter/material.dart';
-import 'avaliacao_item_widget.dart'; // Importe o widget de item de avaliação
+import 'avaliacao_item_widget.dart';
 
 class PerfilAvaliacoesWidget extends StatelessWidget {
   final List<Avaliacao> avaliacoes;
@@ -16,42 +16,25 @@ class PerfilAvaliacoesWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(Icons.star_border, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'O que dizem (${avaliacoes.length})',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (avaliacoes.isEmpty)
+          const Center(child: Text('Nenhuma avaliação recebida ainda.')),
+        ...avaliacoes.take(3).map((av) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: AvaliacaoItemWidget(avaliacao: av, theme: theme),
+        )),
+        if (avaliacoes.length > 3) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton(
+              onPressed: () => onVerTodasPressed(context, avaliacoes),
+              child: const Text('Ver todas'),
             ),
-            const SizedBox(height: 16),
-            if (avaliacoes.isEmpty)
-              const Text('Nenhuma avaliação recebida ainda.'),
-            ...avaliacoes.take(3).map((av) => AvaliacaoItemWidget(avaliacao: av, theme: theme)),
-            if (avaliacoes.length > 3) ...[
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => onVerTodasPressed(context, avaliacoes),
-                  child: const Text('Ver todas'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+          ),
+        ],
+      ],
     );
   }
 }

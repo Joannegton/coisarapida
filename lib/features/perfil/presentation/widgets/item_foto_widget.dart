@@ -39,7 +39,7 @@ class ItemFotoWidget extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(item.nome, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text('R\$ ${item.precoPorDia.toStringAsFixed(2)} / dia'),
+          Text('R\$ ${item.precoPorDia != null ? '${item.precoPorDia.toStringAsFixed(2)}/ dia' : item.precoVenda?.toStringAsFixed(2)} ', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

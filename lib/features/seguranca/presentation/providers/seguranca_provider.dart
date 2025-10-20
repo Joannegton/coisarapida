@@ -171,19 +171,8 @@ class ContratoNotifier extends StateNotifier<AsyncValue<ContratoDigital?>> {
     try {
       await _repository.aceitarContrato(contratoId);
 
-      // TODO Atualizar estado local
-      final contrato = state.asData?.value;
-      if (contrato != null) {
-        final aceite = AceiteContrato(
-          dataHora: DateTime.now(),
-          enderecoIp: '192.168.1.1',
-          userAgent: 'Flutter App',
-          assinaturaDigital: 'assinatura_digital',
-        );
-
-        final contratoAtualizado = contrato.copyWith(aceite: aceite);
-        state = AsyncValue.data(contratoAtualizado);
-      }
+      // Recarregar contrato para atualizar estado local
+      await carregarContrato();
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
       debugPrint(
