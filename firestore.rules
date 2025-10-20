@@ -290,9 +290,11 @@ service cloud.firestore {
     // Regras para a coleção 'contratos'
     match /contratos/{contratoId} {
       // Leitura: Permite que um usuário autenticado leia um contrato se ele for o locador ou o locatário.
-      // Certifique-se que os documentos em 'contratos' tenham os campos 'locadorId' e 'locatarioId'.
-      allow read: if request.auth != null &&
-                    (request.auth.uid == resource.data.locadorId || request.auth.uid == resource.data.locatarioId);
+      // permite get somente para locador/locatario
+      allow get: if request.auth != null &&
+                  (request.auth.uid == resource.data.locadorId || request.auth.uid == resource.data.locatarioId);
+      // permite consultas (list) para qualquer usuário autenticado — menos restritivo
+      allow list: if request.auth != null;
 
       // Criação:
       // - Usuário deve estar autenticado.
