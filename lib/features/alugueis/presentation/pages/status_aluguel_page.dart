@@ -16,6 +16,7 @@ import '../../../itens/presentation/providers/item_provider.dart';
 import '../providers/aluguel_providers.dart';
 import '../helpers/solicitacao_helpers.dart';
 import '../../domain/entities/aluguel.dart';
+import '../../domain/entities/caucao_aluguel.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 
@@ -41,6 +42,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   late Map<String, dynamic> _dadosAluguelAtuais;
   bool _isCreatingChat = false;
   bool _carregando = true;
+  bool _aprovandoDevolucao = false;
   
   @override
   void initState() {
@@ -1099,6 +1101,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               Colors.green[600]!,
               _aprovarDevolucao,
               isPrimary: true,
+              isLoading: _aprovandoDevolucao,
             ),
 
             const SizedBox(height: 10),
@@ -1115,6 +1118,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     Colors.red[600]!,
                     _rejeitarDevolucao,
                     isCompact: true,
+                    isLoading: _aprovandoDevolucao,
                   ),
                 ),
                 SizedBox(width: screenWidth * 0.03),
@@ -1127,6 +1131,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     theme.colorScheme.primary,
                     _abrirChat,
                     isCompact: true,
+                    isLoading: _aprovandoDevolucao,
                   ),
                 ),
               ],
@@ -1146,13 +1151,14 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     VoidCallback onPressed, {
     bool isPrimary = false,
     bool isCompact = false,
+    bool isLoading = false,
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
     return SizedBox(
       width: double.infinity,
       height: isCompact ? screenWidth * 0.18 : screenWidth * 0.22,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isPrimary ? cor : Colors.transparent,
           foregroundColor: isPrimary ? Colors.white : cor,
@@ -1176,11 +1182,22 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                     : cor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icone,
-                size: isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
-                color: isPrimary ? Colors.white : cor,
-              ),
+              child: isLoading
+                  ? SizedBox(
+                      width: isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
+                      height: isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(
+                          isPrimary ? Colors.white : cor,
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      icone,
+                      size: isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
+                      color: isPrimary ? Colors.white : cor,
+                    ),
             ),
             SizedBox(width: screenWidth * 0.03),
             Expanded(
@@ -1189,7 +1206,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    titulo,
+                    isLoading ? 'Processando...' : titulo,
                     style: (isCompact
                             ? theme.textTheme.bodyLarge
                             : theme.textTheme.titleMedium)
@@ -1216,7 +1233,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ],
               ),
             ),
-            if (!isCompact)
+            if (!isCompact && !isLoading)
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: screenWidth * 0.04,
@@ -1309,31 +1326,32 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _cancelarSolicitacao() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancelar Solicitação'),
-        content: const Text(
-          'Você confirma que deseja cancelar esta solicitação de aluguel? '
-          'Esta ação não pode ser desfeita.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Não'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _processarCancelamentoSolicitacao();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[600],
-            ),
-            child: const Text('Sim, Cancelar'),
-          ),
-        ],
+    // Criar um objeto Aluguel a partir dos dados atuais
+    final aluguel = Aluguel(
+      id: widget.aluguelId,
+      itemId: _dadosAluguelAtuais['itemId'] ?? '',
+      itemNome: _dadosAluguelAtuais['nomeItem'] ?? '',
+      itemFotoUrl: '', // Não temos esse dado aqui
+      locadorId: _dadosAluguelAtuais['locadorId'] ?? '',
+      locadorNome: _dadosAluguelAtuais['nomeLocador'] ?? '',
+      locatarioId: _dadosAluguelAtuais['compradorId'] ?? '',
+      locatarioNome: '', // Não temos esse dado aqui
+      dataInicio: _parseDateTime(_dadosAluguelAtuais['dataInicio']),
+      dataFim: _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']),
+      precoTotal: double.parse(_dadosAluguelAtuais['valorAluguel']?.toString() ?? '0'),
+      status: StatusAluguel.solicitado,
+      criadoEm: DateTime.now(),
+      caucao: CaucaoAluguel(
+        valor: double.parse(_dadosAluguelAtuais['valorCaucao']?.toString() ?? '0'),
+        status: StatusCaucaoAluguel.naoAplicavel, // Valor padrão
       ),
+    );
+
+    SolicitacaoHelpers.cancelarSolicitacao(
+      context,
+      ref,
+      aluguel,
+      fecharPaginaAposCancelar: true,
     );
   }
 
@@ -1419,49 +1437,6 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       if (mounted) {
         Navigator.of(context).pop();
         SnackBarUtils.mostrarErro(context, 'Erro ao recusar solicitação: $e');
-      }
-    }
-  }
-
-  void _processarCancelamentoSolicitacao() async {
-    // Verificar se o usuário está totalmente verificado
-    if (!VerificacaoHelper.usuarioVerificado(ref)) {
-      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
-      return;
-    }
-
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Cancelando solicitação...'),
-            ],
-          ),
-        ),
-      );
-
-      // TODO: Implementar lógica de cancelamento no backend
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        SnackBarUtils.mostrarSucesso(
-          context,
-          'Solicitação cancelada com sucesso. ✅',
-        );
-        // Voltar para a tela anterior
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop();
-        SnackBarUtils.mostrarErro(context, 'Erro ao cancelar solicitação: $e');
       }
     }
   }
@@ -1598,12 +1573,30 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void processarAprovacao() async {
-    await SolicitacaoHelpers.aprovarDevolucao(
-      context,
-      ref,
-      widget.aluguelId,
-      navegarParaAlugueis: true,
-    );
+    setState(() {
+      _aprovandoDevolucao = true;
+    });
+
+    try {
+      await SolicitacaoHelpers.aprovarDevolucao(
+        context,
+        ref,
+        widget.aluguelId,
+      );
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(
+          context,
+          'Erro ao aprovar devolução: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _aprovandoDevolucao = false;
+        });
+      }
+    }
   }
 
   void _processarRejeicao() async {

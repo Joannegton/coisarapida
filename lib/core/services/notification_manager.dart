@@ -78,7 +78,6 @@ class NotificationManager {
           'rota': '/status-aluguel/$aluguelId',
         },
       );
-      debugPrint('✅ Notificação de solicitação aprovada enviada para $locatarioId');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de solicitação aprovada: $e');
     }
@@ -108,7 +107,6 @@ class NotificationManager {
           'rota': '/status-aluguel/$aluguelId',
         },
       );
-      debugPrint('✅ Notificação de solicitação recusada enviada para $locatarioId');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de solicitação recusada: $e');
     }
@@ -133,7 +131,6 @@ class NotificationManager {
           'rota': '/status-aluguel/$aluguelId',
         },
       );
-      debugPrint('✅ Notificação de pagamento pendente enviada para $locatarioId');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de pagamento pendente: $e');
     }
@@ -172,7 +169,6 @@ class NotificationManager {
           'rota': '/status-aluguel/$aluguelId',
         },
       );
-      debugPrint('✅ Notificações de pagamento confirmado enviadas');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de pagamento confirmado: $e');
     }
@@ -202,7 +198,6 @@ class NotificationManager {
           'rota': '/status-aluguel/$aluguelId',
         },
       );
-      debugPrint('✅ Notificação de lembrete de devolução enviada para $locatarioId');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de lembrete de devolução: $e');
     }
@@ -227,13 +222,11 @@ class NotificationManager {
           'rota': '/status-aluguel/$aluguelId',
         },
       );
-      debugPrint('✅ Notificação de devolução solicitada enviada para $locadorId');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de devolução solicitada: $e');
     }
   }
 
-  /// Envia notificação quando a devolução é aprovada
   Future<void> notificarDevolucaoAprovada({
     required String locatarioId,
     required String itemNome,
@@ -251,7 +244,6 @@ class NotificationManager {
           'rota': '/status-aluguel/$aluguelId',
         },
       );
-      debugPrint('✅ Notificação de devolução aprovada enviada para $locatarioId');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de devolução aprovada: $e');
     }
@@ -276,7 +268,6 @@ class NotificationManager {
           'rota': '/avaliacoes-pendentes',
         },
       );
-      debugPrint('✅ Notificação de avaliação pendente enviada para $usuarioId');
     } catch (e) {
       debugPrint('❌ Erro ao enviar notificação de avaliação pendente: $e');
     }
@@ -291,7 +282,6 @@ class NotificationManager {
     required Map<String, dynamic> dados,
   }) async {
     try {
-      // 1. Sempre salvar notificação no Firestore (para histórico)
       await _salvarNotificacaoFirestore(
         destinatarioId: destinatarioId,
         tipo: tipo,
@@ -300,7 +290,6 @@ class NotificationManager {
         dados: dados,
       );
 
-      // 2. Buscar o FCM token do destinatário
       final userDoc = await _firestore.collection('usuarios').doc(destinatarioId).get();
 
       if (!userDoc.exists) {
@@ -315,19 +304,16 @@ class NotificationManager {
         return;
       }
 
-      // 3. Tentar enviar push notification via Cloud Function
       try {
-        final result = await _functions.httpsCallable('enviarNotificacao').call({
+        await _functions.httpsCallable('enviarNotificacao').call({
           'token': fcmToken,
           'titulo': titulo,
           'mensagem': mensagem,
           'dados': dados,
         });
 
-        debugPrint('✅ Notificação push enviada com sucesso: ${result.data}');
       } catch (e) {
         debugPrint('⚠️ Falha ao enviar push notification, mas notificação salva no Firestore: $e');
-        // Não é erro crítico pois a notificação já foi salva no Firestore
       }
     } catch (e) {
       debugPrint('❌ Erro ao processar notificação: $e');
@@ -353,7 +339,6 @@ class NotificationManager {
         'lida': false,
         'dataCriacao': FieldValue.serverTimestamp(),
       });
-      debugPrint('✅ Notificação salva no Firestore para histórico');
     } catch (e) {
       debugPrint('❌ Erro ao salvar notificação no Firestore: $e');
     }

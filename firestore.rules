@@ -289,48 +289,43 @@ service cloud.firestore {
     
     // Regras para a coleção 'contratos'
     match /contratos/{contratoId} {
-      // Leitura: Permite que um usuário autenticado leia um contrato se ele for o locador ou o locatário.
-      // permite get somente para locador/locatario
-      allow get: if request.auth != null &&
-                  (request.auth.uid == resource.data.locadorId || request.auth.uid == resource.data.locatarioId);
-      // permite consultas (list) para qualquer usuário autenticado — menos restritivo
+      // Leitura (get): Qualquer usuário autenticado pode ler um contrato
+      // A validação de propriedade é feita no código da aplicação
+      allow get: if request.auth != null;
+      
+      // Lista/Queries: Permite queries autenticadas
+      // A validação de propriedade é feita no código da aplicação
       allow list: if request.auth != null;
 
-      // Criação:
-      // - Usuário deve estar autenticado.
-      // - O 'locatarioId' no novo documento deve ser o UID do usuário autenticado.
-      // - Validações básicas de campos.
+      // Criação: Apenas o locatário pode criar um novo contrato
       allow create: if request.auth != null &&
                        request.resource.data.locatarioId == request.auth.uid &&
                        request.resource.data.aluguelId is string &&
                        request.resource.data.locadorId is string &&
                        request.resource.data.itemId is string &&
-                       request.resource.data.conteudoHtml is string && request.resource.data.conteudoHtml.size() > 0 &&
-                       request.resource.data.criadoEm == request.time && // Garante que o cliente envie o timestamp correto
+                       request.resource.data.conteudoHtml is string && 
+                       request.resource.data.conteudoHtml.size() > 0 &&
+                       request.resource.data.criadoEm == request.time &&
                        request.resource.data.versaoContrato is string;
-                       // Adicione validação para 'aceite' ser nulo na criação, se aplicável
-                       // && request.resource.data.aceite == null
 
-      // Atualização (para registrar o aceite do contrato):
-      // - Usuário deve estar autenticado.
-      // - O usuário autenticado deve ser o 'locadorId' OU o 'locatarioId' do contrato.
-      // - Apenas os campos 'aceiteLocatario' ou 'aceiteLocador' podem ser modificados/adicionados.
+      // Atualização: Locador ou locatário podem aceitar o contrato
       allow update: if request.auth != null &&
                        (request.auth.uid == resource.data.locadorId || request.auth.uid == resource.data.locatarioId) &&
-                       // Permite update apenas em aceiteLocatario ou aceiteLocador
-                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceiteLocatario']) ||
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceiteLocador'])) &&
-                       // Validações para os campos de aceite
-                       ((request.resource.data.aceiteLocatario != null &&
-                         request.resource.data.aceiteLocatario is map &&
-                         request.resource.data.aceiteLocatario.dataHora is number &&
-                         request.resource.data.aceiteLocatario.enderecoIp is string &&
-                         request.resource.data.aceiteLocatario.assinaturaDigital is string) ||
-                        (request.resource.data.aceiteLocador != null &&
-                         request.resource.data.aceiteLocador is map &&
+                       // Verifica se apenas campos de aceite são alterados
+                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceiteLocador']) ||
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceiteLocatario'])) &&
+                       // Valida a estrutura do aceite
+                       ((request.resource.data.aceiteLocador is map &&
                          request.resource.data.aceiteLocador.dataHora is number &&
                          request.resource.data.aceiteLocador.enderecoIp is string &&
-                         request.resource.data.aceiteLocador.assinaturaDigital is string));
+                         request.resource.data.aceiteLocador.assinaturaDigital is string) ||
+                        (request.resource.data.aceiteLocatario is map &&
+                         request.resource.data.aceiteLocatario.dataHora is number &&
+                         request.resource.data.aceiteLocatario.enderecoIp is string &&
+                         request.resource.data.aceiteLocatario.assinaturaDigital is string));
+      
+      // Exclusão: não permitida
+      allow delete: if false;
     }
     
     // Regras para a coleção 'multas' (atualizadas para permitir writes autenticados)

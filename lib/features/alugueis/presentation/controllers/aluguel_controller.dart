@@ -7,6 +7,7 @@ import 'package:coisarapida/features/alugueis/presentation/providers/aluguel_pro
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart'; // Para pegar dados do item
 import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -128,6 +129,36 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
         throw Exception('Apenas o locador pode aprovar a solicitação de aluguel.');
       }
 
+      // Validação: Se aprovando, o contrato deve ter sido assinado pelo locador
+      if (novoStatus == StatusAluguel.aprovado && aluguel.contratoId != null) {
+        try {
+          // Busca o contrato para verificar se foi assinado
+          final contratoNotifier = _ref.read(contratoProvider(aluguelId).notifier);
+          // Força recarregar contrato do Firestore
+          await contratoNotifier.carregarContrato();
+          
+          final contratoState = _ref.read(contratoProvider(aluguelId));
+          final contrato = contratoState.value;
+          
+          if (contrato == null) {
+            throw Exception('Contrato não encontrado. O locatário deve criar o contrato primeiro.');
+          }
+          
+          // Verifica se o contrato foi assinado por ambas as partes
+          if (contrato.aceiteLocador == null) {
+            throw Exception('Você deve aceitar o contrato antes de aprovar a solicitação.');
+          }
+          
+          if (contrato.aceiteLocatario == null) {
+            throw Exception('O locatário ainda não aceitou o contrato.');
+          }
+          
+          debugPrint('Contrato ${contrato.id} assinado por ambas as partes. Prosseguindo com aprovação.');
+        } catch (e) {
+          throw Exception('Erro ao validar contrato: $e');
+        }
+      }
+
       // Validação: apenas o locador pode recusar a solicitação
       if (novoStatus == StatusAluguel.recusado && aluguel.locadorId != usuarioAtual.id) {
         throw Exception('Apenas o locador pode recusar a solicitação de aluguel.');
@@ -135,11 +166,6 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
 
       await _aluguelRepository.atualizarStatusAluguel(aluguelId, novoStatus,
           motivo: motivo);
-
-      // Se aprovado e há contrato, o locador assina o contrato
-      if (novoStatus == StatusAluguel.aprovado && aluguel.contratoId != null) {
-        await _ref.read(contratoProvider(aluguelId).notifier).aceitarContrato(aluguel.contratoId!);
-      }
 
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {

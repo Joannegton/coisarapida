@@ -55,6 +55,9 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   
   // Flag para controlar qual tipo de pagamento está sendo processado
   bool _isPagandoCaucao = false;
+  
+  // ID do contrato aceito pelo locatário
+  late String _contratoId;
 
   final _paginaController = PageController();
 
@@ -644,6 +647,9 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
           .read(contratoProvider(_alugueId).notifier)
           .aceitarContrato(contrato.id);
 
+      // Guardar o ID do contrato para usar ao submeter o aluguel
+      _contratoId = contrato.id;
+
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         loadingDialogClosed = true;
@@ -705,7 +711,7 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       criadoEm: DateTime.now(),
       atualizadoEm: DateTime.now(),
       observacoesLocatario: _dadosAluguel['observacoesLocatario'] as String?,
-      contratoId: _alugueId,
+      contratoId: _contratoId,
       caucao: caucao,
     );
   }

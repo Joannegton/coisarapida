@@ -7,6 +7,7 @@ import '../../../../core/utils/snackbar_utils.dart';
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../../../chat/presentation/controllers/chat_controller.dart';
 import '../../../itens/presentation/providers/item_provider.dart';
+import '../../../seguranca/presentation/providers/seguranca_provider.dart';
 import '../../domain/entities/aluguel.dart';
 import '../helpers/solicitacao_helpers.dart';
 import '../providers/aluguel_providers.dart';
@@ -17,7 +18,6 @@ import '../widgets/detalhes_solicitacao/locatario_info_section.dart';
 import '../widgets/detalhes_solicitacao/periodo_info_section.dart';
 import '../widgets/detalhes_solicitacao/valor_info_section.dart';
 import '../widgets/detalhes_solicitacao/observacoes_section.dart';
-import '../widgets/detalhes_solicitacao/action_buttons_section.dart';
 
 /// Página de detalhes de uma solicitação de aluguel
 class DetalhesSolicitacaoPage extends ConsumerStatefulWidget {
@@ -54,6 +54,44 @@ class _DetalhesSolicitacaoPageState
     }
   }
 
+  Future<void> _handleAceitarContratoLocador() async {
+    setState(() => _isLoading = true);
+    try {
+      // Buscar o contrato pelo aluguel
+      final contratoNotifier = ref.read(contratoProvider(widget.aluguel.id).notifier);
+      await contratoNotifier.carregarContrato();
+      
+      final contratoState = ref.read(contratoProvider(widget.aluguel.id));
+      final contrato = contratoState.value;
+      
+      if (contrato == null) {
+        SnackBarUtils.mostrarErro(
+          context,
+          'Contrato não encontrado. O locatário deve criar o contrato primeiro.',
+        );
+        return;
+      }
+      
+      // Aceitar o contrato
+      await contratoNotifier.aceitarContrato(contrato.id);
+      
+      if (mounted) {
+        SnackBarUtils.mostrarSucesso(
+          context,
+          'Contrato aceito com sucesso! Agora você pode aprovar a solicitação.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.mostrarErro(context, 'Erro ao aceitar contrato: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _handleRecusarSolicitacao() async {
     setState(() => _isLoading = true);
     try {
@@ -75,7 +113,6 @@ class _DetalhesSolicitacaoPageState
       context,
       ref,
       widget.aluguel.id,
-      navegarParaAlugueis: false,
     );
   }
 
@@ -138,6 +175,15 @@ class _DetalhesSolicitacaoPageState
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _handleCancelarSolicitacao() async {
+    await SolicitacaoHelpers.cancelarSolicitacao(
+      context,
+      ref,
+      widget.aluguel,
+      fecharPaginaAposCancelar: true,
+    );
   }
 
   Widget _buildStatusButton(ThemeData theme, bool isLocador, bool isLocatario) {
@@ -241,6 +287,76 @@ class _DetalhesSolicitacaoPageState
     );
   }
 
+  Widget _buildCancelarButton(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Botão para cancelar solicitação
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.red[400]!,
+                    Colors.red[600]!,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _handleCancelarSolicitacao,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cancel),
+                label: Text(
+                  _isLoading ? 'Cancelando...' : 'Cancelar Solicitação',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDevolucaoButtons(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -306,6 +422,120 @@ class _DetalhesSolicitacaoPageState
     );
   }
 
+  Widget _buildLocadorButtons(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Botão para aceitar o contrato
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blue[400]!,
+                    Colors.blue[600]!,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _handleAceitarContratoLocador,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.document_scanner),
+                label: Text(
+                  _isLoading ? 'Processando...' : 'Aceitar Contrato',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            // Botões de Recusar e Aprovar
+            Row(
+              children: [
+                // Botão Recusar
+                Expanded(
+                  flex: 2,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleRecusarSolicitacao,
+                    icon: const Icon(Icons.close),
+                    label: const Text('Recusar'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                      side: BorderSide(color: theme.colorScheme.error),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Botão Aprovar
+                Expanded(
+                  flex: 3,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _handleAprovarSolicitacao,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.check_circle),
+                    label: Text(_isLoading ? 'Processando...' : 'Aprovar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   double _getBottomPadding() {
     final usuarioAsync = ref.watch(usuarioAtualStreamProvider);
     final usuario = usuarioAsync.value;
@@ -313,7 +543,9 @@ class _DetalhesSolicitacaoPageState
     final isLocatario = usuario?.id == widget.aluguel.locatarioId;
 
     if (widget.aluguel.status == StatusAluguel.solicitado && isLocador) {
-      return 120; // Espaço para ActionButtonsSection
+      return 200; // Espaço para botão de aceitar + ActionButtonsSection
+    } else if (widget.aluguel.status == StatusAluguel.solicitado && isLocatario) {
+      return 90; // Espaço para botão de cancelar
     } else if (widget.aluguel.status == StatusAluguel.aprovado) {
       // Para aprovado, espaço maior se for locatário (dois botões)
       return isLocatario ? 155 : 120;
@@ -390,11 +622,14 @@ class _DetalhesSolicitacaoPageState
               bottom: 0,
               left: 0,
               right: 0,
-              child: ActionButtonsSection(
-                isLoading: _isLoading,
-                onAprovar: _handleAprovarSolicitacao,
-                onRecusar: _handleRecusarSolicitacao,
-              ),
+              child: _buildLocadorButtons(theme),
+            )
+          else if (widget.aluguel.status == StatusAluguel.solicitado && isLocatario)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildCancelarButton(theme),
             )
           else if (widget.aluguel.status == StatusAluguel.devolucaoPendente && isLocador)
             Positioned(

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/providers/notification_provider.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/utils/verificacao_helper.dart';
-import '../../../../core/constants/app_routes.dart';
 import '../../../avaliacoes/presentation/providers/avaliacao_providers.dart';
 import '../../../autenticacao/presentation/providers/auth_provider.dart';
 import '../../domain/entities/aluguel.dart';
@@ -130,6 +129,88 @@ class SolicitacaoHelpers {
           SnackBarUtils.mostrarErro(
             context,
             'Erro ao recusar solicitação: ${e.toString()}',
+          );
+        }
+      }
+    }
+  }
+
+  /// Mostra diálogo de confirmação de cancelamento e processa o cancelamento
+  static Future<void> cancelarSolicitacao(
+    BuildContext context,
+    WidgetRef ref,
+    Aluguel aluguel, {
+    bool fecharPaginaAposCancelar = false,
+  }) async {
+    // Verificar se o usuário está totalmente verificado
+    if (!VerificacaoHelper.usuarioVerificado(ref)) {
+      VerificacaoHelper.mostrarDialogVerificacao(context, ref);
+      return;
+    }
+
+    final bool? confirmarCancelamento = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Cancelar Solicitação'),
+          content: const Text(
+            'Você confirma que deseja cancelar esta solicitação de aluguel? '
+            'Esta ação não pode ser desfeita.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Não'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[600],
+              ),
+              child: const Text('Sim, Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmarCancelamento == true) {
+      final controller = ref.read(aluguelControllerProvider.notifier);
+      final notificationManager = ref.read(notificationManagerProvider);
+
+      try {
+        await controller.atualizarStatusAluguel(
+          aluguel.id,
+          StatusAluguel.cancelado,
+        );
+
+        // Enviar notificação ao locador
+        await notificationManager.notificarSolicitacaoRecusada(
+          locatarioId: aluguel.locadorId,
+          locadorNome: aluguel.locatarioNome,
+          itemNome: aluguel.itemNome,
+          motivo: 'Solicitação cancelada pelo locatário',
+          aluguelId: aluguel.id,
+        );
+
+        if (context.mounted) {
+          SnackBarUtils.mostrarSucesso(
+            context,
+            'Solicitação cancelada com sucesso. ✅',
+          );
+
+          // Fechar página de detalhes se solicitado
+          if (fecharPaginaAposCancelar) {
+            context.pop();
+          }
+        }
+      } catch (e) {
+        if (context.mounted) {
+          SnackBarUtils.mostrarErro(
+            context,
+            'Erro ao cancelar solicitação: ${e.toString()}',
           );
         }
       }
@@ -295,35 +376,15 @@ class SolicitacaoHelpers {
   static Future<void> aprovarDevolucao(
     BuildContext context,
     WidgetRef ref,
-    String aluguelId, {
-    bool navegarParaAlugueis = false,
-  }) async {
+    String aluguelId,
+  ) async {
     // Verificar se o usuário está totalmente verificado
     if (!VerificacaoHelper.usuarioVerificado(ref)) {
       VerificacaoHelper.mostrarDialogVerificacao(context, ref);
       return;
     }
 
-    bool dialogAberto = false;
-
     try {
-      // Mostrar diálogo de carregamento
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Processando aprovação...'),
-            ],
-          ),
-        ),
-      );
-      dialogAberto = true;
-
       final aluguelRepository = ref.read(aluguelRepositoryProvider);
       final aluguel = await aluguelRepository.getAluguelPorId(aluguelId);
 
@@ -346,27 +407,18 @@ class SolicitacaoHelpers {
 
       await _criarAvaliacoesPendentes(ref, aluguel);
 
-      if (context.mounted && dialogAberto) {
-        dialogAberto = false;
-        Navigator.of(context).pop();
-
+      if (context.mounted) {
         // Mostrar mensagem de sucesso
         SnackBarUtils.mostrarSucesso(
           context,
           'Devolução aprovada! Caução liberada para o locatário. ✅',
         );
 
-        // Navegar se solicitado
-        if (navegarParaAlugueis) {
-          context.go(AppRoutes.meusAlugueis);
-        } else {
-          Navigator.of(context).pop();
-        }
+        // Não fazer nada mais - deixar a página aberta
+        // O AuthGuard vai detectar as novas avaliações pendentes e redirecionar
       }
     } catch (e) {
-      if (context.mounted && dialogAberto) {
-        dialogAberto = false;
-        Navigator.of(context).pop();
+      if (context.mounted) {
         SnackBarUtils.mostrarErro(
           context,
           'Erro ao aprovar devolução: ${e.toString()}',
