@@ -94,10 +94,10 @@ class _BuscarPageState extends ConsumerState<BuscarPage> {
                             _buscaController.clear();
                           },
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.tune),
-                          onPressed: _mostrarFiltrosAvancados,
-                        ),
+                        // IconButton(
+                        //   icon: const Icon(Icons.tune),
+                        //   onPressed: _mostrarFiltrosAvancados,
+                        // ),
                       ],
                     ),
                     border: OutlineInputBorder(

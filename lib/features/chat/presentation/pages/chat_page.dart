@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/chat_provider.dart';
-import '../../domain/entities/mensagem.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../core/constants/app_routes.dart';
 
@@ -56,6 +55,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: theme.colorScheme.primary,
+        iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarIconBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
           statusBarBrightness: theme.brightness == Brightness.dark ? Brightness.light : Brightness.dark,
@@ -91,14 +92,18 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       children: [
                         Text(
                           outroUsuarioNome,
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: theme.colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           chat.itemNome,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: theme.colorScheme.onPrimary.withAlpha(200),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -114,11 +119,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone),
+            icon: Icon(Icons.phone, color: theme.colorScheme.onPrimary),
             onPressed: () => SnackBarUtils.mostrarInfo(context, 'Ligação em desenvolvimento'),
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert),
+            icon: Icon(Icons.more_vert, color: theme.colorScheme.onPrimary),
             onPressed: () => _mostrarOpcoes(context, chatDetalhesState.asData?.value, usuarioId, widget.otherUserId),
           ),
         ],
@@ -133,16 +138,34 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
                   }
                 });
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: mensagens.length,
-                  itemBuilder: (context, index) => MensagemWidget(mensagem: mensagens[index]),
-              );
+                return RefreshIndicator(
+                  onRefresh: () => ref.refresh(mensagensChatProvider(widget.chatId).future),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: mensagens.length,
+                      itemBuilder: (context, index) => MensagemWidget(mensagem: mensagens[index]),
+                    ),
+                  ),
+                );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
-                child: Text('Erro ao carregar mensagens: $error'),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text('Erro ao carregar mensagens: $error'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.refresh(mensagensChatProvider(widget.chatId)),
+                      child: const Text('Tentar Novamente'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -164,7 +187,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.attach_file),
+                    icon: Icon(Icons.attach_file, color: theme.colorScheme.primary),
                     onPressed: () => SnackBarUtils.mostrarInfo(context, 'Anexos em desenvolvimento'),
                   ),
                   Expanded(
@@ -186,12 +209,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   ),
                   const SizedBox(width: 8),
                   FloatingActionButton.small(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     onPressed: chatController.isLoading ? null : _enviarMensagem,
                     child: chatController.isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.send),
                   ),
@@ -270,23 +295,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               onTap: () {
                 Navigator.pop(context);
                 context.push('${AppRoutes.detalhesItem}/${chat.itemId}');
-              },
-            ),
-            //TODO Opção de Avaliar (Provisório)
-            ListTile(
-              leading: const Icon(Icons.star_outline, color: Colors.amber),
-              title: const Text('Avaliar Usuário (Teste)'),
-              onTap: () {
-                Navigator.pop(context);
-                const String aluguelIdProvisorio = "aluguel_chat_temp_123";
-                context.pushNamed(
-                  AppRoutes.avaliacao,
-                  queryParameters: {
-                    'avaliadoId': idDoOutroUsuarioParaAvaliar,
-                    'aluguelId': aluguelIdProvisorio,
-                    'itemId': chat.itemId,
-                  },
-                );
               },
             ),
             ListTile(

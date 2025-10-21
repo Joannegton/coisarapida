@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
+import 'package:coisarapida/features/autenticacao/presentation/widgets/campo_texto_customizado.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/entities/item.dart';
 import '../providers/item_provider.dart';
 import '../widgets/seletor_fotos.dart';
+import '../widgets/dropdown_customizado.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../home/presentation/providers/itens_provider.dart';
 import '../../../perfil/presentation/providers/perfil_publico_provider.dart';
@@ -189,12 +191,12 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               const SizedBox(height: 24),
 
               // Nome
-              TextFormField(
+              CampoTextoCustomizado(
                 controller: _nomeController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome do Item',
-                  border: OutlineInputBorder(),
-                ),
+                label: 'Nome do Item',
+                hint: 'Digite o nome do item',
+                prefixIcon: Icons.label_outlined,
+                textInputAction: TextInputAction.next,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Nome é obrigatório';
@@ -208,13 +210,12 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               const SizedBox(height: 16),
 
               // Descrição
-              TextFormField(
+              CampoTextoCustomizado(
                 controller: _descricaoController,
+                label: 'Descrição',
+                hint: 'Digite a descrição do item',
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição',
-                  border: OutlineInputBorder(),
-                ),
+                prefixIcon: Icons.description_outlined,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Descrição é obrigatória';
@@ -228,24 +229,23 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               const SizedBox(height: 16),
 
               // Categoria
-              DropdownButtonFormField<String>(
+              DropdownCustomizado<String>(
+                label: 'Categoria',
                 value: _categoriaSelecionada.isNotEmpty ? _categoriaSelecionada : null,
-                decoration: const InputDecoration(
-                  labelText: 'Categoria',
-                  border: OutlineInputBorder(),
-                ),
-                items: _categorias.map((categoria) {
-                  return DropdownMenuItem<String>(
-                    value: categoria['id'],
-                    child: Row(
-                      children: [
-                        Icon(categoria['icone'], size: 20),
-                        const SizedBox(width: 8),
-                        Text(categoria['nome']),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                prefixIcon: Icons.category,
+                items: _categorias
+                    .map((categoria) => DropdownItem<String>(
+                          value: categoria['id'],
+                          label: categoria['nome'],
+                          child: Row(
+                            children: [
+                              Icon(categoria['icone'], size: 20),
+                              const SizedBox(width: 8),
+                              Text(categoria['nome']),
+                            ],
+                          ),
+                        ))
+                    .toList(),
                 onChanged: (value) {
                   setState(() => _categoriaSelecionada = value ?? '');
                 },
@@ -259,24 +259,22 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               const SizedBox(height: 16),
 
               // Tipo do Item
-              DropdownButtonFormField<TipoItem>(
+              DropdownCustomizado<TipoItem>(
+                label: 'Tipo',
                 value: _tipoItem,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo',
-                  border: OutlineInputBorder(),
-                ),
+                prefixIcon: Icons.local_shipping_outlined,
                 items: [
-                  DropdownMenuItem(
+                  DropdownItem(
                     value: TipoItem.aluguel,
-                    child: const Text('Aluguel'),
+                    label: 'Aluguel',
                   ),
-                  DropdownMenuItem(
+                  DropdownItem(
                     value: TipoItem.venda,
-                    child: const Text('Venda'),
+                    label: 'Venda',
                   ),
-                  DropdownMenuItem(
+                  DropdownItem(
                     value: TipoItem.ambos,
-                    child: const Text('Aluguel e Venda'),
+                    label: 'Aluguel e Venda',
                   ),
                 ],
                 onChanged: (value) {
@@ -286,24 +284,22 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               const SizedBox(height: 16),
 
               // Estado do Item
-              DropdownButtonFormField<EstadoItem>(
+              DropdownCustomizado<EstadoItem>(
+                label: 'Estado',
                 value: _estadoItem,
-                decoration: const InputDecoration(
-                  labelText: 'Estado',
-                  border: OutlineInputBorder(),
-                ),
+                prefixIcon: Icons.info_outlined,
                 items: [
-                  DropdownMenuItem(
+                  DropdownItem(
                     value: EstadoItem.novo,
-                    child: const Text('Novo'),
+                    label: 'Novo',
                   ),
-                  DropdownMenuItem(
+                  DropdownItem(
                     value: EstadoItem.usado,
-                    child: const Text('Usado'),
+                    label: 'Usado',
                   ),
-                  DropdownMenuItem(
+                  DropdownItem(
                     value: EstadoItem.seminovo,
-                    child: const Text('Seminovo'),
+                    label: 'Seminovo',
                   ),
                 ],
                 onChanged: (value) {
@@ -313,13 +309,13 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               const SizedBox(height: 16),
 
               // Preço por dia
-              TextFormField(
+              CampoTextoCustomizado(
                 controller: _precoDiaController,
+                label: 'Preço por Dia (R\$)',
+                hint: 'Digite o preço por dia',
+                prefixIcon: Icons.attach_money_outlined,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Preço por Dia (R\$)',
-                  border: OutlineInputBorder(),
-                ),
+                textInputAction: TextInputAction.next,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Preço por dia é obrigatório';
@@ -346,13 +342,13 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               if (_aluguelPorHora)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: TextFormField(
+                  child: CampoTextoCustomizado(
                     controller: _precoHoraController,
+                    label: 'Preço por Hora (R\$)',
+                    hint: 'Digite o preço por hora',
+                    prefixIcon: Icons.schedule_outlined,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Preço por Hora (R\$)',
-                      border: OutlineInputBorder(),
-                    ),
+                    textInputAction: TextInputAction.next,
                     validator: (value) {
                       if (_aluguelPorHora) {
                         if (value == null || value.trim().isEmpty) {
@@ -372,13 +368,13 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
               if (_tipoItem == TipoItem.venda || _tipoItem == TipoItem.ambos)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: TextFormField(
+                  child: CampoTextoCustomizado(
                     controller: _precoVendaController,
+                    label: 'Preço de Venda (R\$)',
+                    hint: 'Digite o preço de venda',
+                    prefixIcon: Icons.sell_outlined,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Preço de Venda (R\$)',
-                      border: OutlineInputBorder(),
-                    ),
+                    textInputAction: TextInputAction.next,
                     validator: (value) {
                       if (_tipoItem == TipoItem.venda || _tipoItem == TipoItem.ambos) {
                         if (value == null || value.trim().isEmpty) {
@@ -395,24 +391,23 @@ class _EditarItemPageState extends ConsumerState<EditarItemPage> {
                 ),
 
               // Caução
-              TextFormField(
+              CampoTextoCustomizado(
                 controller: _caucaoController,
+                label: 'Valor da Caução (R\$) - Opcional',
+                hint: 'Digite o valor da caução',
+                prefixIcon: Icons.security_outlined,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Valor da Caução (R\$) - Opcional',
-                  border: OutlineInputBorder(),
-                ),
+                textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),
 
               // Regras de uso
-              TextFormField(
+              CampoTextoCustomizado(
                 controller: _regrasController,
+                label: 'Regras de Uso - Opcional',
+                hint: 'Digite as regras de uso do item',
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Regras de Uso - Opcional',
-                  border: OutlineInputBorder(),
-                ),
+                prefixIcon: Icons.rule_outlined,
               ),
               const SizedBox(height: 16),
 
