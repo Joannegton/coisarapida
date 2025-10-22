@@ -2,7 +2,6 @@ import 'package:coisarapida/features/autenticacao/presentation/providers/auth_pr
 import 'package:coisarapida/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:coisarapida/features/favoritos/providers/favoritos_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
-import 'package:coisarapida/shared/widgets/scrolling_text.dart';
 import 'package:coisarapida/shared/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -60,6 +59,7 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                   : Brightness.dark,
             ),
             pinned: true,
+            iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
             flexibleSpace: itemAsyncValue.when(
               data: (item) {
                 if (item == null) {
@@ -162,16 +162,12 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
                       ? _buildBottomBarProprietario(item, theme)
                       : DetalhesItemBottomBarWidget(
                           item: item,
-                          isCreatingChat: _isCreatingChat,
-                          onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
                           onAlugarPressed: () => context.push(AppRoutes.solicitarAluguel, extra: item),
                           onComprarPressed: () => context.push(AppRoutes.comprarItem, extra: item),
                         );
                 },
                 orElse: () => DetalhesItemBottomBarWidget(
                     item: item,
-                    isCreatingChat: _isCreatingChat,
-                    onChatPressed: _isCreatingChat ? null : () => _abrirOuCriarChat(item),
                     onAlugarPressed: () => context.push(AppRoutes.solicitarAluguel, extra: item),
                     onComprarPressed: () => context.push(AppRoutes.comprarItem, extra: item),
                   ),
@@ -186,50 +182,56 @@ class _DetalhesItemPageState extends ConsumerState<DetalhesItemPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final padding = screenWidth * 0.04; // 4% da largura da tela
 
-    return Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((255 * 0.1).round()),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            // Botão de Estatísticas
-            Expanded(
-              flex: 2,
-              child: OutlinedButton.icon(
-                onPressed: () => SnackBarUtils.mostrarInfo(
-                    context, 'Estatísticas em desenvolvimento'),
-                icon: const Icon(Icons.bar_chart),
-                label: ScrollingText('Estatísticas'),
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: padding * 0.5, vertical: padding * 2),
-                ),
-              ),
-            ),
-            SizedBox(width: padding),
-            // Botão de Editar
-            Expanded(
-              flex: 3,
-              child: ElevatedButton.icon(
-                onPressed: () => context.push('/editar-item/${item.id}'),
-                icon: const Icon(Icons.edit),
-                label: const Text('Editar Item'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: padding * 2),
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                ),
-              ),
+    return SafeArea(
+      child: Container(
+        padding: EdgeInsets.all(padding),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((255 * 0.1).round()),
+              blurRadius: 4,
+              offset: const Offset(0, -2),
             ),
           ],
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.secondary,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.primary.withOpacity(0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: () => context.push('/editar-item/${item.id}'),
+            icon: const Icon(Icons.edit),
+            label: const Text(
+              'Editar Item',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: theme.colorScheme.onPrimary,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
         ),
       ),
     );

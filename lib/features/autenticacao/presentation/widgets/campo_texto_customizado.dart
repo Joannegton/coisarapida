@@ -75,7 +75,7 @@ class CampoTextoCustomizado extends StatelessWidget {
                     child: suffixIcon!,
                   )
                 : null,
-            counterText: maxLength != null ? null : '',
+            counterText: '',
           ),
         ),
       ],

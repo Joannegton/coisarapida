@@ -249,7 +249,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
 
           // Ver mais
-          SliverToBoxAdapter(
+          SliverToBoxAdapter( 
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: OutlinedButton(

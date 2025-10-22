@@ -148,7 +148,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           String chatId = state.pathParameters['chatId']!;
 
-          final otherUserId = state.extra as String;
+          // Extrai o otherUserId do chatId se extra não estiver disponível
+          final otherUserId = (state.extra as String?) ?? 
+              (chatId.startsWith('chat_') ? chatId.substring(5) : chatId);
 
           return ChatPage(chatId: chatId, otherUserId: otherUserId);
         },

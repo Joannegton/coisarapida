@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 class PerfilBotoesAcaoWidget extends StatelessWidget {
   final Usuario usuario;
   final ThemeData theme;
+  final bool isProprioUsuario;
   final VoidCallback onIniciarChat;
   final VoidCallback onVerItensUsuario;
 
@@ -11,6 +12,7 @@ class PerfilBotoesAcaoWidget extends StatelessWidget {
     super.key,
     required this.usuario,
     required this.theme,
+    required this.isProprioUsuario,
     required this.onIniciarChat,
     required this.onVerItensUsuario,
   });
@@ -21,13 +23,17 @@ class PerfilBotoesAcaoWidget extends StatelessWidget {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: onIniciarChat,
+            onPressed: isProprioUsuario ? null : onIniciarChat,
             style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: isProprioUsuario 
+                  ? Colors.grey.shade300 
+                  : theme.colorScheme.primary,
+              foregroundColor: isProprioUsuario 
+                  ? Colors.grey.shade600 
+                  : Colors.white,
             ),
             icon: const Icon(Icons.chat),
-            label: const Text('Enviar Mensagem'),
+            label: Text(isProprioUsuario ? 'Este é seu perfil' : 'Enviar Mensagem'),
           ),
         ),
         // const SizedBox(width: 12),

@@ -12,6 +12,7 @@ class PerfilEstatisticasWidget extends StatelessWidget {
   });
 
   Widget _buildEstatistica(String titulo, String valor, IconData icone, Color cor) {
+    debugPrint('Reputação do usuário: ${usuario.reputacao.toStringAsFixed(1)}');
     return Column(
       children: [
         Icon(icone, color: cor, size: 28),

@@ -4,6 +4,7 @@ import 'package:coisarapida/core/utils/verificacao_helper.dart';
 import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:go_router/go_router.dart';
 import 'package:coisarapida/features/avaliacoes/domain/entities/avaliacao.dart';
+import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 
 import '../providers/perfil_publico_provider.dart';
 import '../../../../core/constants/app_routes.dart';
@@ -30,12 +31,14 @@ class PerfilPublicoPage extends ConsumerWidget {
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
     final perfilDetalhadoState = ref.watch(perfilPublicoDetalhadoProvider(usuarioId));
+    final idUsuarioAtual = ref.watch(idUsuarioAtualProvider);
 
     return Scaffold(
       body: perfilDetalhadoState.when(
         data: (perfilDetalhado) {
           final usuario = perfilDetalhado.usuario;
           final String? foto = usuario.fotoUrl;
+          final isProprioUsuario = idUsuarioAtual == usuario.id;
           return CustomScrollView(
             slivers: [
               // AppBar com foto de capa
@@ -204,6 +207,7 @@ class PerfilPublicoPage extends ConsumerWidget {
                       PerfilBotoesAcaoWidget(
                           usuario: usuario,
                           theme: theme,
+                          isProprioUsuario: isProprioUsuario,
                           onIniciarChat: () => _iniciarChat(context, usuario, ref),
                           onVerItensUsuario: () => _verItensUsuario(context, usuario),
                         ),
@@ -328,7 +332,10 @@ class PerfilPublicoPage extends ConsumerWidget {
       return;
     }
 
-    context.push('${AppRoutes.chat}/chat_${usuario.id}');
+    context.push(
+      '${AppRoutes.chat}/chat_${usuario.id}',
+      extra: usuario.id,
+    );
   }
 
   void _verItensUsuario(BuildContext context, Usuario usuario) {

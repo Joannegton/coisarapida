@@ -46,9 +46,9 @@ exports.calcularReputacaoUsuario = onDocumentWritten('avaliacoes/{avaliacaoId}',
         .collection('avaliacoes')
         .where('avaliadoId', '==', usuarioId)
         .where('tipoAvaliado', '==', 'usuario')
-        .where('visivel', '==', true)
         .get();
 
+      console.log(`📄 Encontradas ${avaliacoesSnapshot.size} avaliações para o usuário ${usuarioId}`);
       let somaNotas = 0;
       let totalAvaliacoes = 0;
 
@@ -65,19 +65,22 @@ exports.calcularReputacaoUsuario = onDocumentWritten('avaliacoes/{avaliacaoId}',
       const novaReputacao = totalAvaliacoes > 0 ? (somaNotas / totalAvaliacoes) : 0;
       const reputacaoFormatada = Math.round(novaReputacao * 100) / 100; // 2 casas decimais
 
-      console.log(`📊 Usuário ${usuarioId}: ${totalAvaliacoes} avaliações, reputação: ${reputacaoFormatada}`);
-
       // Atualizar no documento do usuário no Firestore
       const userDocRef = db.collection('usuarios').doc(usuarioId);
       const userDoc = await userDocRef.get();
 
       if (userDoc.exists) {
-        await userDocRef.update({
-          reputacao: reputacaoFormatada,
-          totalAvaliacoes: totalAvaliacoes,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        console.log(`✅ Reputação atualizada no Firestore para usuário ${usuarioId}`);
+        try {
+          await userDocRef.update({
+            reputacao: reputacaoFormatada,
+            totalAvaliacoes: totalAvaliacoes,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (updateError) {
+          console.error(`❌ Erro ao atualizar usuário ${usuarioId}:`, updateError);
+          throw updateError;
+        }
+
       } else {
         console.warn(`⚠️ Usuário ${usuarioId} não encontrado no Firestore`);
         return;
@@ -99,12 +102,15 @@ exports.calcularReputacaoUsuario = onDocumentWritten('avaliacoes/{avaliacaoId}',
           });
         });
 
-        await batch.commit();
-        console.log(`✅ Reputação atualizada em ${itensSnapshot.size} itens do usuário ${usuarioId}`);
+        try {
+          await batch.commit();
+        } catch (batchError) {
+          console.error(`❌ Erro ao atualizar itens do usuário ${usuarioId}:`, batchError);
+          throw batchError;
+        }
+      } else {
+        console.log(`ℹ️ Nenhum item encontrado para o usuário ${usuarioId}`);
       }
-
-      console.log(`✅ Reputação calculada e atualizada para usuário ${usuarioId}: ${reputacaoFormatada} (${totalAvaliacoes} avaliações)`);
-
   } catch (error) {
     console.error('❌ Erro ao calcular reputação do usuário:', error);
     // Em triggers Firestore, não lançamos HttpsError, apenas logamos
@@ -150,7 +156,6 @@ exports.recalcularTodasReputacoes = onCall(async (request) => {
           .collection('avaliacoes')
           .where('avaliadoId', '==', usuarioId)
           .where('tipoAvaliado', '==', 'usuario')
-          .where('visivel', '==', true)
           .get();
 
         let somaNotas = 0;
@@ -249,7 +254,6 @@ exports.obterEstatisticasAvaliacoes = onCall(async (request) => {
       .collection('avaliacoes')
       .where('avaliadoId', '==', usuarioId)
       .where('tipoAvaliado', '==', 'usuario')
-      .where('visivel', '==', true)
       .orderBy('createdAt', 'desc')
       .get();
 

@@ -1,5 +1,6 @@
 import 'package:coisarapida/core/constants/app_routes.dart';
 import 'package:coisarapida/core/utils/snackbar_utils.dart';
+import 'package:coisarapida/features/autenticacao/presentation/widgets/campo_texto_customizado.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -491,35 +492,13 @@ class _AvaliacaoPageState extends ConsumerState<AvaliacaoPage> with SingleTicker
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
+                  CampoTextoCustomizado(
                     controller: _comentarioController,
-                    decoration: InputDecoration(
-                      hintText: 'Compartilhe detalhes sobre o que você achou... (opcional)',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: theme.primaryColor, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: theme.cardColor,
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
+                    label: 'Compartilhe detalhes sobre o que você achou...',
+                    hint: '(opcional)',
                     maxLines: 5,
                     maxLength: 500,
-                    validator: (value) {
-                      if (value != null && value.length > 500) {
-                        return 'Comentário deve ter no máximo 500 caracteres';
-                      }
-                      return null;
-                    },
+                    prefixIcon: Icons.message_outlined,
                   ),
 
                   const SizedBox(height: 35),

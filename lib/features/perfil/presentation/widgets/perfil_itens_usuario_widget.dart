@@ -27,6 +27,7 @@ class PerfilItensUsuarioWidget extends StatelessWidget {
             height: 175,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 0, right: 12),
               itemCount: itens.length,
               itemBuilder: (context, index) => ItemFotoWidget(item: itens[index], theme: theme),
             ),

@@ -19,20 +19,6 @@ exports.enviarNotificacaoMultipla = notificationFunctions.enviarNotificacaoMulti
 exports.notificarNovaSolicitacao = notificationFunctions.notificarNovaSolicitacao;
 exports.notificarAtualizacaoSolicitacao = notificationFunctions.notificarAtualizacaoSolicitacao;
 
-// Importar e exportar funções de verificação de usuário
-const verificacaoUsuarioFunctions = require('./verificacao_usuario');
-
-exports.solicitarVerificacaoResidencia = verificacaoUsuarioFunctions.solicitarVerificacaoResidencia;
-exports.processarVerificacaoResidencia = verificacaoUsuarioFunctions.processarVerificacaoResidencia;
-exports.listarVerificacoesPendentes = verificacaoUsuarioFunctions.listarVerificacoesPendentes;
-
-// Importar e exportar funções de verificação de telefone
-const verificacaoTelefoneFunctions = require('./verificacao_telefone');
-
-exports.enviarCodigoSMS = verificacaoTelefoneFunctions.enviarCodigoSMS;
-exports.verificarCodigoSMS = verificacaoTelefoneFunctions.verificarCodigoSMS;
-exports.reenviarCodigoSMS = verificacaoTelefoneFunctions.reenviarCodigoSMS;
-
 // Importar e exportar funções de avaliações
 const avaliacoesFunctions = require('./avaliacoes');
 

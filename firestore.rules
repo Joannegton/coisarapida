@@ -7,7 +7,9 @@ service cloud.firestore {
     match /usuarios/{userId} {
       allow get: if request.auth != null; // Permite ler um documento de usuário específico se autenticado
       allow list: if false; // Geralmente não se permite listar todos os usuários
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      // Permite atualizações do proprietário da conta OU do Cloud Function (request.auth == null quando chamado via admin)
+      allow update: if (request.auth != null && request.auth.uid == userId) || request.auth == null;
+      allow delete: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId;
     
     	// Regras para a subcoleção 'favoritos'
@@ -32,32 +34,7 @@ service cloud.firestore {
 
       // Criação:
       allow create: if request.auth != null &&
-                     request.resource.data.proprietarioId == request.auth.uid &&
-                     // Validações de campos obrigatórios e tipos
-                     request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() < 100 &&
-                     request.resource.data.descricao is string && request.resource.data.descricao.size() > 0 && request.resource.data.descricao.size() < 1000 &&
-                     request.resource.data.categoria is string && request.resource.data.categoria.size() > 0 &&
-                     request.resource.data.fotos is list && request.resource.data.fotos.size() >= 1 && request.resource.data.fotos.size() <= 5 &&
-                     request.resource.data.precoPorDia is number && request.resource.data.precoPorDia >= 0 &&
-                     (request.resource.data.precoPorHora == null || (request.resource.data.precoPorHora is number && request.resource.data.precoPorHora >= 0)) &&
-                     (request.resource.data.precoVenda == null || (request.resource.data.precoVenda is number && request.resource.data.precoVenda >= 0)) &&
-                     (request.resource.data.caucao == null || (request.resource.data.caucao is number && request.resource.data.caucao >= 0)) &&
-                     (request.resource.data.regrasUso == null || (request.resource.data.regrasUso is string && request.resource.data.regrasUso.size() < 1000)) &&
-                     request.resource.data.disponivel is bool &&
-                     request.resource.data.aprovacaoAutomatica is bool &&
-                     request.resource.data.proprietarioNome is string && request.resource.data.proprietarioNome.size() > 0 &&
-                     request.resource.data.proprietarioReputacao is number &&
-                     request.resource.data.tipo is string && (request.resource.data.tipo == "aluguel" || request.resource.data.tipo == "venda" || request.resource.data.tipo == "ambos") &&
-                     request.resource.data.estado is string && (request.resource.data.estado == "novo" || request.resource.data.estado == "usado" || request.resource.data.estado == "seminovo" || request.resource.data.estado == "precisaReparo") &&
-                     request.resource.data.localizacao is map &&
-                     request.resource.data.localizacao.latitude is number &&
-                     request.resource.data.localizacao.longitude is number &&
-                     request.resource.data.localizacao.bairro is string && request.resource.data.localizacao.bairro.size() > 0 &&
-                     request.resource.data.localizacao.cidade is string && request.resource.data.localizacao.cidade.size() > 0 &&
-                     request.resource.data.localizacao.estado is string && request.resource.data.localizacao.estado.size() > 0 &&
-                     request.resource.data.avaliacao is number && request.resource.data.avaliacao == 0.0 &&
-                     request.resource.data.totalAlugueis is number && request.resource.data.totalAlugueis == 0 &&
-                     request.resource.data.visualizacoes is number && request.resource.data.visualizacoes == 0;
+                     request.resource.data.proprietarioId == request.auth.uid;
 
       // Atualização:
       allow update: if request.auth != null &&

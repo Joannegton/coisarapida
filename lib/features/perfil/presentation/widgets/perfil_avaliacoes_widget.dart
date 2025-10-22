@@ -1,6 +1,6 @@
 import 'package:coisarapida/features/avaliacoes/domain/entities/avaliacao.dart';
 import 'package:flutter/material.dart';
-import 'avaliacao_item_widget.dart';
+import 'avaliacao_card_widget.dart';
 
 class PerfilAvaliacoesWidget extends StatelessWidget {
   final List<Avaliacao> avaliacoes;
@@ -21,19 +21,19 @@ class PerfilAvaliacoesWidget extends StatelessWidget {
       children: [
         if (avaliacoes.isEmpty)
           const Center(child: Text('Nenhuma avaliação recebida ainda.')),
-        ...avaliacoes.take(3).map((av) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: AvaliacaoItemWidget(avaliacao: av, theme: theme),
-        )),
-        if (avaliacoes.length > 3) ...[
-          const SizedBox(height: 12),
-          Center(
-            child: TextButton(
-              onPressed: () => onVerTodasPressed(context, avaliacoes),
-              child: const Text('Ver todas'),
+        if (avaliacoes.isNotEmpty)
+          SizedBox(
+            height: 160,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 0, right: 12),
+              itemCount: avaliacoes.length,
+              itemBuilder: (context, index) => AvaliacaoCardWidget(
+                avaliacao: avaliacoes[index],
+                theme: theme,
+              ),
             ),
           ),
-        ],
       ],
     );
   }
