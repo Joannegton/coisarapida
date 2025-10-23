@@ -10,7 +10,9 @@ import 'package:coisarapida/features/autenticacao/domain/entities/usuario.dart';
 import 'package:coisarapida/features/autenticacao/presentation/providers/auth_provider.dart';
 import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:coisarapida/features/seguranca/domain/entities/contrato.dart';
-import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart'; // Import adicionado
+import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart';
+import 'package:coisarapida/shared/providers/mercado_pago_provider.dart';
+import 'package:coisarapida/shared/services/mercado_pago_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +21,6 @@ import '../../../../core/constants/app_routes.dart';
 import '../../domain/entities/aluguel.dart';
 import '../../data/models/aluguel_model.dart';
 import '../providers/aluguel_providers.dart';
-import '../providers/mercado_pago_provider.dart';
 import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:async';
@@ -759,14 +760,16 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
         setState(() => _isPagandoCaucao = true);
         
         final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
-          aluguelId: _alugueId,
+          transacaoId: _alugueId,
           valor: valorCaucao,
           itemNome: 'Caução - ${_dadosAluguel['nomeItem']}',
           itemDescricao: 'Caução para aluguel de ${_dadosAluguel['nomeItem']}',
-          locatarioId: usuario.id,
-          locatarioEmail: usuario.email,
+          usuarioId: usuario.id,
+          usuarioEmail: usuario.email,
+          tipo: TipoTransacao.caucao,
         );
         
+        // ignore: unused_local_variable
         final checkoutUrl = preferenceResponse['sandbox_init_point'] as String;
 
         if (!mounted) return;
@@ -780,21 +783,20 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
         setState(() => _isPagandoCaucao = false);
         
         final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
-          aluguelId: _alugueId,
+          transacaoId: _alugueId,
           valor: valorAluguel,
           itemNome: 'Aluguel - ${_dadosAluguel['nomeItem']}',
           itemDescricao: 'Pagamento do aluguel de ${_dadosAluguel['nomeItem']}',
-          locatarioId: usuario.id,
-          locatarioEmail: usuario.email,
+          usuarioId: usuario.id,
+          usuarioEmail: usuario.email,
+          tipo: TipoTransacao.aluguel,
         );
         
-        final checkoutUrl = preferenceResponse['sandbox_init_point'] as String;
-
         if (!mounted) return;
          //SIMULAÇÃO: Em vez de abrir checkout, chama sucesso diretamente
-        await _processarPagamentoAprovado('SIMULADO_${DateTime.now().millisecondsSinceEpoch}');
+        // await _processarPagamentoAprovado('SIMULADO_${DateTime.now().millisecondsSinceEpoch}');
         // TODO voltar ao Mercado Pago, descomente a linha abaixo e comente a acima:
-        // await _abrirCheckoutMercadoPago(checkoutUrl);
+        await _abrirCheckoutMercadoPago(preferenceResponse['sandbox_init_point'] as String);
       }
 
     } catch (e) {

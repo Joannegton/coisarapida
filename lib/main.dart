@@ -46,7 +46,7 @@ void main() async {
 
   // Configurar handler para mensagens em background
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  
+
   runApp(
     const ProviderScope(
       child: CoisaRapidaApp(),

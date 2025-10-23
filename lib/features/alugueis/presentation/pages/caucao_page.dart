@@ -1,10 +1,9 @@
+import 'package:coisarapida/shared/widgets/pagamento_mercado_pago_widget.dart';
 import 'package:flutter/material.dart';
 
 /// Tela para processamento da caução
-/// Este é um widget de UI "burro" que recebe dados e callbacks.
-/// A lógica de estado e processamento fica na página pai (`SolicitarAluguelPage`).
 class CaucaoConteudoWidget extends StatelessWidget {
-  final Map<String, dynamic> dadosAluguel; // Dados passados da AceiteContratoPage
+  final Map<String, dynamic> dadosAluguel; 
   final String metodoPagamento;
   final ValueChanged<String> onMetodoPagamentoChanged;
 
@@ -29,7 +28,6 @@ class CaucaoConteudoWidget extends StatelessWidget {
     final diasAluguel = diffInDays > 0 ? diffInDays : 1;
 
     return SingleChildScrollView(
-      // O padding já é fornecido pelo PageView
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -39,12 +37,13 @@ class CaucaoConteudoWidget extends StatelessWidget {
           // Detalhes da caução
           _buildDetalhesCaucao(theme, nomeItem, valorAluguel, diasAluguel, valorCaucao),
           const SizedBox(height: 5),
-          // Métodos de pagamento
-          // _buildMetodosPagamento(theme),
-          _buildPagamentoMercadoPago(context, theme),
-          const SizedBox(height: 5),
           // Termos e condições
           _buildTermosCondicoes(theme),
+          const SizedBox(height: 5),
+          // Métodos de pagamento
+          // _buildMetodosPagamento(theme),
+          PagamentoMercadoPagoWidget(),
+          
         ],
       ),
     );
@@ -233,7 +232,8 @@ class CaucaoConteudoWidget extends StatelessWidget {
           children: [
             Image.asset(
               'assets/images/logo-mercado-pago.png',
-              width: screenWidth * 0.5,
+              width: screenWidth * 0.45,
+              height: 50,
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 12),

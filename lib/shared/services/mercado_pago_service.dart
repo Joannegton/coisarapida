@@ -1,6 +1,13 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
-/// Serviço para gerenciar pagamentos via Mercado Pago
+/// Enum para tipos de transação no Mercado Pago
+enum TipoTransacao {
+  venda,
+  aluguel,
+  caucao,
+}
+
+/// Serviço unificado para gerenciar pagamentos via Mercado Pago
 class MercadoPagoService {
   final FirebaseFunctions _functions;
 
@@ -8,6 +15,15 @@ class MercadoPagoService {
       : _functions = functions ?? FirebaseFunctions.instance;
 
   /// Cria uma preferência de pagamento no Mercado Pago
+  /// 
+  /// Parâmetros:
+  /// - [transacaoId]: ID único da transação (vendaId, aluguelId, etc)
+  /// - [valor]: Valor a ser cobrado
+  /// - [itemNome]: Nome do item/serviço
+  /// - [itemDescricao]: Descrição do item/serviço
+  /// - [usuarioId]: ID do usuário que está pagando
+  /// - [usuarioEmail]: Email do usuário para o Mercado Pago
+  /// - [tipo]: Tipo de transação (venda, aluguel, caucao)
   /// 
   /// Este método chama uma Cloud Function do Firebase que
   /// se comunica com a API do Mercado Pago no backend
@@ -18,22 +34,24 @@ class MercadoPagoService {
   /// 3. Use email de usuário de teste (test_user_xxx@testuser.com)
   /// 4. O retorno incluirá 'sandbox_init_point' para ambiente de testes
   Future<Map<String, dynamic>> criarPreferenciaPagamento({
-    required String aluguelId,
+    required String transacaoId,
     required double valor,
     required String itemNome,
     required String itemDescricao,
-    required String locatarioId,
-    required String locatarioEmail,
+    required String usuarioId,
+    required String usuarioEmail,
+    required TipoTransacao tipo,
   }) async {
     try {
       final callable = _functions.httpsCallable('criarPreferenciaMercadoPago');
       final result = await callable.call({
-        'aluguelId': aluguelId,
+        'transacaoId': transacaoId,
         'valor': valor,
         'itemNome': itemNome,
         'itemDescricao': itemDescricao,
-        'locatarioId': locatarioId,
-        'locatarioEmail': locatarioEmail,
+        'usuarioId': usuarioId,
+        'usuarioEmail': usuarioEmail,
+        'tipo': tipo.name,
       });
 
       return result.data as Map<String, dynamic>;

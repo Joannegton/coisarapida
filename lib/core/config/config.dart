@@ -37,6 +37,17 @@ class Config {
 
   static bool get enableLogging => enableDetailedLogs || kDebugMode;
 
+  // === MELHOR ENVIO ===
+  static String get melhorEnvioBaseUrl {
+    return const String.fromEnvironment('MELHOR_ENVIO_BASE_URL',
+        defaultValue: 'https://sandbox.melhorenvio.com.br/api/v2/me');
+  }
+
+  static String get melhorEnvioAccessToken {
+    return const String.fromEnvironment('MELHOR_ENVIO_ACCESS_TOKEN',
+        defaultValue: '');
+  }
+
   // === HELPERS ===
   static String getDevUrl(String ip) => 'http://$ip:3000';
   static String getProdUrl(String domain) => 'https://$domain';
