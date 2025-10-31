@@ -1,8 +1,9 @@
+import 'package:coisarapida/features/seguranca/presentation/providers/seguranca_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/mercado_pago_service.dart';
 
 /// Provider para o serviço unificado de Mercado Pago
 /// Compartilhado entre vendas, aluguéis e caução
 final mercadoPagoServiceProvider = Provider<MercadoPagoService>((ref) {
-  return MercadoPagoService();
+  return MercadoPagoService(apiClient: ref.read(apiClientProvider));
 });

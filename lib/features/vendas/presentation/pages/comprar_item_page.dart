@@ -444,24 +444,23 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
       final mercadoPagoService = ref.read(mercadoPagoServiceProvider);
 
       final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
-        transacaoId: _vendaId,
+        aluguelId: _vendaId,
         valor: valor,
         itemNome: 'Compra - ${_dadosVenda['itemNome']}',
         itemDescricao: 'Compra de ${_dadosVenda['itemNome']} de ${_dadosVenda['vendedorNome']}',
-        usuarioId: comprador.id,
-        usuarioEmail: comprador.email,
+        locatarioId: comprador.id,
+        locatarioEmail: comprador.email,
         tipo: TipoTransacao.venda,
+        locatarioNome: comprador.nome,
+        locatarioTelefone: comprador.telefone,
       );
-
-      // ignore: unused_local_variable
-      final checkoutUrl = preferenceResponse['sandbox_init_point'] as String;
 
       if (!mounted) return;
 
       // SIMULAÇÃO: Em vez de abrir checkout, chama sucesso diretamente
       // await _processarPagamentoAprovado('SIMULADO_${DateTime.now().millisecondsSinceEpoch}');
       // TODO voltar ao Mercado Pago, descomente as linhas abaixo e comente a acima:
-       await _abrirCheckoutMercadoPago(checkoutUrl);
+       await _abrirCheckoutMercadoPago(preferenceResponse['init_point'] as String);
     } catch (e) {
       if (mounted) {
         SnackBarUtils.mostrarErro(

@@ -1,4 +1,5 @@
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:coisarapida/core/services/api_client.dart';
+import 'package:flutter/material.dart';
 
 /// Enum para tipos de transação no Mercado Pago
 enum TipoTransacao {
@@ -9,96 +10,75 @@ enum TipoTransacao {
 
 /// Serviço unificado para gerenciar pagamentos via Mercado Pago
 class MercadoPagoService {
-  final FirebaseFunctions _functions;
+  final ApiClient _apiClient;
 
-  MercadoPagoService({FirebaseFunctions? functions})
-      : _functions = functions ?? FirebaseFunctions.instance;
+  MercadoPagoService({ ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
 
-  /// Cria uma preferência de pagamento no Mercado Pago
-  /// 
-  /// Parâmetros:
-  /// - [transacaoId]: ID único da transação (vendaId, aluguelId, etc)
-  /// - [valor]: Valor a ser cobrado
-  /// - [itemNome]: Nome do item/serviço
-  /// - [itemDescricao]: Descrição do item/serviço
-  /// - [usuarioId]: ID do usuário que está pagando
-  /// - [usuarioEmail]: Email do usuário para o Mercado Pago
-  /// - [tipo]: Tipo de transação (venda, aluguel, caucao)
-  /// 
-  /// Este método chama uma Cloud Function do Firebase que
-  /// se comunica com a API do Mercado Pago no backend
-  /// 
-  /// ⚠️ IMPORTANTE PARA TESTES:
-  /// 1. Use um Access Token de TEST no Firebase Functions Config
-  /// 2. Configure com: firebase functions:config:set mercadopago.access_token="TEST-xxxxx"
-  /// 3. Use email de usuário de teste (test_user_xxx@testuser.com)
-  /// 4. O retorno incluirá 'sandbox_init_point' para ambiente de testes
+  /// Cria uma preferência de pagamento e retorna dados do checkout
+  /// Retorna uma Map com 'init_point' (URL de checkout) e 'preferenceId'
   Future<Map<String, dynamic>> criarPreferenciaPagamento({
-    required String transacaoId,
+    required String aluguelId,
     required double valor,
     required String itemNome,
     required String itemDescricao,
-    required String usuarioId,
-    required String usuarioEmail,
+    required String locatarioId,
+    required String locatarioEmail,
     required TipoTransacao tipo,
+    required String locatarioNome,
+    String? locatarioTelefone,
   }) async {
     try {
-      final callable = _functions.httpsCallable('criarPreferenciaMercadoPago');
-      final result = await callable.call({
-        'transacaoId': transacaoId,
-        'valor': valor,
-        'itemNome': itemNome,
-        'itemDescricao': itemDescricao,
-        'usuarioId': usuarioId,
-        'usuarioEmail': usuarioEmail,
-        'tipo': tipo.name,
-      });
+      final response = await _apiClient.post(
+        '/checkout/mercado-pago/criar',
+        body: {
+          'aluguelId': aluguelId,
+          'valor': valor,
+          'itemNome': itemNome,
+          'itemDescricao': itemDescricao,
+          'locatarioEmail': locatarioEmail,
+          'locatarioNome': locatarioNome,
+          'locatarioTelefone': locatarioTelefone,
+        }
+      );
 
-      return result.data as Map<String, dynamic>;
+      debugPrint('Resposta criarPreferenciaPagamento: ${response['data']['init_point']}');
+
+      if (response.isNotEmpty && response['data'] != null) {
+        return {
+          'init_point': response['data']['init_point'] as String,
+          'preferenceId': response['data']['id'] as String?,
+          'aluguelId': response['data']['aluguelId'] as String?,
+        };
+      } else {
+        throw Exception('Erro ao criar checkout');
+      }
     } catch (e) {
       throw Exception('Erro ao criar preferência de pagamento: $e');
     }
   }
 
-  /// Verifica o status de um pagamento no Mercado Pago
+  /// Verifica o status de um pagamento no Mercado Pago pelo paymentId
+  /// Esta é uma consulta de fallback caso o deep link falhe
   Future<Map<String, dynamic>> verificarStatusPagamento(
     String paymentId, {
     bool usarSimulacao = false,
   }) async {
     try {
-      if (usarSimulacao) {
-        await Future.delayed(const Duration(seconds: 1));
-        return {
-          'status': 'approved',
-          'status_detail': 'accredited',
-          'transaction_amount': 0.0,
-          'payment_id': paymentId,
-        };
-      }
+     final response = await this._apiClient.post(
+        '/checkout/mercado-pago/status',
+        body: {
+          'paymentId': paymentId,
+        },
+      );
 
-      final callable = _functions.httpsCallable('verificarPagamentoMercadoPago');
-      final result = await callable.call({'paymentId': paymentId});
-      return result.data as Map<String, dynamic>;
+      if (response.isNotEmpty && response['data'] != null) {
+        return response['data'] as Map<String, dynamic>;
+      } else {
+        throw Exception('Erro ao verificar status');
+      }
     } catch (e) {
       throw Exception('Erro ao verificar status do pagamento: $e');
-    }
-  }
-
-  /// Processa o retorno do webhook do Mercado Pago
-  /// Este método deve ser chamado pela Cloud Function que recebe o webhook
-  Future<void> processarWebhook(Map<String, dynamic> webhookData) async {
-    try {
-      final type = webhookData['type'] as String?;
-      final dataId = webhookData['data']?['id'] as String?;
-
-      if (type == 'payment' && dataId != null) {
-        // A atualização será feita pela Cloud Function via webhook
-        // Este método é mantido para compatibilidade, mas o webhook
-        // no backend é responsável por atualizar o status
-        await verificarStatusPagamento(dataId);
-      }
-    } catch (e) {
-      throw Exception('Erro ao processar webhook: $e');
     }
   }
 }

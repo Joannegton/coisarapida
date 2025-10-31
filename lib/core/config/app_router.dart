@@ -190,7 +190,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'status-aluguel',
         builder: (context, state) {
           final aluguelId = state.pathParameters['aluguelId']!;
-          final dadosAluguel = state.extra as Map<String, dynamic>;
+          final dadosAluguel = (state.extra as Map<String, dynamic>?) ?? {};
           return StatusAluguelPage(
             aluguelId: aluguelId,
             dadosAluguel: dadosAluguel,

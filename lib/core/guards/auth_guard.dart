@@ -41,6 +41,9 @@ class AuthGuard extends ChangeNotifier {
     ].contains(state.uri.toString());
 
     final isOnAvaliacaoPage = state.uri.toString().startsWith(AppRoutes.avaliacao);
+    
+    // Rotas que não devem ser redirecionadas (ex: deep links de pagamento)
+    final isOnProtectedPages = state.uri.toString().startsWith(AppRoutes.statusAluguel);
 
     // Se está na splash, deixa continuar
     if (isOnSplash) return null;
@@ -69,7 +72,7 @@ class AuthGuard extends ChangeNotifier {
       }
 
       // Se não está em páginas de verificação, verificar se precisa ir para elas
-      if (!isOnVerificacaoPages && !isOnAvaliacaoPage) {
+      if (!isOnVerificacaoPages && !isOnAvaliacaoPage && !isOnProtectedPages) {
         // Se telefone não verificado, redireciona para verificação de telefone
         if (usuario.telefone == null || usuario.telefone!.isEmpty) {
           return AppRoutes.verificacaoTelefone;
