@@ -1,5 +1,5 @@
 import 'package:coisarapida/core/services/api_client.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 /// Enum para tipos de transação no Mercado Pago
 enum TipoTransacao {
@@ -12,7 +12,7 @@ enum TipoTransacao {
 class MercadoPagoService {
   final ApiClient _apiClient;
 
-  MercadoPagoService({ ApiClient? apiClient})
+  MercadoPagoService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
   /// Cria uma preferência de pagamento e retorna dados do checkout
@@ -23,26 +23,29 @@ class MercadoPagoService {
     required String itemNome,
     required String itemDescricao,
     required String locatarioId,
+    required String locadorId,
     required String locatarioEmail,
     required TipoTransacao tipo,
     required String locatarioNome,
     String? locatarioTelefone,
   }) async {
     try {
-      final response = await _apiClient.post(
-        '/checkout/mercado-pago/criar',
-        body: {
-          'aluguelId': aluguelId,
-          'valor': valor,
-          'itemNome': itemNome,
-          'itemDescricao': itemDescricao,
-          'locatarioEmail': locatarioEmail,
-          'locatarioNome': locatarioNome,
-          'locatarioTelefone': locatarioTelefone,
-        }
-      );
+      final body = {
+        'aluguelId': aluguelId,
+        'valor': valor,
+        'itemNome': itemNome,
+        'itemDescricao': itemDescricao,
+        'locatarioEmail': locatarioEmail,
+        'locatarioNome': locatarioNome,
+        'locatarioTelefone': locatarioTelefone,
+        'locatarioId': locatarioId,
+        'locadorId': locadorId,
+        'tipo': tipo.name,
+      };
 
-      debugPrint('Resposta criarPreferenciaPagamento: ${response['data']['init_point']}');
+      debugPrint('Resposta do criarPreferenciaPagamento: $body');
+      final response =
+          await _apiClient.post('/checkout/mercado-pago/criar', body: body);
 
       if (response.isNotEmpty && response['data'] != null) {
         return {
@@ -65,7 +68,7 @@ class MercadoPagoService {
     bool usarSimulacao = false,
   }) async {
     try {
-     final response = await this._apiClient.post(
+      final response = await this._apiClient.post(
         '/checkout/mercado-pago/status',
         body: {
           'paymentId': paymentId,

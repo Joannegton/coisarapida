@@ -37,7 +37,7 @@ class AluguelRepositoryImpl implements AluguelRepository {
       if (novoStatus == StatusAluguel.recusado && motivo != null) {
         dataToUpdate['motivoRecusaLocador'] = motivo;
       }
-      
+
       // Atualizar status do aluguel
       await _firestore
           .collection('alugueis')
@@ -47,49 +47,40 @@ class AluguelRepositoryImpl implements AluguelRepository {
       // Se o aluguel foi aprovado, marcar o item como indisponível
       if (novoStatus == StatusAluguel.aprovado) {
         // Buscar o aluguel para obter o itemId
-        final aluguelDoc = await _firestore
-            .collection('alugueis')
-            .doc(aluguelId)
-            .get();
-        
+        final aluguelDoc =
+            await _firestore.collection('alugueis').doc(aluguelId).get();
+
         if (aluguelDoc.exists) {
           final aluguelData = aluguelDoc.data();
           final itemId = aluguelData?['itemId'] as String?;
-          
+
           if (itemId != null) {
             // Atualizar o status de disponibilidade do item
-            await _firestore
-                .collection('itens')
-                .doc(itemId)
-                .update({
-                  'disponivel': false,
-                  'atualizadoEm': FieldValue.serverTimestamp(),
-                });
+            await _firestore.collection('itens').doc(itemId).update({
+              'disponivel': false,
+              'atualizadoEm': FieldValue.serverTimestamp(),
+            });
           }
         }
       }
-      
+
       // Se o aluguel foi concluído ou cancelado, marcar o item como disponível novamente
-      if (novoStatus == StatusAluguel.concluido || novoStatus == StatusAluguel.cancelado) {
+      if (novoStatus == StatusAluguel.concluido ||
+          novoStatus == StatusAluguel.cancelado) {
         // Buscar o aluguel para obter o itemId
-        final aluguelDoc = await _firestore
-            .collection('alugueis')
-            .doc(aluguelId)
-            .get();
-        
+        final aluguelDoc =
+            await _firestore.collection('alugueis').doc(aluguelId).get();
+
         if (aluguelDoc.exists) {
           final aluguelData = aluguelDoc.data();
           final itemId = aluguelData?['itemId'] as String?;
-          
+
           if (itemId != null) {
             // Atualizar o status de disponibilidade do item
-            await _firestore
-                .collection('itens')
-                .doc(itemId)
-                .update({
-                  'disponivel': true,
-                  'atualizadoEm': FieldValue.serverTimestamp(),
-                });
+            await _firestore.collection('itens').doc(itemId).update({
+              'disponivel': true,
+              'atualizadoEm': FieldValue.serverTimestamp(),
+            });
           }
         }
       }
@@ -121,13 +112,14 @@ class AluguelRepositoryImpl implements AluguelRepository {
           .doc(aluguelId)
           .snapshots()
           .map((doc) {
-            if (doc.exists) {
-              return AluguelModel.fromFirestore(doc);
-            }
-            return null;
-          });
+        if (doc.exists) {
+          return AluguelModel.fromFirestore(doc);
+        }
+        return null;
+      });
     } catch (e) {
-      throw ServerException('Erro ao buscar stream do aluguel: ${e.toString()}');
+      throw ServerException(
+          'Erro ao buscar stream do aluguel: ${e.toString()}');
     }
   }
 
@@ -157,6 +149,7 @@ class AluguelRepositoryImpl implements AluguelRepository {
           'Erro ao buscar aluguéis do usuário: ${error.toString()}');
     });
   }
+
   @override
   Future<void> processarPagamentoCaucaoAluguel({
     required String aluguelId,

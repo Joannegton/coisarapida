@@ -14,7 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
-import 'package:app_links/app_links.dart';
+import 'package:coisarapida/shared/services/payment_deep_link_service.dart';
 import 'dart:async';
 
 class ComprarItemPage extends ConsumerStatefulWidget {
@@ -29,22 +29,21 @@ class ComprarItemPage extends ConsumerStatefulWidget {
 class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
   String _metodoPagamento = 'mercado_pago';
   bool _isProcessing = false;
+  bool _pagamentoProcessado = false;
   late String _vendaId;
   late Map<String, dynamic> _dadosVenda;
-  StreamSubscription? _deepLinkSubscription;
-  late AppLinks _appLinks;
+  final PaymentDeepLinkService _deepLinkService = PaymentDeepLinkService();
 
   @override
   void initState() {
     super.initState();
-    _appLinks = AppLinks();
     _vendaId = _gerarIdVenda();
     _initDeepLinks();
   }
 
   @override
   void dispose() {
-    _deepLinkSubscription?.cancel();
+    _deepLinkService.dispose();
     super.dispose();
   }
 
@@ -53,65 +52,35 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
   }
 
   void _initDeepLinks() {
-    // Ouvir link inicial (quando o app é aberto via deep link)
-    _appLinks.getInitialLink().then((uri) {
-      if (uri != null) _handleDeepLink(uri);
-    }).catchError((err) {
-      debugPrint('Erro ao obter URI inicial: $err');
-    });
-
-    // Ouvir links enquanto o app está aberto
-    _deepLinkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      _handleDeepLink(uri);
-    }, onError: (err) {
-      debugPrint('Erro no stream de deep links: $err');
-    });
-  }
-
-  void _handleDeepLink(Uri uri) {
-    if (!mounted) return;
-
-    debugPrint('Deep link recebido: $uri');
-
-    if (uri.scheme != 'coisarapida') return;
-
-    final path = uri.pathSegments;
-    if (path.isEmpty || path.first != 'payment') return;
-
-    if (path.length < 2) return;
-
-    final status = path[1]; // success, failure, ou pending
-    final paymentId = uri.queryParameters['payment_id'];
-    final collectionStatus = uri.queryParameters['collection_status'];
-
-    switch (status) {
-      case 'success':
-        if (collectionStatus == 'approved') {
-          _processarPagamentoAprovado(paymentId);
-        } else {
-          SnackBarUtils.mostrarErro(
-            context,
-            'Pagamento pendente de aprovação.',
-          );
+    _deepLinkService.initialize(
+      onPaymentResult: (result) {
+        // Ignorar se já processado
+        if (!mounted || _pagamentoProcessado) {
+          debugPrint('⚠️ Deep link ignorado - já processado');
+          return;
         }
-        break;
-      case 'failure':
-        SnackBarUtils.mostrarErro(
-          context,
-          'Pagamento falhou. Tente novamente.',
-        );
-        setState(() => _isProcessing = false);
-        break;
-      case 'pending':
-        SnackBarUtils.mostrarErro(
-          context,
-          'Pagamento pendente. Aguarde a confirmação.',
-        );
-        setState(() => _isProcessing = false);
-        break;
-      default:
-        debugPrint('❓ Status desconhecido: $status');
-    }
+
+        if (result.isSuccess) {
+          debugPrint('✅ Pagamento de venda aprovado via deep link');
+          _pagamentoProcessado = true;
+          _processarPagamentoAprovado(result.paymentId);
+        } else if (result.isFailure) {
+          debugPrint('❌ Pagamento de venda rejeitado');
+          if (mounted) {
+            SnackBarUtils.mostrarErro(
+                context, 'Pagamento falhou. Tente novamente.');
+            setState(() => _isProcessing = false);
+          }
+        } else if (result.isPending) {
+          debugPrint('⏳ Pagamento de venda pendente');
+          if (mounted) {
+            SnackBarUtils.mostrarErro(
+                context, 'Pagamento pendente. Aguarde a confirmação.');
+            setState(() => _isProcessing = false);
+          }
+        }
+      },
+    );
   }
 
   Future<void> _processarPagamentoAprovado(String? paymentId) async {
@@ -134,12 +103,11 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
         dataVenda: DateTime.now(),
       );
 
-      await ref
-          .read(vendaControllerProvider.notifier)
-          .registrarVenda(venda);
+      await ref.read(vendaControllerProvider.notifier).registrarVenda(venda);
 
       if (mounted) {
-        SnackBarUtils.mostrarSucesso(context, 'Compra realizada com sucesso! 🎉');
+        SnackBarUtils.mostrarSucesso(
+            context, 'Compra realizada com sucesso! 🎉');
         context.go('/');
       }
     } catch (e) {
@@ -180,7 +148,7 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
           children: [
             // Hero Header com Item
             _buildHeroHeader(context, theme),
-            
+
             // Conteúdo Principal
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -188,8 +156,8 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
                         'Valor do Item',
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -214,7 +182,7 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
                     item: widget.item,
                   ),
                   const SizedBox(height: 15),
-                  
+
                   // Segurança
                   const PagamentoMercadoPagoWidget(),
                 ],
@@ -359,8 +327,9 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
                 : [],
           ),
           child: ElevatedButton.icon(
-            onPressed:
-                _isProcessing ? null : () => _handleProcessarPagamento(comprador),
+            onPressed: _isProcessing
+                ? null
+                : () => _handleProcessarPagamento(comprador),
             icon: _isProcessing
                 ? Container(
                     width: 20,
@@ -402,7 +371,8 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
       VerificacaoHelper.mostrarDialogVerificacao(
         context,
         ref,
-        mensagemCustomizada: 'Para realizar compras, você precisa completar as verificações de segurança.',
+        mensagemCustomizada:
+            'Para realizar compras, você precisa completar as verificações de segurança.',
       );
       return;
     }
@@ -417,7 +387,8 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
         'vendaId': _vendaId,
         'itemId': widget.item.id,
         'itemNome': widget.item.nome,
-        'itemFotoUrl': widget.item.fotos.isNotEmpty ? widget.item.fotos.first : '',
+        'itemFotoUrl':
+            widget.item.fotos.isNotEmpty ? widget.item.fotos.first : '',
         'vendedorId': widget.item.proprietarioId,
         'vendedorNome': widget.item.proprietarioNome,
         'compradorId': comprador.id,
@@ -425,6 +396,7 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
         'compradorEmail': comprador.email,
         'valorPago': widget.item.precoVenda,
         'metodoPagamento': _metodoPagamento,
+        'locadorId': widget.item.proprietarioId,
       };
 
       await _iniciarPagamentoMercadoPago(comprador, widget.item.precoVenda!);
@@ -439,16 +411,40 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
     }
   }
 
-  Future<void> _iniciarPagamentoMercadoPago(Usuario comprador, double valor) async {
+  Future<void> _iniciarPagamentoMercadoPago(
+      Usuario comprador, double valor) async {
     try {
+      final venda = Venda(
+        id: _vendaId,
+        itemId: widget.item.id,
+        itemNome: widget.item.nome,
+        itemFotoUrl:
+            widget.item.fotos.isNotEmpty ? widget.item.fotos.first : '',
+        vendedorId: widget.item.proprietarioId,
+        vendedorNome: widget.item.proprietarioNome,
+        compradorId: comprador.id,
+        compradorNome: comprador.nome,
+        valorPago: valor,
+        metodoPagamento: 'mercado_pago',
+        transacaoId: 'pendente', // Será atualizado pelo webhook
+        dataVenda: DateTime.now(),
+      );
+
+      await ref.read(vendaControllerProvider.notifier).registrarVenda(venda);
+
+      if (!mounted) return;
+
       final mercadoPagoService = ref.read(mercadoPagoServiceProvider);
 
-      final preferenceResponse = await mercadoPagoService.criarPreferenciaPagamento(
+      final preferenceResponse =
+          await mercadoPagoService.criarPreferenciaPagamento(
         aluguelId: _vendaId,
         valor: valor,
         itemNome: 'Compra - ${_dadosVenda['itemNome']}',
-        itemDescricao: 'Compra de ${_dadosVenda['itemNome']} de ${_dadosVenda['vendedorNome']}',
+        itemDescricao:
+            'Compra de ${_dadosVenda['itemNome']} de ${_dadosVenda['vendedorNome']}',
         locatarioId: comprador.id,
+        locadorId: _dadosVenda['vendedorId'] as String,
         locatarioEmail: comprador.email,
         tipo: TipoTransacao.venda,
         locatarioNome: comprador.nome,
@@ -457,10 +453,8 @@ class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
 
       if (!mounted) return;
 
-      // SIMULAÇÃO: Em vez de abrir checkout, chama sucesso diretamente
-      // await _processarPagamentoAprovado('SIMULADO_${DateTime.now().millisecondsSinceEpoch}');
-      // TODO voltar ao Mercado Pago, descomente as linhas abaixo e comente a acima:
-       await _abrirCheckoutMercadoPago(preferenceResponse['init_point'] as String);
+      await _abrirCheckoutMercadoPago(
+          preferenceResponse['init_point'] as String);
     } catch (e) {
       if (mounted) {
         SnackBarUtils.mostrarErro(

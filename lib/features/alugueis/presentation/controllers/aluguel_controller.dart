@@ -82,13 +82,26 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  // Novo método para ser chamado pela CaucaoPage
+  // Novo método: Criar aluguel com status "pagamentoPendente" ANTES do checkout
+  // Este aluguel será criado no Firestore assim que o usuário clicar em pagar
+  Future<String> criarAluguelComPagamentoPendente(Aluguel aluguel) async {
+    state = const AsyncValue.loading();
+    try {
+      final idCriado = await _aluguelRepository.solicitarAluguel(aluguel);
+      state = const AsyncValue.data(null);
+      return idCriado;
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<String> submeterAluguelCompleto(Aluguel aluguel) async {
     state = const AsyncValue.loading();
     try {
       // O ID do aluguel já deve estar definido no objeto 'aluguel'
       final idCriado = await _aluguelRepository.solicitarAluguel(aluguel);
-      
+
       // Enviar notificação ao locador
       final notificationManager = _ref.read(notificationManagerProvider);
       await notificationManager.notificarNovaSolicitacao(
@@ -97,7 +110,7 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
         itemNome: aluguel.itemNome,
         aluguelId: idCriado,
       );
-      
+
       state = const AsyncValue.data(null);
       return idCriado;
     } catch (e, stackTrace) {
@@ -125,43 +138,51 @@ class AluguelController extends StateNotifier<AsyncValue<void>> {
       }
 
       // Validação: apenas o locador pode aprovar a solicitação
-      if (novoStatus == StatusAluguel.aprovado && aluguel.locadorId != usuarioAtual.id) {
-        throw Exception('Apenas o locador pode aprovar a solicitação de aluguel.');
+      if (novoStatus == StatusAluguel.aprovado &&
+          aluguel.locadorId != usuarioAtual.id) {
+        throw Exception(
+            'Apenas o locador pode aprovar a solicitação de aluguel.');
       }
 
       // Validação: Se aprovando, o contrato deve ter sido assinado pelo locador
       if (novoStatus == StatusAluguel.aprovado && aluguel.contratoId != null) {
         try {
           // Busca o contrato para verificar se foi assinado
-          final contratoNotifier = _ref.read(contratoProvider(aluguelId).notifier);
+          final contratoNotifier =
+              _ref.read(contratoProvider(aluguelId).notifier);
           // Força recarregar contrato do Firestore
           await contratoNotifier.carregarContrato();
-          
+
           final contratoState = _ref.read(contratoProvider(aluguelId));
           final contrato = contratoState.value;
-          
+
           if (contrato == null) {
-            throw Exception('Contrato não encontrado. O locatário deve criar o contrato primeiro.');
+            throw Exception(
+                'Contrato não encontrado. O locatário deve criar o contrato primeiro.');
           }
-          
+
           // Verifica se o contrato foi assinado por ambas as partes
           if (contrato.aceiteLocador == null) {
-            throw Exception('Você deve aceitar o contrato antes de aprovar a solicitação.');
+            throw Exception(
+                'Você deve aceitar o contrato antes de aprovar a solicitação.');
           }
-          
+
           if (contrato.aceiteLocatario == null) {
             throw Exception('O locatário ainda não aceitou o contrato.');
           }
-          
-          debugPrint('Contrato ${contrato.id} assinado por ambas as partes. Prosseguindo com aprovação.');
+
+          debugPrint(
+              'Contrato ${contrato.id} assinado por ambas as partes. Prosseguindo com aprovação.');
         } catch (e) {
           throw Exception('Erro ao validar contrato: $e');
         }
       }
 
       // Validação: apenas o locador pode recusar a solicitação
-      if (novoStatus == StatusAluguel.recusado && aluguel.locadorId != usuarioAtual.id) {
-        throw Exception('Apenas o locador pode recusar a solicitação de aluguel.');
+      if (novoStatus == StatusAluguel.recusado &&
+          aluguel.locadorId != usuarioAtual.id) {
+        throw Exception(
+            'Apenas o locador pode recusar a solicitação de aluguel.');
       }
 
       await _aluguelRepository.atualizarStatusAluguel(aluguelId, novoStatus,

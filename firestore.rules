@@ -234,14 +234,15 @@ service cloud.firestore {
       // - Usuário deve estar autenticado.
       // - O 'locatarioId' deve ser o UID do usuário autenticado.
       // - Locador não pode ser o mesmo que locatário.
-      // - Status inicial deve ser 'solicitado'.
+      // - Status inicial deve ser 'solicitado' OU 'pagamentoPendente' (para criação antes do checkout)
       allow create: if request.auth != null &&
                        request.resource.data.locatarioId is string &&
                        request.resource.data.locatarioId == request.auth.uid &&
                        request.resource.data.locadorId is string &&
                        request.resource.data.locadorId != request.auth.uid &&
                        request.resource.data.status is string &&
-                       request.resource.data.status == "solicitado" &&
+                       (request.resource.data.status == "solicitado" || 
+                        request.resource.data.status == "pagamentoPendente") &&
                        request.resource.data.itemId is string && request.resource.data.itemId.size() > 0 &&
                        request.resource.data.itemNome is string && request.resource.data.itemNome.size() > 0 &&
                        request.resource.data.locadorNome is string && request.resource.data.locadorNome.size() > 0 &&
@@ -255,12 +256,55 @@ service cloud.firestore {
                        request.resource.data.locadorId in request.resource.data.participantes &&
                        request.resource.data.locatarioId in request.resource.data.participantes;
       // Atualização (Status, etc.):
-      // - Somente participantes podem atualizar.
-      // - Lógica específica para quem pode mudar para qual status.
-      //   Ex: Locador pode aprovar/recusar. Locatário pode cancelar antes da aprovação.
-      allow update: if request.auth != null && request.auth.uid in resource.data.participantes;
-                      // Adicionar validações mais finas para campos e transições de status.
+      // - Participantes autenticados podem atualizar
+      // - Webhook/backend (sem auth) pode atualizar campos específicos de pagamento
+      allow update: if (request.auth != null && request.auth.uid in resource.data.participantes) ||
+                       (request.auth == null && 
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['status', 'caucao', 'atualizadoEm', 'metodoPagamento', 'transacaoId', 'dataPagamento']));
+      
       // Exclusão: Geralmente não se permite, a menos que seja um cancelamento lógico (mudança de status).
+      allow delete: if false;
+    }
+    
+    // Regras para a coleção 'vendas'
+    match /vendas/{vendaId} {
+      // Leitura: Somente participantes (vendedor ou comprador) podem ler os detalhes da venda.
+      allow get: if request.auth != null && 
+                   (request.auth.uid == resource.data.vendedorId || 
+                    request.auth.uid == resource.data.compradorId);
+      
+      // Listagem: Usuário pode listar suas vendas (como vendedor ou comprador)
+      allow list: if request.auth != null;
+
+      // Criação:
+      // - Usuário deve estar autenticado
+      // - O 'compradorId' deve ser o UID do usuário autenticado
+      // - Vendedor não pode ser o mesmo que comprador
+      // - Status de pagamento inicial deve ser 'pendente'
+      allow create: if request.auth != null &&
+                       request.resource.data.compradorId is string &&
+                       request.resource.data.compradorId == request.auth.uid &&
+                       request.resource.data.vendedorId is string &&
+                       request.resource.data.vendedorId != request.auth.uid &&
+                       request.resource.data.itemId is string && request.resource.data.itemId.size() > 0 &&
+                       request.resource.data.itemNome is string && request.resource.data.itemNome.size() > 0 &&
+                       request.resource.data.vendedorNome is string && request.resource.data.vendedorNome.size() > 0 &&
+                       request.resource.data.compradorNome is string && request.resource.data.compradorNome.size() > 0 &&
+                       request.resource.data.valorPago is number && request.resource.data.valorPago >= 0 &&
+                       request.resource.data.metodoPagamento is string &&
+                       request.resource.data.dataVenda is timestamp &&
+                       (!request.resource.data.keys().hasAny(['statusPagamento']) || 
+                        request.resource.data.statusPagamento == 'pendente');
+      
+      // Atualização:
+      // - Webhook/backend pode atualizar campos de pagamento (statusPagamento, transacaoId, dataPagamento)
+      // - Participantes podem atualizar outros campos se necessário
+      allow update: if request.auth != null || 
+                       (request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['statusPagamento', 'transacaoId', 'dataPagamento', 'metodoPagamento', 'atualizadoEm']));
+      
+      // Exclusão: Não permitir (manter histórico)
       allow delete: if false;
     }
     

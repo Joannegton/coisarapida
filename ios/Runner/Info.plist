@@ -47,5 +47,18 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Este aplicativo precisa acessar sua localização para preencher automaticamente os campos de endereço.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.joannegton.coisarapida</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>coisarapida</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

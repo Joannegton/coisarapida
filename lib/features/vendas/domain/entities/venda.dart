@@ -11,6 +11,8 @@ class Venda {
   final String metodoPagamento;
   final String transacaoId;
   final DateTime dataVenda;
+  final String? statusPagamento; // 'pendente', 'pago', 'falhou'
+  final DateTime? dataPagamento;
 
   const Venda({
     required this.id,
@@ -25,5 +27,7 @@ class Venda {
     required this.metodoPagamento,
     required this.transacaoId,
     required this.dataVenda,
+    this.statusPagamento = 'pendente',
+    this.dataPagamento,
   });
 }
