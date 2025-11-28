@@ -4,6 +4,7 @@ import 'package:coisarapida/features/itens/data/models/item_model.dart';
 abstract class ItemRepository {
   Future<void> publicarItem(ItemModel item);
   Future<void> atualizarItem(ItemModel item);
+  Future<void> desativarItem(String itemId);
   Future<List<String>> uploadFotos(List<File> fotos, String itemId);
   Future<void> deletarFoto(String fotoUrl);
   Future<List<ItemModel>> getTodosItens();

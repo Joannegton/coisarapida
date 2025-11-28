@@ -125,6 +125,18 @@ class ItemRepositoryImpl implements ItemRepository {
   }
 
   @override
+  Future<void> desativarItem(String itemId) async {
+    try {
+      await _firestore.collection('itens').doc(itemId).update({
+        'disponivel': false,
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw ServerException('Erro ao desativar item: ${e.toString()}');
+    }
+  }
+
+  @override
   Future<void> deletarFoto(String fotoUrl) async {
     try {
       // Extrai o caminho da foto a partir da URL
