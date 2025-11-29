@@ -32,10 +32,12 @@ class SolicitacoesAluguelPage extends ConsumerStatefulWidget {
   const SolicitacoesAluguelPage({super.key});
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() => _SolicitacoesAluguelPageState();
+  ConsumerState<ConsumerStatefulWidget> createState() =>
+      _SolicitacoesAluguelPageState();
 }
 
-class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPage> 
+class _SolicitacoesAluguelPageState
+    extends ConsumerState<SolicitacoesAluguelPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   FiltroSolicitacao _filtroAtual = FiltroSolicitacao.todas;
@@ -44,7 +46,8 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: FiltroSolicitacao.values.length, vsync: this);
+    _tabController =
+        TabController(length: FiltroSolicitacao.values.length, vsync: this);
     _tabController.addListener(_onTabChanged);
   }
 
@@ -70,11 +73,17 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
       case FiltroSolicitacao.todas:
         return solicitacoes;
       case FiltroSolicitacao.pendentes:
-        return solicitacoes.where((s) => s.status == StatusAluguel.solicitado).toList();
+        return solicitacoes
+            .where((s) => s.status == StatusAluguel.solicitado)
+            .toList();
       case FiltroSolicitacao.aprovadas:
-        return solicitacoes.where((s) => s.status == StatusAluguel.aprovado).toList();
+        return solicitacoes
+            .where((s) => s.status == StatusAluguel.aprovado)
+            .toList();
       case FiltroSolicitacao.recusadas:
-        return solicitacoes.where((s) => s.status == StatusAluguel.recusado).toList();
+        return solicitacoes
+            .where((s) => s.status == StatusAluguel.recusado)
+            .toList();
     }
   }
 
@@ -94,7 +103,7 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
         title: Text(
           _tipoVisualizacao == TipoVisualizacao.recebidas
               ? 'Solicitações Recebidas'
-              : 'Minhas Solicitações',
+              : 'Solicitações Enviadas',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -106,13 +115,14 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
                   : Icons.swap_horiz,
             ),
             tooltip: _tipoVisualizacao == TipoVisualizacao.recebidas
-                ? 'Ver minhas solicitações'
+                ? 'Ver solicitações enviadas'
                 : 'Ver solicitações recebidas',
             onPressed: () {
               setState(() {
-                _tipoVisualizacao = _tipoVisualizacao == TipoVisualizacao.recebidas
-                    ? TipoVisualizacao.enviadas
-                    : TipoVisualizacao.recebidas;
+                _tipoVisualizacao =
+                    _tipoVisualizacao == TipoVisualizacao.recebidas
+                        ? TipoVisualizacao.enviadas
+                        : TipoVisualizacao.recebidas;
                 _tabController.index = 0;
                 _filtroAtual = FiltroSolicitacao.todas;
               });
@@ -156,7 +166,8 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
           final usuario = usuarioAsync.value;
           final solicitacoesFiltradas = _filtrarSolicitacoes(todasSolicitacoes);
 
-          if (solicitacoesFiltradas.isEmpty && _filtroAtual == FiltroSolicitacao.todas) {
+          if (solicitacoesFiltradas.isEmpty &&
+              _filtroAtual == FiltroSolicitacao.todas) {
             return _buildEmptyState(
               theme,
               _tipoVisualizacao == TipoVisualizacao.recebidas
@@ -181,7 +192,8 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(20),
@@ -217,13 +229,14 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
                     final aluguel = solicitacoesFiltradas[index];
                     final isLocador = usuario?.id == aluguel.locadorId;
                     final isLocatario = usuario?.id == aluguel.locatarioId;
-                    
+
                     return CardSolicitacoesWidget(
                       aluguel: aluguel,
                       isLocador: isLocador,
                       isLocatario: isLocatario,
                       tipoVisualizacao: _tipoVisualizacao,
-                      onRecusarSolicitacao: () => SolicitacaoHelpers.recusarSolicitacao(
+                      onRecusarSolicitacao: () =>
+                          SolicitacaoHelpers.recusarSolicitacao(
                         context,
                         ref,
                         aluguel,
@@ -297,8 +310,10 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
   }
 
   Widget _buildEmptyState(ThemeData theme, String mensagem) {
-    final isMinhasSolicitacoes = _tipoVisualizacao == TipoVisualizacao.enviadas && _filtroAtual == FiltroSolicitacao.todas;
-    
+    final isMinhasSolicitacoes =
+        _tipoVisualizacao == TipoVisualizacao.enviadas &&
+            _filtroAtual == FiltroSolicitacao.todas;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -336,7 +351,8 @@ class _SolicitacoesAluguelPageState extends ConsumerState<SolicitacoesAluguelPag
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: theme.colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

@@ -31,7 +31,7 @@ final itemControllerProvider =
   return ItemController(ref.watch(itemRepositoryProvider), ref);
 });
 
-// Provider para buscar detalhes de um item específico 
+// Provider para buscar detalhes de um item específico
 final detalhesItemProvider =
     FutureProvider.family<Item?, String>((ref, itemId) async {
   final repository = ref.watch(itemRepositoryProvider);
@@ -47,6 +47,53 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
 
   String _formatAddress(Endereco endereco) {
     return '${endereco.rua}, ${endereco.numero}, ${endereco.bairro}, ${endereco.cidade}, ${endereco.estado}, ${endereco.cep}, Brasil';
+  }
+
+  void _validarItemParaAtualizacao({
+    required String nome,
+    required String descricao,
+    required List<String> fotosPaths,
+    required double precoPorDia,
+    double? precoPorHora,
+    double? precoVenda,
+    double? caucao,
+    String? regrasUso,
+  }) {
+    if (nome.trim().isEmpty || nome.trim().length > 100) {
+      throw Exception('Nome inválido: deve ter entre 1 e 100 caracteres.');
+    }
+
+    final descricaoTrim = descricao.trim();
+    final descricaoLen = descricaoTrim.length;
+
+    if (descricaoTrim.isEmpty || descricaoLen > 1000) {
+      throw Exception(
+          'Descrição inválida (tamanho: $descricaoLen). Deve ter entre 1 e 1000 caracteres.');
+    }
+
+    if (fotosPaths.isEmpty) {
+      throw Exception('É necessário pelo menos uma foto do item.');
+    }
+    if (fotosPaths.length > 5) {
+      throw Exception('Máximo de 5 fotos permitido.');
+    }
+
+    if (precoPorDia < 0) {
+      throw Exception('Preço por dia não pode ser negativo.');
+    }
+    if (precoPorHora != null && precoPorHora < 0) {
+      throw Exception('Preço por hora não pode ser negativo.');
+    }
+    if (precoVenda != null && precoVenda < 0) {
+      throw Exception('Preço de venda não pode ser negativo.');
+    }
+    if (caucao != null && caucao < 0) {
+      throw Exception('Caução não pode ser negativa.');
+    }
+
+    if (regrasUso != null && regrasUso.length > 1000) {
+      throw Exception('Regras de uso muito longas (máx 1000 caracteres).');
+    }
   }
 
   Future<void> publicarItem({
@@ -76,9 +123,10 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
 
       // Geocodificar endereço se latitude ou longitude não estiverem definidas
       Endereco localizacaoAtualizada = localizacao;
-      if (localizacao.latitude == null || localizacao.longitude == null
-        || localizacao.latitude == 0.0 || localizacao.longitude == 0.0
-      ) {
+      if (localizacao.latitude == null ||
+          localizacao.longitude == null ||
+          localizacao.latitude == 0.0 ||
+          localizacao.longitude == 0.0) {
         final addressString = _formatAddress(localizacao);
         final locations = await locationFromAddress(addressString);
         if (locations.isNotEmpty) {
@@ -88,7 +136,8 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
             longitude: location.longitude,
           );
         } else {
-          throw Exception('Não foi possível geocodificar o endereço: $addressString');
+          throw Exception(
+              'Não foi possível geocodificar o endereço: $addressString');
         }
       }
 
@@ -108,6 +157,17 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
 
       final allFotoUrls = [...existingUrls, ...uploadedUrls];
 
+      _validarItemParaAtualizacao(
+        nome: nome,
+        descricao: descricao,
+        fotosPaths: allFotoUrls,
+        precoPorDia: precoPorDia,
+        precoPorHora: precoPorHora,
+        precoVenda: precoVenda,
+        caucao: caucao,
+        regrasUso: regrasUso,
+      );
+
       final item = ItemModel(
         id: itemId,
         nome: nome,
@@ -126,10 +186,8 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
         proprietarioId: currentUser.id,
         proprietarioNome: currentUser.nome,
         proprietarioReputacao: currentUser.reputacao,
-        localizacao:
-            localizacaoAtualizada,
-        criadoEm: DateTime
-            .now(),
+        localizacao: localizacaoAtualizada,
+        criadoEm: DateTime.now(),
         avaliacao: 0.0,
         totalAlugueis: 0,
         visualizacoes: 0,
@@ -161,6 +219,36 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
+      _validarItemParaAtualizacao(
+        nome: nome,
+        descricao: descricao,
+        fotosPaths: fotosPaths,
+        precoPorDia: precoPorDia,
+        precoPorHora: precoPorHora,
+        precoVenda: precoVenda,
+        caucao: caucao,
+        regrasUso: regrasUso,
+      );
+      // Geocodificar endereço caso lat/lon estejam ausentes no itemOriginal
+      Endereco localizacaoAtualizada = itemOriginal.localizacao;
+      if (localizacaoAtualizada.latitude == null ||
+          localizacaoAtualizada.longitude == null ||
+          localizacaoAtualizada.latitude == 0.0 ||
+          localizacaoAtualizada.longitude == 0.0) {
+        final addressString = _formatAddress(localizacaoAtualizada);
+        final locations = await locationFromAddress(addressString);
+        if (locations.isNotEmpty) {
+          final location = locations.first;
+          localizacaoAtualizada = localizacaoAtualizada.copyWith(
+            latitude: location.latitude,
+            longitude: location.longitude,
+          );
+        } else {
+          // Se não conseguiu pegar coordenadas, lançar para que regras sejam respeitadas
+          throw Exception(
+              'Não foi possível geocodificar o endereço do item para atualização.');
+        }
+      }
       // Processar fotos
       List<String> fotosFinais = [];
       List<String> fotosParaDeletar = [];
@@ -186,7 +274,8 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
 
       // Upload das novas fotos
       if (novasFotos.isNotEmpty) {
-        final urlsNovasFotos = await _itemRepository.uploadFotos(novasFotos, itemId);
+        final urlsNovasFotos =
+            await _itemRepository.uploadFotos(novasFotos, itemId);
         fotosFinais.addAll(urlsNovasFotos);
       }
 
@@ -211,7 +300,7 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
         aprovacaoAutomatica: aprovacaoAutomatica,
         criadoEm: itemOriginal.criadoEm,
         atualizadoEm: DateTime.now(),
-        localizacao: itemOriginal.localizacao,
+        localizacao: localizacaoAtualizada,
         avaliacao: itemOriginal.avaliacao,
         totalAlugueis: itemOriginal.totalAlugueis,
         visualizacoes: itemOriginal.visualizacoes,
@@ -219,9 +308,9 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
 
       // Atualizar no Firebase
       await _itemRepository.atualizarItem(itemAtualizado);
-      
+
       state = const AsyncValue.data(null);
-      
+
       // Deletar fotos antigas em background (não bloqueia a UI)
       // Fazemos isso DEPOIS de atualizar o state para não atrasar a resposta ao usuário
       if (fotosParaDeletar.isNotEmpty) {
@@ -240,11 +329,12 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
     try {
       // Aguarda 5 segundos para garantir propagação dos caches
       await Future.delayed(const Duration(seconds: 5));
-      
-      print('Iniciando exclusão de ${fotosUrls.length} fotos antigas do Storage...');
+
+      print(
+          'Iniciando exclusão de ${fotosUrls.length} fotos antigas do Storage...');
       int sucessos = 0;
       int falhas = 0;
-      
+
       for (final fotoUrl in fotosUrls) {
         try {
           await _itemRepository.deletarFoto(fotoUrl);
@@ -255,7 +345,7 @@ class ItemController extends StateNotifier<AsyncValue<void>> {
           print('✗ Erro ao deletar foto: $e');
         }
       }
-      
+
       print('Limpeza concluída: $sucessos sucessos, $falhas falhas');
     } catch (e) {
       print('Erro na limpeza de fotos antigas: $e');

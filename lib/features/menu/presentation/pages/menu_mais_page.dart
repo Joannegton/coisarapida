@@ -42,6 +42,14 @@ class MenuMaisPage extends ConsumerWidget {
                 onTap: () => context.push(AppRoutes.favoritos),
               ),
               const Divider(height: 1),
+              MenuListTile(
+                icone: Icons.list_alt_outlined,
+                texto: 'Meus Itens',
+                onTap: () => context.push(AppRoutes.meusItens),
+                iconeAcao: Icon(Icons.arrow_forward_ios, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+              ),
+              const Divider(height: 1),
+              const Divider(height: 1),
               // Notificações não vistas (indicadas pela bolinha vermelha)
               MenuListTile(
                 icone: Icons.notifications_outlined,

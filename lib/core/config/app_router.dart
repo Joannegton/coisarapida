@@ -35,6 +35,7 @@ import '../../features/itens/presentation/pages/detalhes_item_page.dart';
 import '../../features/favoritos/presentation/pages/favoritos_page.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
 import '../../features/itens/presentation/pages/editar_item_page.dart';
+import '../../features/itens/presentation/pages/meus_itens_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -119,6 +120,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => EditarItemPage(
           itemId: state.pathParameters['id']!,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.meusItens,
+        name: 'meus-itens',
+        builder: (context, state) => const MeusItensPage(),
       ),
 
       // Perfil
