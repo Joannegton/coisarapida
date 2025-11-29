@@ -64,15 +64,13 @@ class ApiClient {
   }) async {
     try {
       var uri = Uri.parse('$baseUrl$endpoint');
-      
+
       if (queryParameters != null && queryParameters.isNotEmpty) {
         uri = uri.replace(queryParameters: queryParameters);
       }
 
       final headers = await _getHeaders(includeAuth: requireAuth);
-      
-      debugPrint('🌐 GET $uri');
-      
+
       final response = await _client.get(uri, headers: headers);
 
       return _handleResponse(response);
@@ -92,9 +90,6 @@ class ApiClient {
     try {
       final uri = Uri.parse('$baseUrl$endpoint');
       final headers = await _getHeaders(includeAuth: requireAuth);
-
-      debugPrint('🌐 POST $uri');
-      debugPrint('📦 Body: $body');
 
       final response = await _client.post(
         uri,
@@ -120,8 +115,6 @@ class ApiClient {
     try {
       final uri = Uri.parse('$baseUrl$endpoint');
       final token = requireAuth ? await _getAuthToken() : null;
-
-      debugPrint('🌐 POST (multipart) $uri');
 
       final request = http.MultipartRequest('POST', uri);
 
@@ -164,8 +157,6 @@ class ApiClient {
       final uri = Uri.parse('$baseUrl$endpoint');
       final headers = await _getHeaders(includeAuth: requireAuth);
 
-      debugPrint('🌐 PUT $uri');
-
       final response = await _client.put(
         uri,
         headers: headers,
@@ -189,8 +180,6 @@ class ApiClient {
       final uri = Uri.parse('$baseUrl$endpoint');
       final headers = await _getHeaders(includeAuth: requireAuth);
 
-      debugPrint('🌐 DELETE $uri');
-
       final response = await _client.delete(uri, headers: headers);
 
       return _handleResponse(response);
@@ -203,16 +192,13 @@ class ApiClient {
 
   /// Processar resposta HTTP
   Map<String, dynamic> _handleResponse(http.Response response) {
-    debugPrint('📨 Response [${response.statusCode}]: ${response.body}');
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) {
         return {'success': true};
       }
-      
+
       try {
         final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
-        debugPrint('📄 JSON decodificado: $jsonResponse');
         return jsonResponse;
       } catch (e) {
         throw ServerException('Resposta inválida do servidor');

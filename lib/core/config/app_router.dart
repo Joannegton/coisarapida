@@ -9,11 +9,14 @@ import 'package:coisarapida/features/itens/domain/entities/item.dart';
 import 'package:coisarapida/features/menu/presentation/pages/menu_mais_page.dart';
 import 'package:coisarapida/features/seguranca/presentation/pages/verificacao_residencia_page.dart';
 import 'package:coisarapida/features/seguranca/presentation/pages/verificacao_telefone_page.dart';
+import 'package:coisarapida/features/vendas/presentation/pages/acompanhamento_venda_page.dart';
 import 'package:coisarapida/features/vendas/presentation/pages/comprar_item_page.dart';
 import 'package:coisarapida/shared/widgets/botton_navigation_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:coisarapida/core/providers/payment_deep_link_provider.dart';
+import 'package:coisarapida/core/utils/snackbar_utils.dart';
 
 import '../../features/autenticacao/presentation/pages/splash_page.dart';
 import '../../features/autenticacao/presentation/pages/login_page.dart';
@@ -149,7 +152,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           String chatId = state.pathParameters['chatId']!;
 
           // Extrai o otherUserId do chatId se extra não estiver disponível
-          final otherUserId = (state.extra as String?) ?? 
+          final otherUserId = (state.extra as String?) ??
               (chatId.startsWith('chat_') ? chatId.substring(5) : chatId);
 
           return ChatPage(chatId: chatId, otherUserId: otherUserId);
@@ -199,14 +202,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        path: '/acompanhamento-venda/:vendaId',
+        name: 'acompanhamento-venda',
+        builder: (context, state) {
+          final vendaId = state.pathParameters['vendaId']!;
+          final dadosVenda = (state.extra as Map<String, dynamic>?) ?? {};
+          return AcompanhamentoVendaPage(
+            vendaId: vendaId,
+            dadosVenda: dadosVenda,
+          );
+        },
+      ),
+
+      GoRoute(
         path: AppRoutes.detalhesSolicitacao,
         name: 'detalhes-solicitacao',
         builder: (context, state) {
           final aluguel = state.extra as Aluguel?;
           if (aluguel == null) {
             return const Scaffold(
-                body: Center(
-                    child: Text("Solicitação não fornecida.")));
+                body: Center(child: Text("Solicitação não fornecida.")));
           }
           return DetalhesSolicitacaoPage(aluguel: aluguel);
         },
@@ -253,20 +268,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'avaliacao',
         builder: (context, state) {
           final avaliadoId = state.uri.queryParameters['avaliadoId'];
-          final avaliadoNome = state.uri.queryParameters['avaliadoNome'] ?? 'Usuário';
+          final avaliadoNome =
+              state.uri.queryParameters['avaliadoNome'] ?? 'Usuário';
           final avaliadoFoto = state.uri.queryParameters['avaliadoFoto'];
           final aluguelId = state.uri.queryParameters['aluguelId'];
           final itemId = state.uri.queryParameters['itemId'];
           final itemNome = state.uri.queryParameters['itemNome'];
-          final isObrigatoria = state.uri.queryParameters['isObrigatoria'] == 'true';
-          final avaliacaoPendenteId = state.uri.queryParameters['avaliacaoPendenteId'];
-          
+          final isObrigatoria =
+              state.uri.queryParameters['isObrigatoria'] == 'true';
+          final avaliacaoPendenteId =
+              state.uri.queryParameters['avaliacaoPendenteId'];
+
           if (avaliadoId == null || aluguelId == null) {
             return const Scaffold(
               body: Center(child: Text("IDs inválidos para avaliação")),
             );
           }
-          
+
           return AvaliacaoPage(
             avaliadoId: avaliadoId,
             avaliadoNome: avaliadoNome,
@@ -279,8 +297,68 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-
-
     ],
+  );
+});
+
+/// Provider que gerencia a integração de deep links de pagamento com a navegação
+/// Inicializa o listener de deep links e redireciona automaticamente
+final paymentDeepLinkNavigationProvider = FutureProvider<void>((ref) async {
+  final deepLinkService = ref.watch(paymentDeepLinkServiceProvider);
+  final router = ref.watch(appRouterProvider);
+
+  deepLinkService.initialize(
+    onPaymentResult: (result) {
+      if (result.isSuccess && result.externalReference != null) {
+        final refParts = result.externalReference!.split(',');
+        final id = refParts.first.trim();
+        final tipo =
+            refParts.length > 1 ? refParts[1].trim().toLowerCase() : '';
+        Future.delayed(const Duration(milliseconds: 100), () {
+          try {
+            if (tipo == 'aluguel' || tipo == 'caucao') {
+              final routePath = '${AppRoutes.statusAluguel}/$id';
+              router.go(routePath, extra: {
+                'aluguelId': id,
+                'paymentId': result.paymentId,
+                'collectionStatus': result.collectionStatus,
+                'fromDeepLink': true,
+              });
+            } else if (tipo == 'venda') {
+              final routePath = '/acompanhamento-venda/$id';
+              router.go(routePath, extra: {
+                'vendaId': id,
+                'paymentId': result.paymentId,
+                'collectionStatus': result.collectionStatus,
+                'fromDeepLink': true,
+              });
+            }
+          } catch (e, stackTrace) {
+            debugPrint('Erro ao navegar para acompanhamento: $e');
+          }
+        });
+      } else if (result.isFailure) {
+        try {
+          final context = router.routerDelegate.navigatorKey.currentContext;
+          if (context != null) {
+            SnackBarUtils.mostrarErro(
+                context, 'Pagamento rejeitado. Tente novamente.');
+          }
+        } catch (e) {
+          // Erro ao mostrar snackbar
+        }
+      } else if (result.isPending) {
+        // ⏳ Pagamento pendente
+        try {
+          final context = router.routerDelegate.navigatorKey.currentContext;
+          if (context != null) {
+            SnackBarUtils.mostrarInfo(
+                context, 'Pagamento pendente. Verifique seu email.');
+          }
+        } catch (e) {
+          // Erro ao mostrar snackbar
+        }
+      }
+    },
   );
 });

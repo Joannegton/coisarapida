@@ -16,13 +16,10 @@ import 'package:coisarapida/shared/services/mercado_pago_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_routes.dart';
 import '../../domain/entities/aluguel.dart';
 import '../../data/models/aluguel_model.dart';
 import '../providers/aluguel_providers.dart';
 import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
-import 'package:coisarapida/shared/services/payment_deep_link_service.dart';
 import 'dart:async';
 
 class SolicitarAluguelPage extends ConsumerStatefulWidget {
@@ -51,21 +48,13 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   bool _isProcessing = false;
 
   bool _isAluguelIniciado = false;
-  final PaymentDeepLinkService _deepLinkService = PaymentDeepLinkService();
-
-  // Flag para controlar qual tipo de pagamento está sendo processado
-  bool _isPagandoCaucao = false;
 
   // ID do contrato aceito pelo locatário
   late String _contratoId;
 
   // Controle de fallback do pagamento
-  bool _pagamentoProcessado = false;
   Timer? _timerFallback;
   String? _aluguelIdEmPagamento; // ID do aluguel em processamento
-
-  // Configuração do timer de fallback (em segundos)
-  static const int FALLBACK_TIMEOUT_SECONDS = 45;
 
   final _paginaController = PageController();
 
@@ -82,12 +71,10 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
   void initState() {
     super.initState();
     _inicializarDatas();
-    _initDeepLinks();
   }
 
   @override
   void dispose() {
-    _deepLinkService.dispose();
     _timerFallback?.cancel();
     _paginaController.dispose();
     super.dispose();
@@ -99,109 +86,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
     }
     _dataInicio = _agoraNormalizado;
     _dataFim = _dataInicio.add(_duracaoMinimaDia);
-  }
-
-  void _initDeepLinks() {
-    _deepLinkService.initialize(
-      onPaymentResult: (result) {
-        // Ignorar se já processado ou se não há pagamento em andamento
-        if (!mounted || _pagamentoProcessado || !_isAluguelIniciado) {
-          debugPrint(
-              '⚠️ Deep link ignorado - já processado ou sem pagamento em andamento');
-          return;
-        }
-
-        if (result.isSuccess) {
-          debugPrint('✅ Pagamento aprovado via deep link');
-          _pagamentoProcessado = true;
-          _timerFallback?.cancel();
-          _processarPagamentoAprovado(result.paymentId);
-        } else if (result.isFailure) {
-          debugPrint('❌ Pagamento rejeitado');
-          _timerFallback?.cancel();
-          if (mounted) {
-            SnackBarUtils.mostrarErro(
-                context, 'Pagamento rejeitado. Tente novamente.');
-            setState(() => _isProcessing = false);
-          }
-        } else if (result.isPending) {
-          debugPrint('⏳ Pagamento pendente');
-          _timerFallback?.cancel();
-          if (mounted) {
-            SnackBarUtils.mostrarErro(
-                context, 'Pagamento pendente. Verifique seu email.');
-            setState(() => _isProcessing = false);
-          }
-        }
-      },
-    );
-  }
-
-  Future<void> _processarPagamentoAprovado(String? paymentId) async {
-    if (!mounted || !_isAluguelIniciado) return;
-
-    debugPrint('💰 Processando pagamento aprovado com ID: $paymentId');
-
-    try {
-      final valorCaucao =
-          (_dadosAluguel['valorCaucao'] as num?)?.toDouble() ?? 0.0;
-
-      _pagamentoProcessado = true;
-      _timerFallback?.cancel();
-
-      // Se estamos pagando a caução
-      if (_isPagandoCaucao && valorCaucao > 0) {
-        debugPrint('💳 Pagando caução: R\$ $valorCaucao');
-
-        final caucaoDoAluguel = _criarCaucaoAluguel(
-          valorCaucao,
-          paymentId ?? 'MP_${DateTime.now().millisecondsSinceEpoch}',
-        );
-
-        final aluguelParaSalvar = _criarAluguelParaSalvar(caucaoDoAluguel);
-
-        debugPrint(
-            '📝 Criado aluguel para salvar com ID: ${aluguelParaSalvar.id}');
-
-        final aluguelIdCriado = await ref
-            .read(aluguelControllerProvider.notifier)
-            .submeterAluguelCompleto(aluguelParaSalvar);
-
-        debugPrint('✅ Aluguel salvo com caução - ID: $aluguelIdCriado');
-
-        if (mounted) {
-          _mostrarSucessoENavegar(aluguelParaSalvar, valorCaucao,
-              tipoPagamento: 'caução', aluguelIdConfirmado: aluguelIdCriado);
-        }
-      }
-      // Se estamos pagando o valor do aluguel (sem caução)
-      else {
-        debugPrint('🛒 Pagando aluguel sem caução');
-
-        final caucaoDoAluguel = _criarCaucaoAluguel(0.0, null);
-        final aluguelParaSalvar = _criarAluguelParaSalvar(caucaoDoAluguel);
-
-        final aluguelIdCriado = await ref
-            .read(aluguelControllerProvider.notifier)
-            .submeterAluguelCompleto(aluguelParaSalvar);
-
-        if (mounted) {
-          debugPrint('✅ Aluguel salvo sem caução - ID: $aluguelIdCriado');
-          _mostrarSucessoENavegar(aluguelParaSalvar, 0.0,
-              tipoPagamento: 'aluguel', aluguelIdConfirmado: aluguelIdCriado);
-        }
-      }
-    } catch (e) {
-      debugPrint('❌ Erro ao processar pagamento: $e');
-      debugPrint('❌ Stack trace: $e');
-      if (mounted) {
-        SnackBarUtils.mostrarErro(
-          context,
-          'Erro ao processar pagamento: $e',
-        );
-        setState(() => _isProcessing = false);
-      }
-    }
   }
 
   bool _validarDatas() {
@@ -740,8 +624,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       final mercadoPagoService = ref.read(mercadoPagoServiceProvider);
 
       if (valorCaucao > 0) {
-        setState(() => _isPagandoCaucao = true);
-
         final preferenceResponse =
             await mercadoPagoService.criarPreferenciaPagamento(
           aluguelId: _alugueId,
@@ -759,9 +641,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
         if (!mounted) return;
         await _abrirCheckoutMercadoPago(preferenceResponse);
       } else {
-        // Se não há caução, processar pagamento do valor do aluguel
-        setState(() => _isPagandoCaucao = false);
-
         final preferenceResponse =
             await mercadoPagoService.criarPreferenciaPagamento(
           aluguelId: _alugueId,
@@ -806,9 +685,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
       debugPrint('🛒 Abrindo checkout: $initPoint');
       debugPrint('💳 Aluguel em pagamento: $_aluguelIdEmPagamento');
 
-      // Iniciar timer de fallback
-      _iniciarTimerFallback();
-
       await launchUrl(
         Uri.parse(initPoint),
         customTabsOptions: CustomTabsOptions(
@@ -849,82 +725,6 @@ class _SolicitarAluguelPageState extends ConsumerState<SolicitarAluguelPage> {
         setState(() => _isProcessing = false);
         _timerFallback?.cancel();
       }
-    }
-  }
-
-  /// Inicia um timer para verificar o status do pagamento após FALLBACK_TIMEOUT_SECONDS
-  /// Isso funciona como fallback se o deep link não funcionar
-  void _iniciarTimerFallback() {
-    _timerFallback?.cancel(); // Cancela qualquer timer anterior
-
-    debugPrint('⏱️ Iniciando timer de fallback (${FALLBACK_TIMEOUT_SECONDS}s)');
-
-    _timerFallback =
-        Timer(const Duration(seconds: FALLBACK_TIMEOUT_SECONDS), () async {
-      if (!mounted || _pagamentoProcessado) {
-        debugPrint('✅ Pagamento já foi processado ou widget desmontado');
-        return;
-      }
-
-      debugPrint('⏰ Timer de fallback acionado! Deep link não retornou.');
-
-      try {
-        if (_aluguelIdEmPagamento == null) {
-          debugPrint('❌ Aluguel ID não disponível');
-          setState(() => _isProcessing = false);
-          return;
-        }
-
-        debugPrint(
-            '⚠️ Deep link não foi recebido em ${FALLBACK_TIMEOUT_SECONDS}s');
-
-        // Fallback: Avisar usuário para verificar email e tentar recarregar
-        SnackBarUtils.mostrarErro(
-          context,
-          'Pagamento pode ter sido processado. Verifique seu email e reabra o app.',
-        );
-
-        setState(() => _isProcessing = false);
-
-        // Opcionalmente: Pode implementar webhook do Mercado Pago para resolver isso depois
-        debugPrint(
-            '💡 Nota: Configure webhook do Mercado Pago para confirmar pagamentos automaticamente');
-      } catch (e) {
-        if (mounted) {
-          debugPrint('❌ Erro no fallback: $e');
-          setState(() => _isProcessing = false);
-        }
-      }
-    });
-  }
-
-  void _mostrarSucessoENavegar(Aluguel aluguel, double valorCaucao,
-      {String tipoPagamento = '', String? aluguelIdConfirmado}) {
-    String mensagem;
-
-    if (tipoPagamento == 'caução') {
-      mensagem = 'Caução processada e solicitação de aluguel enviada! 🎉';
-    } else if (tipoPagamento == 'aluguel') {
-      mensagem = 'Pagamento realizado e solicitação de aluguel enviada! 🎉';
-    } else {
-      mensagem = valorCaucao > 0
-          ? 'Caução processada e solicitação de aluguel enviada! 🎉'
-          : 'Solicitação de aluguel enviada! 🎉';
-    }
-
-    SnackBarUtils.mostrarSucesso(context, mensagem);
-
-    // Usar o ID confirmado do backend se disponível, senão usar o ID do aluguel
-    final finalAluguelId = aluguelIdConfirmado ?? aluguel.id;
-
-    debugPrint('🚀 Navegando para status do aluguel: $finalAluguelId');
-
-    // Usar context.go() para navegar e limpar o stack de rotas
-    try {
-      context.go('${AppRoutes.statusAluguel}/$finalAluguelId');
-      debugPrint('✅ Navegação iniciada');
-    } catch (e) {
-      debugPrint('❌ Erro ao navegar: $e');
     }
   }
 

@@ -1,3 +1,4 @@
+import 'package:coisarapida/features/configuracoes/presentation/providers/idioma_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,11 +12,10 @@ import 'core/config/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/configuracoes/presentation/providers/tema_provider.dart';
-import 'features/configuracoes/presentation/providers/idioma_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Habilitar modo Edge-to-Edge para a UI do sistema (barra de status/navegação)
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
@@ -40,7 +40,8 @@ void main() async {
 
   // Ativar App Check em modo debug para desenvolvimento
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug, // Use debug para desenvolvimento/emulador
+    androidProvider:
+        AndroidProvider.debug, // Use debug para desenvolvimento/emulador
     appleProvider: AppleProvider.debug,
   );
 
@@ -63,15 +64,18 @@ class CoisaRapidaApp extends ConsumerWidget {
     final temaAtual = ref.watch(temaProvider);
     final idiomaAtual = ref.watch(idiomaProvider);
 
+    // 🔥 Inicializar listener de deep links de pagamento
+    ref.watch(paymentDeepLinkNavigationProvider);
+
     return MaterialApp.router(
       title: 'Coisa Rápida',
       debugShowCheckedModeBanner: false,
-      
+
       // tema
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: temaAtual,
-      
+
       // idioma
       locale: idiomaAtual,
       supportedLocales: const [
@@ -83,7 +87,7 @@ class CoisaRapidaApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      
+
       // Roteamento
       routerConfig: router,
     );

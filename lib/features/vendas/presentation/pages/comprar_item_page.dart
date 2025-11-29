@@ -29,96 +29,17 @@ class ComprarItemPage extends ConsumerStatefulWidget {
 class _ComprarItemPageState extends ConsumerState<ComprarItemPage> {
   String _metodoPagamento = 'mercado_pago';
   bool _isProcessing = false;
-  bool _pagamentoProcessado = false;
   late String _vendaId;
   late Map<String, dynamic> _dadosVenda;
-  final PaymentDeepLinkService _deepLinkService = PaymentDeepLinkService();
 
   @override
   void initState() {
     super.initState();
     _vendaId = _gerarIdVenda();
-    _initDeepLinks();
-  }
-
-  @override
-  void dispose() {
-    _deepLinkService.dispose();
-    super.dispose();
   }
 
   String _gerarIdVenda() {
     return DateTime.now().millisecondsSinceEpoch.toString();
-  }
-
-  void _initDeepLinks() {
-    _deepLinkService.initialize(
-      onPaymentResult: (result) {
-        // Ignorar se já processado
-        if (!mounted || _pagamentoProcessado) {
-          debugPrint('⚠️ Deep link ignorado - já processado');
-          return;
-        }
-
-        if (result.isSuccess) {
-          debugPrint('✅ Pagamento de venda aprovado via deep link');
-          _pagamentoProcessado = true;
-          _processarPagamentoAprovado(result.paymentId);
-        } else if (result.isFailure) {
-          debugPrint('❌ Pagamento de venda rejeitado');
-          if (mounted) {
-            SnackBarUtils.mostrarErro(
-                context, 'Pagamento falhou. Tente novamente.');
-            setState(() => _isProcessing = false);
-          }
-        } else if (result.isPending) {
-          debugPrint('⏳ Pagamento de venda pendente');
-          if (mounted) {
-            SnackBarUtils.mostrarErro(
-                context, 'Pagamento pendente. Aguarde a confirmação.');
-            setState(() => _isProcessing = false);
-          }
-        }
-      },
-    );
-  }
-
-  Future<void> _processarPagamentoAprovado(String? paymentId) async {
-    if (!mounted) return;
-
-    try {
-      final venda = Venda(
-        id: _vendaId,
-        itemId: widget.item.id,
-        itemNome: widget.item.nome,
-        itemFotoUrl:
-            widget.item.fotos.isNotEmpty ? widget.item.fotos.first : '',
-        vendedorId: widget.item.proprietarioId,
-        vendedorNome: widget.item.proprietarioNome,
-        compradorId: _dadosVenda['compradorId'] as String,
-        compradorNome: _dadosVenda['compradorNome'] as String,
-        valorPago: (_dadosVenda['valorPago'] as num).toDouble(),
-        metodoPagamento: _metodoPagamento,
-        transacaoId: paymentId ?? 'MP_${DateTime.now().millisecondsSinceEpoch}',
-        dataVenda: DateTime.now(),
-      );
-
-      await ref.read(vendaControllerProvider.notifier).registrarVenda(venda);
-
-      if (mounted) {
-        SnackBarUtils.mostrarSucesso(
-            context, 'Compra realizada com sucesso! 🎉');
-        context.go('/');
-      }
-    } catch (e) {
-      if (mounted) {
-        SnackBarUtils.mostrarErro(
-          context,
-          'Erro ao processar pagamento: $e',
-        );
-        setState(() => _isProcessing = false);
-      }
-    }
   }
 
   @override

@@ -43,7 +43,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   bool _isCreatingChat = false;
   bool _carregando = true;
   bool _aprovandoDevolucao = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -53,42 +53,88 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     _iniciarListenerAluguel();
   }
 
+  @override
+  void dispose() {
+    // Cancelar timer para evitar memory leak
+    _timer?.cancel();
+    // Cancelar subscription do Firestore
+    _aluguelSubscription?.cancel();
+    super.dispose();
+  }
+
   void _iniciarListenerAluguel() {
     _aluguelSubscription = FirebaseFirestore.instance
         .collection('alugueis')
         .doc(widget.aluguelId)
         .snapshots()
-        .listen((snapshot) {
-          if (mounted && snapshot.exists) {
-            final data = snapshot.data() as Map<String, dynamic>;
-            debugPrint('Dados do aluguel atualizados: $data');
-            // Usar apenas dados do Firebase, convertendo campos numéricos
+        .listen(
+      (snapshot) {
+        if (!mounted) {
+          debugPrint(
+              '⚠️ [StatusAluguelPage] Widget não está montado, ignorando snapshot');
+          return;
+        }
+
+        if (!snapshot.exists) {
+          debugPrint('❌ [StatusAluguelPage] Documento não existe!');
+          setState(() {
+            _carregando = false;
+          });
+          return;
+        }
+
+        try {
+          final data = snapshot.data() as Map<String, dynamic>;
+
+          // Usar apenas dados do Firebase, convertendo campos numéricos
+          setState(() {
+            _dadosAluguelAtuais = {
+              'itemNome': data['itemNome'] ?? '',
+              'locadorId': data['locadorId'] ?? '',
+              'compradorId': data['locatarioId'] ?? '',
+              'status': data['status'] ?? 'solicitado',
+              'nomeItem': data['itemNome'] ?? '',
+              'itemId': data['itemId'] ?? '',
+              'dataInicio': (data['dataInicio'] as Timestamp?)
+                      ?.toDate()
+                      .toIso8601String() ??
+                  '',
+              'dataLimiteDevolucao':
+                  (data['dataFim'] as Timestamp?)?.toDate().toIso8601String() ??
+                      '',
+              'valorAluguel': (data['precoTotal'] as num?)?.toDouble() ?? 0.0,
+              'valorCaucao': (data['caucao'] as Map<String, dynamic>?)?['valor']
+                      ?.toDouble() ??
+                  0.0,
+              'valorDiaria': 0.0, // Calcular se necessário
+              'nomeLocador': data['locadorNome'] ?? '',
+              'nomeLocatario': data['locatarioNome'] ?? '',
+              'telefoneLocatario': data['telefoneLocatario'] ?? '',
+              'enderecoLocatario': data['enderecoLocatario'] ?? '',
+              'itemFotoUrl': data['itemFotoUrl'] ?? '',
+              'observacoesLocatario': data['observacoesLocatario'] ?? '',
+              'motivoRecusaLocador': data['motivoRecusaLocador'] ?? '',
+              'contratoId': data['contratoId'] ?? '',
+            };
+            _carregando = false;
+          });
+        } catch (e, stackTrace) {
+          if (mounted) {
             setState(() {
-              _dadosAluguelAtuais = {
-                'itemNome': data['itemNome'] ?? '',
-                'locadorId': data['locadorId'] ?? '',
-                'compradorId': data['locatarioId'] ?? '',
-                'status': data['status'] ?? 'solicitado',
-                'nomeItem': data['itemNome'] ?? '',
-                'itemId': data['itemId'] ?? '',
-                'dataInicio': (data['dataInicio'] as Timestamp?)?.toDate().toIso8601String() ?? '',
-                'dataLimiteDevolucao': (data['dataFim'] as Timestamp?)?.toDate().toIso8601String() ?? '',
-                'valorAluguel': (data['precoTotal'] as num?)?.toDouble() ?? 0.0,
-                'valorCaucao': (data['caucao'] as Map<String, dynamic>?)?['valor']?.toDouble() ?? 0.0,
-                'valorDiaria': 0.0, // Calcular se necessário
-                'nomeLocador': data['locadorNome'] ?? '',
-                'nomeLocatario': data['locatarioNome'] ?? '',
-                'telefoneLocatario': data['telefoneLocatario'] ?? '',
-                'enderecoLocatario': data['enderecoLocatario'] ?? '',
-                'itemFotoUrl': data['itemFotoUrl'] ?? '',
-                'observacoesLocatario': data['observacoesLocatario'] ?? '',
-                'motivoRecusaLocador': data['motivoRecusaLocador'] ?? '',
-                'contratoId': data['contratoId'] ?? '',
-              };
               _carregando = false;
             });
           }
-        });
+        }
+      },
+      onError: (error, stackTrace) {
+        if (mounted) {
+          setState(() {
+            _carregando = false;
+          });
+        }
+      },
+      cancelOnError: false,
+    );
   }
 
   void _iniciarTimer() {
@@ -99,24 +145,34 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _verificarAtraso() async {
-    final dataLimite = _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']);
-    final agora = DateTime.now();
-    
-    if (agora.isAfter(dataLimite)) {
-      // Calcular multa por atraso
-      final repository = ref.read(segurancaRepositoryProvider);
-      final multa = await repository.calcularMultaAtraso(
-        aluguelId: widget.aluguelId,
-        locadorId: _dadosAluguelAtuais['locadorId'],
-        dataLimiteDevolucao: dataLimite,
-        valorDiaria: double.parse(_dadosAluguelAtuais['valorDiaria'].toString()),
-      );
-      
-      if (multa > 0 && mounted) {
-        setState(() {
-          _valorMulta = multa;
-        });
+    if (!mounted) {
+      return;
+    }
+
+    try {
+      final dataLimite =
+          _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']);
+      final agora = DateTime.now();
+
+      if (agora.isAfter(dataLimite)) {
+        // Calcular multa por atraso
+        final repository = ref.read(segurancaRepositoryProvider);
+        final multa = await repository.calcularMultaAtraso(
+          aluguelId: widget.aluguelId,
+          locadorId: _dadosAluguelAtuais['locadorId'],
+          dataLimiteDevolucao: dataLimite,
+          valorDiaria:
+              double.parse(_dadosAluguelAtuais['valorDiaria'].toString()),
+        );
+
+        if (multa > 0 && mounted) {
+          setState(() {
+            _valorMulta = multa;
+          });
+        }
       }
+    } catch (e, stackTrace) {
+      // Erro ao calcular multa
     }
   }
 
@@ -137,19 +193,33 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       );
     }
 
-    final dataLimite = _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']);
+    final dataLimite =
+        _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']);
     final agora = DateTime.now();
     final emAtraso = agora.isAfter(dataLimite);
-    final usuario = ref.watch(usuarioAtualStreamProvider).value;
+    final usuarioAsync = ref.watch(usuarioAtualStreamProvider);
+    final usuario = usuarioAsync.value;
     final isLocador = usuario?.id == _dadosAluguelAtuais['locadorId'];
-    final isLocatario = usuario?.id == _dadosAluguelAtuais['compradorId'] || usuario?.id != _dadosAluguelAtuais['locadorId'];
-    
+    final isLocatario = usuario?.id == _dadosAluguelAtuais['compradorId'] ||
+        usuario?.id != _dadosAluguelAtuais['locadorId'];
+
     // Verificar se o status é "solicitado" (aguardando aprovação)
     final statusAluguel = _dadosAluguelAtuais['status'] as String?;
     final isSolicitado = statusAluguel == 'solicitado';
 
+    final fromDeepLink = widget.dadosAluguel['fromDeepLink'] == true;
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (fromDeepLink) {
+              context.go(AppRoutes.home);
+            } else {
+              context.pop();
+            }
+          },
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -181,7 +251,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         actions: [
           // Badge de status
           Container(
-            margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * 0.04),
+            margin: EdgeInsets.only(
+                right: MediaQuery.of(context).size.width * 0.04),
             padding: EdgeInsets.symmetric(
               horizontal: MediaQuery.of(context).size.width * 0.03,
               vertical: 6,
@@ -203,7 +274,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 Icon(
                   isSolicitado
                       ? Icons.hourglass_empty_rounded
-                      : (emAtraso ? Icons.warning_rounded : Icons.check_circle_rounded),
+                      : (emAtraso
+                          ? Icons.warning_rounded
+                          : Icons.check_circle_rounded),
                   size: MediaQuery.of(context).size.width * 0.04,
                   color: isSolicitado
                       ? Colors.orange[700]
@@ -238,7 +311,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-        child: SafeArea( // Adicionado SafeArea para garantir que o conteúdo não seja cortado
+        child: SafeArea(
+          // Adicionado SafeArea para garantir que o conteúdo não seja cortado
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               MediaQuery.of(context).size.width * 0.04,
@@ -290,8 +364,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 const SizedBox(height: 12),
 
                 // Botões de ação
-                _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario, isSolicitado, statusAluguel),
-
+                _buildBotoesAcao(theme, emAtraso, isLocador, isLocatario,
+                    isSolicitado, statusAluguel),
               ],
             ),
           ),
@@ -302,7 +376,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
   Widget _buildProgressIndicator(ThemeData theme, DateTime dataLimite) {
     final agora = DateTime.now();
-    final dataInicio = _parseDateTime(_dadosAluguelAtuais['dataInicio'] ?? agora.subtract(const Duration(days: 1)));
+    final dataInicio = _parseDateTime(_dadosAluguelAtuais['dataInicio'] ??
+        agora.subtract(const Duration(days: 1)));
     final totalDias = dataLimite.difference(dataInicio).inDays;
     final diasPassados = agora.difference(dataInicio).inDays;
     final progresso = (diasPassados / totalDias).clamp(0.0, 1.0);
@@ -393,7 +468,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               Text(
                 '${(progresso * 100).round()}%',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: agora.isAfter(dataLimite) ? Colors.red[600] : Colors.blue[600],
+                  color: agora.isAfter(dataLimite)
+                      ? Colors.red[600]
+                      : Colors.blue[600],
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -404,7 +481,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
           // Status do progresso
           Container(
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03, vertical: 6),
+            padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.03, vertical: 6),
             decoration: BoxDecoration(
               color: agora.isAfter(dataLimite)
                   ? Colors.red[50]
@@ -564,7 +642,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
             ),
             child: Icon(
-              emAtraso ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
+              emAtraso
+                  ? Icons.warning_amber_rounded
+                  : Icons.check_circle_outline_rounded,
               size: screenWidth * 0.08,
               color: emAtraso ? Colors.red[700] : Colors.green[700],
             ),
@@ -586,7 +666,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           // Badge de multa (se houver)
           if (emAtraso && _valorMulta != null) ...[
             Container(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.04, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.red[500],
                 borderRadius: BorderRadius.circular(20),
@@ -632,8 +713,12 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ),
             child: Text(
               emAtraso
-                  ? (isLocador ? 'O locatário está em atraso. Considere aplicar multa e notificar.' : 'Você está em atraso! Devolva o item o quanto antes para evitar multas adicionais.')
-                  : (isLocador ? 'Aluguel em andamento. Monitore a devolução e mantenha contato.' : 'Lembre-se de devolver no prazo combinado para evitar multas.'),
+                  ? (isLocador
+                      ? 'O locatário está em atraso. Considere aplicar multa e notificar.'
+                      : 'Você está em atraso! Devolva o item o quanto antes para evitar multas adicionais.')
+                  : (isLocador
+                      ? 'Aluguel em andamento. Monitore a devolução e mantenha contato.'
+                      : 'Lembre-se de devolver no prazo combinado para evitar multas.'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: emAtraso ? Colors.red[700] : Colors.green[700],
                 height: 1.4,
@@ -719,7 +804,6 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ),
               ),
               SizedBox(width: 12),
-
               Expanded(
                 child: _buildInfoCard(
                   theme,
@@ -732,81 +816,85 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             ],
           ),
 
-            // Informações da outra parte
-            SizedBox(height: 12),
-            if (isLocador) ...[
-              Container(
-                padding: EdgeInsets.all(screenWidth * 0.04),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.2),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _dadosAluguelAtuais['nomeLocatario'] ?? 'Locatário',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        context.push('${AppRoutes.perfilPublico}/${_dadosAluguelAtuais['locatarioId'] ?? ''}');
-                      },
-                      child: Icon(
-                        Icons.remove_red_eye_outlined,
-                        color: theme.colorScheme.secondary,
-                        size: screenWidth * 0.05,
-                      ),
-                    ),
-                  ],
+          // Informações da outra parte
+          SizedBox(height: 12),
+          if (isLocador) ...[
+            Container(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.2),
                 ),
               ),
-            ] else ...[
-              Container(
-                padding: EdgeInsets.all(screenWidth * 0.04),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _dadosAluguelAtuais['nomeLocatario'] ?? 'Locatário',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _dadosAluguelAtuais['nomeLocador'] as String? ?? 'Locador',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                  GestureDetector(
+                    onTap: () {
+                      context.push(
+                          '${AppRoutes.perfilPublico}/${_dadosAluguelAtuais['locatarioId'] ?? ''}');
+                    },
+                    child: Icon(
+                      Icons.remove_red_eye_outlined,
+                      color: theme.colorScheme.secondary,
+                      size: screenWidth * 0.05,
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        context.push('${AppRoutes.perfilPublico}/${_dadosAluguelAtuais['locadorId'] ?? ''}');
-                      },
-                      child: Icon(
-                        Icons.remove_red_eye_outlined,
-                        color: theme.colorScheme.primary,
-                        size: screenWidth * 0.05,
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.2),
                 ),
               ),
-            ],
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _dadosAluguelAtuais['nomeLocador'] as String? ??
+                          'Locador',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      context.push(
+                          '${AppRoutes.perfilPublico}/${_dadosAluguelAtuais['locadorId'] ?? ''}');
+                    },
+                    child: Icon(
+                      Icons.remove_red_eye_outlined,
+                      color: theme.colorScheme.primary,
+                      size: screenWidth * 0.05,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildInfoCard(ThemeData theme, String titulo, String valor, IconData icone, Color cor) {
+  Widget _buildInfoCard(
+      ThemeData theme, String titulo, String valor, IconData icone, Color cor) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
@@ -857,7 +945,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     final cor = theme.colorScheme.primary;
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
-      constraints: BoxConstraints(minHeight: screenWidth * 0.15), // altura mínima para 2 linhas
+      constraints: BoxConstraints(
+          minHeight: screenWidth * 0.15), // altura mínima para 2 linhas
       decoration: BoxDecoration(
         color: cor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -870,7 +959,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.inventory_2_rounded, size: screenWidth * 0.04, color: cor),
+              Icon(Icons.inventory_2_rounded,
+                  size: screenWidth * 0.04, color: cor),
               SizedBox(width: screenWidth * 0.015),
               Expanded(
                 child: Text(
@@ -898,7 +988,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
           SizedBox(height: screenWidth * 0.01),
           Row(
             children: [
-              Icon(Icons.calendar_today_rounded, size: screenWidth * 0.035, color: Colors.blue[600]!),
+              Icon(Icons.calendar_today_rounded,
+                  size: screenWidth * 0.035, color: Colors.blue[600]!),
               SizedBox(width: screenWidth * 0.01),
               Expanded(
                 child: Text(
@@ -918,7 +1009,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     );
   }
 
-  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador, bool isLocatario, bool isSolicitado, String? statusAluguel) {
+  Widget _buildBotoesAcao(ThemeData theme, bool emAtraso, bool isLocador,
+      bool isLocatario, bool isSolicitado, String? statusAluguel) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
@@ -981,7 +1073,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ),
               ),
               SizedBox(height: screenWidth * 0.03),
-              
+
               _buildActionButton(
                 theme,
                 'Aprovar Solicitação',
@@ -1012,7 +1104,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               Container(
                 padding: EdgeInsets.all(screenWidth * 0.04),
                 decoration: BoxDecoration(
@@ -1022,7 +1114,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.hourglass_empty_rounded, size: screenWidth * 0.05, color: Colors.orange[700]),
+                    Icon(Icons.hourglass_empty_rounded,
+                        size: screenWidth * 0.05, color: Colors.orange[700]),
                     SizedBox(width: screenWidth * 0.03),
                     Expanded(
                       child: Text(
@@ -1035,9 +1128,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                   ],
                 ),
               ),
-              
+
               SizedBox(height: screenWidth * 0.03),
-              
+
               _buildActionButton(
                 theme,
                 'Cancelar Solicitação',
@@ -1059,7 +1152,6 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                 _confirmarDevolucao,
                 isPrimary: true,
               ),
-
               const SizedBox(height: 10),
             ],
 
@@ -1184,8 +1276,10 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
               ),
               child: isLoading
                   ? SizedBox(
-                      width: isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
-                      height: isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
+                      width:
+                          isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
+                      height:
+                          isCompact ? screenWidth * 0.05 : screenWidth * 0.06,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation(
@@ -1212,7 +1306,9 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
                             : theme.textTheme.titleMedium)
                         ?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isPrimary ? Colors.white : theme.colorScheme.onSurface,
+                      color: isPrimary
+                          ? Colors.white
+                          : theme.colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1276,7 +1372,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
 
   void _recusarSolicitacao() {
     final motivoController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1309,7 +1405,8 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
             onPressed: () {
               final motivo = motivoController.text.trim();
               if (motivo.isEmpty) {
-                SnackBarUtils.mostrarErro(context, 'Informe o motivo da recusa');
+                SnackBarUtils.mostrarErro(
+                    context, 'Informe o motivo da recusa');
                 return;
               }
               Navigator.of(context).pop();
@@ -1338,11 +1435,13 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       locatarioNome: '', // Não temos esse dado aqui
       dataInicio: _parseDateTime(_dadosAluguelAtuais['dataInicio']),
       dataFim: _parseDateTime(_dadosAluguelAtuais['dataLimiteDevolucao']),
-      precoTotal: double.parse(_dadosAluguelAtuais['valorAluguel']?.toString() ?? '0'),
+      precoTotal:
+          double.parse(_dadosAluguelAtuais['valorAluguel']?.toString() ?? '0'),
       status: StatusAluguel.solicitado,
       criadoEm: DateTime.now(),
       caucao: CaucaoAluguel(
-        valor: double.parse(_dadosAluguelAtuais['valorCaucao']?.toString() ?? '0'),
+        valor:
+            double.parse(_dadosAluguelAtuais['valorCaucao']?.toString() ?? '0'),
         status: StatusCaucaoAluguel.naoAplicavel, // Valor padrão
       ),
     );
@@ -1475,7 +1574,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
     }
 
     bool dialogAberto = false;
-    
+
     try {
       showDialog(
         context: context,
@@ -1496,7 +1595,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       // Atualizar status do aluguel para "devolucaoPendente"
       final aluguelController = ref.read(aluguelControllerProvider.notifier);
       await aluguelController.atualizarStatusAluguel(
-        widget.aluguelId, 
+        widget.aluguelId,
         StatusAluguel.devolucaoPendente,
       );
 
@@ -1655,7 +1754,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       // 1. Capturar TODAS as referências síncronas ANTES de qualquer await
       final usuarioAtual = ref.read(usuarioAtualStreamProvider).value;
       final itemId = _dadosAluguelAtuais['itemId'] as String?;
-      
+
       // Validações síncronas
       if (usuarioAtual == null) {
         if (mounted) {
@@ -1675,20 +1774,20 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
       // 2. Capturar o FUTURE do provider antes do await
       final itemFuture = ref.read(detalhesItemProvider(itemId).future);
       final chatController = ref.read(chatControllerProvider.notifier);
-      
+
       // 3. AGORA fazer as operações assíncronas usando as referências capturadas
       final item = await itemFuture;
-      
+
       if (!mounted) return;
-      
+
       if (item == null) {
         SnackBarUtils.mostrarErro(context, "Item não encontrado.");
         return;
       }
-      
+
       // 4. Usar o controller capturado anteriormente
       final chatId = await chatController.abrirOuCriarChat(
-        usuarioAtual: usuarioAtual, 
+        usuarioAtual: usuarioAtual,
         item: item,
       );
 
@@ -1723,13 +1822,6 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   String _formatarData(DateTime data) {
     return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
   }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _aluguelSubscription?.cancel();
-    super.dispose();
-  }
 }
 
 /// Widget para formulário de denúncia
@@ -1743,7 +1835,8 @@ class _FormularioDenuncia extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_FormularioDenuncia> createState() => _FormularioDenunciaState();
+  ConsumerState<_FormularioDenuncia> createState() =>
+      _FormularioDenunciaState();
 }
 
 class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
@@ -1764,7 +1857,7 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       padding: const EdgeInsets.all(16),
@@ -1774,166 +1867,167 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            // Cabeçalho
-            Row(
-              children: [
-                Icon(Icons.report_problem, color: Colors.orange[600]),
-                const SizedBox(width: 8),
-                Text(
-                  'Reportar Problema',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Tipo de problema
-            Text(
-              'Tipo do problema:',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            
-            DropdownButtonFormField<TipoDenuncia>(
-              value: _tipoSelecionado,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category),
-              ),
-              items: _tiposDescricao.entries.map((entry) {
-                return DropdownMenuItem(
-                  value: entry.key,
-                  child: Text(entry.value),
-                );
-              }).toList(),
-              onChanged: (valor) {
-                setState(() {
-                  _tipoSelecionado = valor!;
-                });
-              },
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Descrição
-            Text(
-              'Descrição detalhada:',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            
-            TextFormField(
-              controller: _descricaoController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Descreva o problema em detalhes...',
-                prefixIcon: Icon(Icons.description),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Descrição é obrigatória';
-                }
-                return null;
-              },
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Evidências
-            Text(
-              'Evidências (fotos):',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            
-            Container(
-              height: MediaQuery.of(context).size.width * 0.25,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: _evidencias.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_photo_alternate, color: Colors.grey[600]),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Adicionar fotos',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _evidencias.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          margin: const EdgeInsets.all(8),
-                          width: 80,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            image: DecorationImage(
-                              image: FileImage(_evidencias[index]),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        );
-                      },
+              // Cabeçalho
+              Row(
+                children: [
+                  Icon(Icons.report_problem, color: Colors.orange[600]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Reportar Problema',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            OutlinedButton.icon(
-              onPressed: _adicionarEvidencia,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Adicionar Foto'),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Botões
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
+                  ),
+                  const Spacer(),
+                  IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
+                    icon: const Icon(Icons.close),
                   ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Tipo de problema
+              Text(
+                'Tipo do problema:',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _enviarDenuncia,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange[600],
-                      foregroundColor: Colors.white,
+              ),
+              const SizedBox(height: 8),
+
+              DropdownButtonFormField<TipoDenuncia>(
+                value: _tipoSelecionado,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category),
+                ),
+                items: _tiposDescricao.entries.map((entry) {
+                  return DropdownMenuItem(
+                    value: entry.key,
+                    child: Text(entry.value),
+                  );
+                }).toList(),
+                onChanged: (valor) {
+                  setState(() {
+                    _tipoSelecionado = valor!;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Descrição
+              Text(
+                'Descrição detalhada:',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              TextFormField(
+                controller: _descricaoController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Descreva o problema em detalhes...',
+                  prefixIcon: Icon(Icons.description),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Descrição é obrigatória';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Evidências
+              Text(
+                'Evidências (fotos):',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              Container(
+                height: MediaQuery.of(context).size.width * 0.25,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _evidencias.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_photo_alternate,
+                                color: Colors.grey[600]),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Adicionar fotos',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _evidencias.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            margin: const EdgeInsets.all(8),
+                            width: 80,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              image: DecorationImage(
+                                image: FileImage(_evidencias[index]),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+
+              const SizedBox(height: 8),
+
+              OutlinedButton.icon(
+                onPressed: _adicionarEvidencia,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Adicionar Foto'),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Botões
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancelar'),
                     ),
-                    child: const Text('Enviar Denúncia'),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _enviarDenuncia,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange[600],
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Enviar Denúncia'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1941,7 +2035,8 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
 
   void _adicionarEvidencia() {
     // Simular seleção de foto
-    SnackBarUtils.mostrarInfo(context, 'Funcionalidade de foto será implementada');
+    SnackBarUtils.mostrarInfo(
+        context, 'Funcionalidade de foto será implementada');
   }
 
   void _enviarDenuncia() async {
@@ -1949,13 +2044,13 @@ class _FormularioDenunciaState extends ConsumerState<_FormularioDenuncia> {
 
     try {
       await ref.read(criarDenunciaProvider.notifier).criar(
-        aluguelId: widget.aluguelId,
-        denuncianteId: 'usuario_atual_id', // Pegar do auth
-        denunciadoId: widget.dadosAluguel['locadorId'],
-        tipo: _tipoSelecionado,
-        descricao: _descricaoController.text.trim(),
-        evidencias: _evidencias,
-      );
+            aluguelId: widget.aluguelId,
+            denuncianteId: 'usuario_atual_id', // Pegar do auth
+            denunciadoId: widget.dadosAluguel['locadorId'],
+            tipo: _tipoSelecionado,
+            descricao: _descricaoController.text.trim(),
+            evidencias: _evidencias,
+          );
 
       if (mounted) {
         Navigator.of(context).pop();
