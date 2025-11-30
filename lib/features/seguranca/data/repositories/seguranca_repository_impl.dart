@@ -726,8 +726,9 @@ class SegurancaRepositoryImpl implements SegurancaRepository {
       const multiplicador = 1.5; // 50% de multa sobre o valor da diária
       final multa = diasAtraso * valorDiaria * multiplicador;
       
-      // Registrar multa no Firestore
-      await _firestore.collection('multas').add({
+      // Registrar/atualizar multa no Firestore (usar doc por aluguel para evitar duplicação)
+      final docRef = _firestore.collection('multas').doc(aluguelId);
+      await docRef.set({
         'aluguelId': aluguelId,
         'locadorId': locadorId,
         'diasAtraso': diasAtraso,
@@ -735,7 +736,8 @@ class SegurancaRepositoryImpl implements SegurancaRepository {
         'multiplicador': multiplicador,
         'valorMulta': multa,
         'calculadaEm': FieldValue.serverTimestamp(),
-      });
+        'atualizadaEm': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       
       return multa;
     } catch (e) {

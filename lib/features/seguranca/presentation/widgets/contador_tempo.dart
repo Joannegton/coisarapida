@@ -20,6 +20,7 @@ class _ContadorTempoState extends State<ContadorTempo> {
   Timer? _timer;
   Duration _tempoRestante = Duration.zero;
   bool _emAtraso = false;
+  bool _onAtrasoNotified = false;
 
   @override
   void initState() {
@@ -31,21 +32,25 @@ class _ContadorTempoState extends State<ContadorTempo> {
   void _calcularTempoRestante() {
     final agora = DateTime.now();
     final diferenca = widget.dataLimite.difference(agora);
-    
+
     setState(() {
       if (diferenca.isNegative) {
         _emAtraso = true;
         _tempoRestante = agora.difference(widget.dataLimite);
-        widget.onAtraso?.call();
+        if (!_onAtrasoNotified) {
+          widget.onAtraso?.call();
+          _onAtrasoNotified = true;
+        }
       } else {
         _emAtraso = false;
         _tempoRestante = diferenca;
+        _onAtrasoNotified = false;
       }
     });
   }
 
   void _iniciarTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(hours: 1), (timer) {
       _calcularTempoRestante();
     });
   }
@@ -53,7 +58,7 @@ class _ContadorTempoState extends State<ContadorTempo> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -72,7 +77,7 @@ class _ContadorTempoState extends State<ContadorTempo> {
             color: _emAtraso ? Colors.red[600] : Colors.blue[600],
           ),
           const SizedBox(height: 8),
-          
+
           Text(
             _emAtraso ? 'TEMPO EM ATRASO' : 'TEMPO RESTANTE',
             style: theme.textTheme.titleMedium?.copyWith(
@@ -80,9 +85,9 @@ class _ContadorTempoState extends State<ContadorTempo> {
               color: _emAtraso ? Colors.red[700] : Colors.blue[700],
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Contador
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -94,11 +99,11 @@ class _ContadorTempoState extends State<ContadorTempo> {
               _buildTempoBox('${_tempoRestante.inMinutes % 60}', 'Min'),
             ],
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           Text(
-            _emAtraso 
+            _emAtraso
                 ? 'Devolva o item imediatamente!'
                 : 'Até ${_formatarDataLimite()}',
             style: theme.textTheme.bodyMedium?.copyWith(

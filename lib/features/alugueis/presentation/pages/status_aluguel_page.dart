@@ -138,8 +138,7 @@ class _StatusAluguelPageState extends ConsumerState<StatusAluguelPage> {
   }
 
   void _iniciarTimer() {
-    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      // Verificar se há atraso e calcular multa
+    _timer = Timer.periodic(const Duration(hours: 1), (timer) {
       _verificarAtraso();
     });
   }
